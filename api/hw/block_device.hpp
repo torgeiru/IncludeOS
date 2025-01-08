@@ -41,7 +41,7 @@ public:
   /**
    * Method to get the type of device
    *
-   * @return The type of device as a C-String
+   * @return The type of device as an enum
    */
   Device::Type device_type() const noexcept override
   { return Device::Type::Block; }

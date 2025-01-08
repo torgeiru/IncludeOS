@@ -21,15 +21,18 @@ include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate/include)
 set(SRCS
   version.cpp
 )
+
 set(LIBRARIES
-    hal
-    kernel
-    util
-    net
-    fs
-    posix
-    virtio
-    hw
+  hal
+  kernel
+  util
+  net
+  fs
+  posix
+  virtio
+  # virtio_latest
+  # fuse
+  hw
 )
 
 if (NOT CMAKE_TESTING_ENABLED)

@@ -19,14 +19,15 @@
 #include <string>
 
 namespace hw {
-
   class Device {
   public:
     enum class Type
     {
       Block,
-      Nic
+      Nic,
+      Vfs
     };
+    // ^^^Adding an additional enum type of Vfs
 
     virtual void deactivate() = 0;
     virtual void flush() {} // optional
@@ -43,9 +44,9 @@ namespace hw {
       {
         case Type::Block: return "Block device";
         case Type::Nic:   return "NIC";
+        case Type::Vfs:   return "VFS";
         default:          return "Unknown device";
       }
     }
   };
-
 }

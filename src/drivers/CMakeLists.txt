@@ -28,10 +28,11 @@ set(DRIVER_SRCS
 
 if (${PLATFORM} STREQUAL "default")
   list(APPEND DRIVER_SRCS
-      vga_emergency.cpp
+    vga_emergency.cpp
     virtiocon.cpp
     virtioblk.cpp
     virtionet.cpp
+    virtiofs.cpp
     vmxnet3.cpp
     e1000.cpp
   )
