@@ -217,7 +217,7 @@ void VirtioBlk::shipit(request_t* vbr) {
   (*this->requests)++;
 }
 
-void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func)
+void VirtioBlk::read(block_t blk, size_t cnt, on_read_func func)
 {
   // create big buffer for collecting all the disk data
   auto bigbuf = fs::construct_buffer(block_size() * cnt);
@@ -295,6 +295,7 @@ void VirtioBlk::deactivate()
 /** Global constructor - register VirtioBlk's driver factory at the PCI_manager */
 struct Autoreg_virtioblk {
   Autoreg_virtioblk() {
-    hw::PCI_manager::register_blk(PCI::VENDOR_VIRTIO, 0x1001, &VirtioBlk::new_instance);
+    // hw::PCI_manager::register_blk(PCI::VENDOR_VIRTIO, 0x1001, &VirtioBlk::new_instance); // (deprecated, legacy)
+    hw::PCI_manager::register_blk(PCI::VENDOR_VIRTIO, 0x1042, &VirtioBlk::new_instance);
   }
 } autoreg_virtioblk;

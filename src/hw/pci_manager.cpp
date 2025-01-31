@@ -55,8 +55,6 @@ namespace hw {
           {
             const ssize_t idx = os::machine().count<hw::Nic>();
             return fact.second(dev, hw::Nic::MTU_detection_override(idx, 1500));
-          } else if constexpr(std::is_same<Class, hw::VFS_device>::value) {
-            return fact.second();
           } else {
             return fact.second(dev);
           }

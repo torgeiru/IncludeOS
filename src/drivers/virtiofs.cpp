@@ -4,16 +4,15 @@
 #include <hw/vfs_device.hpp>
 #include <hw/pci_manager.hpp>
 #include <info>
-// #include <debug>
 
-VirtioFS::VirtioFS() {
+VirtioFS::VirtioFS(hw::PCI_Device& d) {
   static int id_count = 0;
   id_ = id_count++;
 }
 
 /** Factory method used to create VirtioFS driver object */
-std::unique_ptr<hw::VFS_device> VirtioFS::new_instance() {
-  return std::make_unique<VirtioFS>();
+std::unique_ptr<hw::VFS_device> VirtioFS::new_instance(hw::PCI_Device& d) {
+  return std::make_unique<VirtioFS>(d);
 }
 
 int VirtioFS::id() const noexcept {

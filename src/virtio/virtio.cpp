@@ -29,27 +29,26 @@
 #define VIRTIO_MSI_QUEUE_VECTOR   22
 
 Virtio::Virtio(hw::PCI_Device& dev)
-  : _pcidev(dev), _virtio_device_id(dev.product_id() + 0x1040)
+  : _pcidev(dev), _virtio_device_id(dev.product_id())
 {
   INFO("Virtio","Attaching to  PCI addr 0x%x",dev.pci_addr());
-
 
   /** PCI Device discovery. Virtio std. §4.1.2  */
 
   /**
       Match vendor ID and Device ID : §4.1.2.2
   */
-  assert (dev.vendor_id() == PCI::VENDOR_VIRTIO &&
-          "Must be a Virtio device");
+  assert (dev.vendor_id() == PCI::VENDOR_VIRTIO && 
+    "Must be a Virtio device");
   CHECK(true, "Vendor ID is VIRTIO");
 
   bool _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
-  bool _LEGACY_ID = dev.product_id() >= 0x1000
-    and dev.product_id() <= 0x103f;
+  bool _LEGACY_ID = dev.product_id() >= 0x1000 and dev.product_id() <= 0x103f;
 
-  CHECK(_STD_ID or _LEGACY_ID, "Device ID 0x%x is in a valid range (%s)",
-        dev.product_id(),
-        _STD_ID ? ">= Virtio 1.0" : (_LEGACY_ID ? "Virtio LEGACY" : "INVALID"));
+  CHECK(
+    _STD_ID or _LEGACY_ID, 
+    "Device ID 0x%x is in a valid range (%s)", dev.product_id(), 
+    _STD_ID ? ">= Virtio 1.0" : (_LEGACY_ID ? "Virtio LEGACY" : "INVALID"));
 
   assert(_STD_ID or _LEGACY_ID);
 
@@ -59,7 +58,6 @@ Virtio::Virtio(hw::PCI_Device& dev)
   bool rev_id_ok = ((_LEGACY_ID and dev.rev_id() == 0) or
                     (_STD_ID and dev.rev_id() > 0));
 
-
   CHECK(rev_id_ok and version_supported(dev.rev_id()),
         "Device Revision ID (0x%x) supported", dev.rev_id());
   assert(rev_id_ok);
@@ -68,6 +66,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
   dev.parse_capabilities();
   // find BARs etc.
   dev.probe_resources();
+
+  INFO("Virtio", "Parse and store capabilities - find bars"); // REMOVE THIS!
 
   // fetch I/O-base for device
   _iobase = dev.iobase();

@@ -23,8 +23,8 @@
 
    We're aiming to become standards compilant according to this one:
 
-   Virtio 1.0, OASIS Committee Specification Draft 03
-   (http://docs.oasis-open.org/virtio/virtio/v1.0/virtio-v1.0.html)
+   Virtual I/O Device (VIRTIO) Version 1.3 
+   (https://docs.oasis-open.org/virtio/virtio/v1.3/csd01/virtio-v1.3-csd01.html)
 
    In the following abbreviated to Virtio 1.03 or Virtio std.
 */
@@ -336,8 +336,11 @@ public:
   /** Indicate which Virtio version (PCI revision ID) is supported.
 
       Currently only Legacy is supported (partially the 1.0 standard)
+      
+      I am currently adding support for modern Virtio (1.3).
+      Therefore I must change from "<= 0" to "<= 1"
   */
-  static inline bool version_supported(uint16_t i) { return i <= 0; }
+  static inline bool version_supported(uint16_t i) { return i <= 1; }
 
   // returns true if MSI-X is supported
   bool has_msix() const noexcept {

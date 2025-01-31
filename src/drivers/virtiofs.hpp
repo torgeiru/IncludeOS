@@ -4,13 +4,13 @@
 
 #include <string>
 #include <hw/vfs_device.hpp>
-// #include <hw/pci_device.hpp>
+#include <hw/pci_device.hpp>
 
 class VirtioFS : public hw::VFS_device {
 public:
   /** Constructor and VirtioFS driver factory */
-  VirtioFS();
-  static std::unique_ptr<hw::VFS_device> new_instance();
+  VirtioFS(hw::PCI_Device& d);
+  static std::unique_ptr<hw::VFS_device> new_instance(hw::PCI_Device& d);
 
   int id() const noexcept override;
 

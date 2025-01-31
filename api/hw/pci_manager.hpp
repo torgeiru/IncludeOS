@@ -38,7 +38,7 @@ public:
   using BLK_driver = delegate< std::unique_ptr<hw::Block_device> (PCI_Device&) >;
   static void register_blk(uint16_t, uint16_t, BLK_driver);
 
-  using VFS_driver = delegate< std::unique_ptr<hw::VFS_device> () >;
+  using VFS_driver = delegate< std::unique_ptr<hw::VFS_device> (PCI_Device&) >;
   static void register_vfs(uint16_t, uint16_t, VFS_driver);
 
   static void init();

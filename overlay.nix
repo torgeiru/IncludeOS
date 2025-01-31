@@ -155,7 +155,7 @@ final: prev: {
       else
         [ "-DARCH=x86_64"];
 
-      smpFlags = if smp then [ "-DSMP=ON" ] else [];
+      smpFlags = if smp then [ "-DSMP=ON" ] else [ "-DSMP=OFF" ];
 
       cmakeFlags = archFlags ++ smpFlags;
 
