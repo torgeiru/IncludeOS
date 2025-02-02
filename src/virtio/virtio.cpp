@@ -67,12 +67,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
   // find BARs etc.
   dev.probe_resources();
 
-  INFO("Virtio", "Parse and store capabilities - find bars"); // REMOVE THIS!
-
   // fetch I/O-base for device
   _iobase = dev.iobase();
-
-  CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
 
   /** Device initialization. Virtio Std. v.1, sect. 3.1: */
 

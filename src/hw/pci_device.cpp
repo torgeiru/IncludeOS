@@ -85,12 +85,15 @@ namespace hw {
       uint32_t pci__size     {0};
 
       if (value & 1) {
+        INFO("Virtio", "IO BASE");
+
         // Resource type IO
         unmasked_val = value & PCI::BASE_ADDRESS_IO_MASK;
         pci__size = pci_size(len, PCI::BASE_ADDRESS_IO_MASK & 0xFFFF);
         this->m_iobase = bar;
-
       } else {
+        INFO("Virtio", "MEM BASE");
+
         // Resource type Mem
         unmasked_val = value & PCI::BASE_ADDRESS_MEM_MASK;
         pci__size = pci_size(len, PCI::BASE_ADDRESS_MEM_MASK);
@@ -198,6 +201,13 @@ namespace hw {
     while (offset) {
       capability_t cap;
       cap.capd = read32(offset);
+
+      INFO("Virtio", "Capability type: %d", cap.capd >> 24);
+
+      uint16_t bar_value = read16(offset + 4) & 0xff;
+
+      INFO("Virtio", "Bar value for capability: %d", bar_value);
+
       // remember capability
       this->caps.at(cap.id) = offset;
       // go to next cap
