@@ -26,7 +26,7 @@
    Virtual I/O Device (VIRTIO) Version 1.3 
    (https://docs.oasis-open.org/virtio/virtio/v1.3/csd01/virtio-v1.3-csd01.html)
 
-   In the following abbreviated to Virtio 1.03 or Virtio std.
+   In the following abbreviated to Virtio 1.3 or Virtio std.
 */
 #pragma once
 #ifndef VIRTIO_VIRTIO_HPP
@@ -38,6 +38,15 @@
 #include <vector>
 
 #define PAGE_SIZE 4096
+
+/* Types of configurations */ 
+#define VIRTIO_PCI_CAP_COMMON_CFG        1 
+#define VIRTIO_PCI_CAP_NOTIFY_CFG        2 
+#define VIRTIO_PCI_CAP_ISR_CFG           3 
+#define VIRTIO_PCI_CAP_DEVICE_CFG        4 
+#define VIRTIO_PCI_CAP_PCI_CFG           5 
+#define VIRTIO_PCI_CAP_SHARED_MEMORY_CFG 8 
+#define VIRTIO_PCI_CAP_VENDOR_CFG        9
 
 #define VIRTIO_F_NOTIFY_ON_EMPTY 24
 #define VIRTIO_F_ANY_LAYOUT 27
@@ -57,12 +66,28 @@
 #define VIRTIO_PCI_CONFIG               20  // Configuration data offset
 #define VIRTIO_PCI_CONFIG_MSIX          24  // .. when MSI-X is enabled
 
-
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE     1
 #define VIRTIO_CONFIG_S_DRIVER          2
 #define VIRTIO_CONFIG_S_DRIVER_OK       4
 #define VIRTIO_CONFIG_S_FAILED          0x80
 
+struct __attribute__((packed)) virtio_pci_cap { 
+  uint8_t cap_vndr;    /* Generic PCI field: PCI_CAP_ID_VNDR */ 
+  uint8_t cap_next;    /* Generic PCI field: next ptr. */ 
+  uint8_t cap_len;     /* Generic PCI field: capability length */ 
+  uint8_t cfg_type;    /* Identifies the structure. */ 
+  uint8_t bar;         /* Where to find it. */ 
+  uint8_t id;          /* Multiple capabilities of the same type */ 
+  uint8_t padding[2];  /* Pad to full dword. */ 
+  uint32_t offset;    /* Offset within bar. */ 
+  uint32_t length;    /* Length of the structure, in bytes. */ 
+};
+
+struct __attribute__((packed)) virtio_pci_cap64 { 
+  struct virtio_pci_cap cap; 
+  uint32_t offset_hi; 
+  uint32_t length_hi; 
+};
 
 //#include <class_irq_handler.hpp>
 class Virtio
@@ -309,8 +334,14 @@ public:
   /** Get the legacy PCI IRQ */
   uint8_t get_legacy_irq();
 
-  /** Reset the virtio device */
+  /** Finds the common configuration address */
+  void find_common_cfg();
+
+  /** Reset the virtio device - depends on find_common_cfg */
   void reset();
+
+  /** Setting acknowledgement and driver bit within device status */
+  void set_ack_and_driver_bits();
 
   /** Negotiate supported features with host */
   void negotiate_features(uint32_t features);
@@ -338,9 +369,10 @@ public:
       Currently only Legacy is supported (partially the 1.0 standard)
       
       I am currently adding support for modern Virtio (1.3).
-      Therefore I must change from "<= 0" to "<= 1"
+      Therefore I must change from "<= 0" to "== 1". I also only want to drive
+      non-transitional modern Virtio devices.
   */
-  static inline bool version_supported(uint16_t i) { return i <= 1; }
+  static inline bool version_supported(uint16_t i) { return i == 1; }
 
   // returns true if MSI-X is supported
   bool has_msix() const noexcept {
@@ -366,6 +398,8 @@ protected:
   }
 private:
   hw::PCI_Device& _pcidev;
+  uint8_t common_cfg_bar;
+  uint32_t common_cfg_offset;
 
   //We'll get this from PCI_device::iobase(), but that lookup takes longer
   uint32_t _iobase = 0;

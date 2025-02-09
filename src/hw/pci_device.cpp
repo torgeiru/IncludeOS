@@ -21,25 +21,6 @@
 #include <hw/pci_device.hpp>
 #include <hw/msi.hpp>
 
-/* PCI Register Config Space */
-#define PCI_DEV_VEND_REG	0x00	/* for the 32 bit read of dev/vend */
-#define PCI_VENDID_REG		0x00
-#define PCI_DEVID_REG		0x02
-#define PCI_CMD_REG			0x04
-#define PCI_STATUS_REG		0x06
-#define PCI_REVID_REG		0x08
-#define PCI_PROGIF_REG		0x09
-#define PCI_SUBCLASS_REG	0x0a
-#define PCI_CLASS_REG		0x0b
-#define PCI_CLSZ_REG		0x0c
-#define PCI_LATTIM_REG		0x0d
-#define PCI_HEADER_REG		0x0e
-#define PCI_BIST_REG		0x0f
-
-#define PCI_COMMAND_IO			0x01
-#define PCI_COMMAND_MEM			0x02
-#define PCI_COMMAND_MASTER	0x04
-
 namespace hw {
 
   static constexpr std::array<const char*,3> bridge_subclasses {
@@ -85,20 +66,20 @@ namespace hw {
       uint32_t pci__size     {0};
 
       if (value & 1) {
-        INFO("Virtio", "IO BASE");
-
         // Resource type IO
         unmasked_val = value & PCI::BASE_ADDRESS_IO_MASK;
         pci__size = pci_size(len, PCI::BASE_ADDRESS_IO_MASK & 0xFFFF);
         this->m_iobase = bar;
-      } else {
-        INFO("Virtio", "MEM BASE");
 
+        this->m_resources.at(bar) = {unmasked_val, pci__size, PCI::RES_IO};
+      } else {
         // Resource type Mem
         unmasked_val = value & PCI::BASE_ADDRESS_MEM_MASK;
         pci__size = pci_size(len, PCI::BASE_ADDRESS_MEM_MASK);
+
+        this->m_resources.at(bar) = {unmasked_val, pci__size, PCI::RES_MEM};
       }
-      this->m_resources.at(bar) = {unmasked_val, pci__size};
+      
 
       INFO2("|  |- BAR%d %s @ 0x%x, size %i ", bar,
             (value & 1 ? "I/O" : "Mem"), unmasked_val, pci__size);
@@ -190,7 +171,6 @@ namespace hw {
     // the capability list is only available if bit 4
     // in the status register is set
     uint16_t status = read16(PCI_STATUS_REG);
-    //printf("read16 %#x  status %#x\n", PCI_STATUS_REG, status);
     if ((status & 0x10) == 0) return;
     // this offset works for non-cardbus bridges
     uint32_t offset = 0x34;
@@ -202,14 +182,9 @@ namespace hw {
       capability_t cap;
       cap.capd = read32(offset);
 
-      INFO("Virtio", "Capability type: %d", cap.capd >> 24);
-
-      uint16_t bar_value = read16(offset + 4) & 0xff;
-
-      INFO("Virtio", "Bar value for capability: %d", bar_value);
-
       // remember capability
       this->caps.at(cap.id) = offset;
+
       // go to next cap
       offset = cap.next;
     }

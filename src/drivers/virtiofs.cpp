@@ -55,5 +55,6 @@ void VirtioFS::rmdir() {
 
 __attribute__((constructor))
 void autoreg_virtiofs() {
+  // Make this part less hacky for the future
   hw::PCI_manager::register_vfs(PCI::VENDOR_VIRTIO, 0x105a, &VirtioFS::new_instance);
 }

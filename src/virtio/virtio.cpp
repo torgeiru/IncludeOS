@@ -42,99 +42,35 @@ Virtio::Virtio(hw::PCI_Device& dev)
     "Must be a Virtio device");
   CHECK(true, "Vendor ID is VIRTIO");
 
-  bool _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
-  bool _LEGACY_ID = dev.product_id() >= 0x1000 and dev.product_id() <= 0x103f;
+  _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
+  _LEGACY_ID = _virtio_device_id >= 0x1000 and _virtio_device_id <= 0x103f;
 
-  CHECK(
-    _STD_ID or _LEGACY_ID, 
-    "Device ID 0x%x is in a valid range (%s)", dev.product_id(), 
-    _STD_ID ? ">= Virtio 1.0" : (_LEGACY_ID ? "Virtio LEGACY" : "INVALID"));
+  CHECK(!_LEGACY_ID, "Device ID 0x%x is not legacy", _virtio_device_id);
+  assert(!_LEGACY_ID);
 
-  assert(_STD_ID or _LEGACY_ID);
+  CHECK(_STD_ID, "Device ID 0x%x is in valid range", _virtio_device_id);
+  assert(_STD_ID);
 
   /**
       Match Device revision ID. Virtio Std. §4.1.2.2
   */
-  bool rev_id_ok = ((_LEGACY_ID and dev.rev_id() == 0) or
-                    (_STD_ID and dev.rev_id() > 0));
+  bool rev_id_ok = version_supported(dev.rev_id());
 
-  CHECK(rev_id_ok and version_supported(dev.rev_id()),
-        "Device Revision ID (0x%x) supported", dev.rev_id());
+  CHECK(rev_id_ok, "Device Revision ID (%d) supported", dev.rev_id());
   assert(rev_id_ok);
 
-  // find and store capabilities
-  dev.parse_capabilities();
-  // find BARs etc.
+  // Find BARs with their offsets, size and whether MEM/IO
   dev.probe_resources();
 
-  // fetch I/O-base for device
-  _iobase = dev.iobase();
+  // Parsing capabilities - hacky but needed for MSI(X) subsystem (change the subsystem somehow?)
+  // dev.parse_capabilities();
 
-  /** Device initialization. Virtio Std. v.1, sect. 3.1: */
+  // Finding common configuration structure
+  find_common_cfg();
 
-  // 1. Reset device
-  reset();
-  INFO2("[*] Reset device");
-
-  // 2. Set ACKNOWLEGE status bit, and
-  // 3. Set DRIVER status bit
-
-  hw::outp(_iobase + VIRTIO_PCI_STATUS,
-           hw::inp(_iobase + VIRTIO_PCI_STATUS) |
-           VIRTIO_CONFIG_S_ACKNOWLEDGE |
-           VIRTIO_CONFIG_S_DRIVER);
-
-
-  // THE REMAINING STEPS MUST BE DONE IN A SUBCLASS
-  // 4. Negotiate features (Read, write, read)
-  //    => In the subclass (i.e. Only the Nic driver knows if it wants a mac)
-  // 5. @todo IF >= Virtio 1.0, set FEATURES_OK status bit
-  // 6. @todo IF >= Virtio 1.0, Re-read Device Status to ensure features are OK
-  // 7. Device specifig setup.
-
-  // Where the standard isn't clear, we'll do our best to separate work
-  // between this class and subclasses.
-
-  // initialize MSI-X if available
-  if (dev.msix_cap())
-  {
-    dev.init_msix();
-    uint8_t msix_vectors = dev.get_msix_vectors();
-    if (msix_vectors)
-    {
-      INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
-      this->current_cpu = SMP::cpu_id();
-
-      // setup all the MSI-X vectors
-      for (int i = 0; i < msix_vectors; i++)
-      {
-        auto irq = Events::get().subscribe(nullptr);
-        dev.setup_msix_vector(current_cpu, IRQ_BASE + irq);
-        // store IRQ for later
-        this->irqs.push_back(irq);
-      }
-    }
-    else
-      INFO2("[ ] No MSI-X vectors");
-  } else {
-    INFO2("[ ] No MSI-X vectors");
-  }
-
-  // use legacy if msix was not enabled
-  if (has_msix() == false)
-  {
-    // Fetch IRQ from PCI resource
-    auto irq = get_legacy_irq();
-    CHECKSERT(irq, "Unit has legacy IRQ %u", irq);
-
-    // create IO APIC entry for legacy interrupt
-    __arch_enable_legacy_irq(irq);
-
-    // store for later
-    irqs.push_back(irq);
-  }
-
-  INFO("Virtio", "Initialization complete");
+  /** Initializing the device. Virtio Std. §3.1 */
+  // reset();
+  // set_ack_and_driver_bits();
 }
 
 void Virtio::get_config(void* buf, int len)
@@ -149,9 +85,39 @@ void Virtio::get_config(void* buf, int len)
   }
 }
 
+void Virtio::find_common_cfg() {
+  uint16_t status = _pcidev.read16(PCI_STATUS_REG);
+
+  if ((status & 0x10) == 0) return;
+
+  uint32_t offset = _pcidev.read32(0x34) & 0xfc;
+
+  // We must check that the capability ID belongs to device specific capability to avoid bugs.
+  while (offset) {
+    uint32_t data    = _pcidev.read32(offset);
+    uint8_t cap_vndr = (uint8_t) data % 0xff;
+    uint8_t cfg_type = (uint8_t) (data >> 24);
+    uint8_t cap_len  = (uint8_t) ((data >> 16) % 0xff);
+
+    // Skipping other than vendor specific capability
+    if (
+      cap_vndr == PCI_CAP_ID_VNDR && 
+      cfg_type == VIRTIO_PCI_CAP_COMMON_CFG
+    ) {
+      INFO("Virtio", "Found common configuration (0x%x)", offset);
+      break;
+    }
+
+    offset = (data >> 8) & 0xff;
+  }
+}
 
 void Virtio::reset() {
-  hw::outp(_iobase + VIRTIO_PCI_STATUS, 0);
+  // Needs to determine whether the BAR addrspace is IO/MEM
+}
+
+void Virtio::set_ack_and_driver_bits() {
+  // Needs to determine whether the BAR addrspace is IO/MEM
 }
 
 uint8_t Virtio::get_legacy_irq()
