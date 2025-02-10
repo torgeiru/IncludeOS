@@ -59,18 +59,16 @@ Virtio::Virtio(hw::PCI_Device& dev)
   CHECK(rev_id_ok, "Device Revision ID (%d) supported", dev.rev_id());
   assert(rev_id_ok);
 
-  // Find BARs with their offsets, size and whether MEM/IO
-  dev.probe_resources();
-
-  // Parsing capabilities - hacky but needed for MSI(X) subsystem (change the subsystem somehow?)
-  // dev.parse_capabilities();
-
   // Finding common configuration structure
   find_common_cfg();
 
   /** Initializing the device. Virtio Std. §3.1 */
-  // reset();
-  // set_ack_and_driver_bits();
+  reset();
+  CHECK(true, "Resetting Virtio device");
+  
+  set_ack_and_driver_bits();
+  CHECK(true, "Setting acknowledgement and drive bits");
+
 }
 
 void Virtio::get_config(void* buf, int len)
@@ -90,21 +88,34 @@ void Virtio::find_common_cfg() {
 
   if ((status & 0x10) == 0) return;
 
-  uint32_t offset = _pcidev.read32(0x34) & 0xfc;
+  uint32_t offset = _pcidev.read32(PCI_CAPABILITY_REG) & 0xfc;
 
-  // We must check that the capability ID belongs to device specific capability to avoid bugs.
+  // Must be device vendor specific capability
   while (offset) {
     uint32_t data    = _pcidev.read32(offset);
-    uint8_t cap_vndr = (uint8_t) data % 0xff;
+    uint8_t cap_vndr = (uint8_t) (data & 0xff);
+    uint8_t cap_len  = (uint8_t) ((data >> 16) & 0xff);
     uint8_t cfg_type = (uint8_t) (data >> 24);
-    uint8_t cap_len  = (uint8_t) ((data >> 16) % 0xff);
 
     // Skipping other than vendor specific capability
     if (
       cap_vndr == PCI_CAP_ID_VNDR && 
       cfg_type == VIRTIO_PCI_CAP_COMMON_CFG
     ) {
-      INFO("Virtio", "Found common configuration (0x%x)", offset);
+      uint8_t bar = (uint8_t)(_pcidev.read16(offset + 4) & 0xff);
+      uint32_t bar_value = _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + bar);
+
+      _bar_region = (uint64_t)(bar_value & ~7);
+      _iospace    = (bar_value & 1 == 1) ? true : false;
+      _bar_offset = _pcidev.read32(offset + 0x8);
+
+      // Check if 64 bit bar
+      if (bar_value & 4 == 4) {
+        uint64_t bar_higher = (uint64_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + bar + 1);
+        _bar_region |= bar_higher;
+        _bar_offset |= ((uint64_t) _pcidev.read32(offset + 0x10)) << 32;
+      }
+
       break;
     }
 
@@ -113,12 +124,50 @@ void Virtio::find_common_cfg() {
 }
 
 void Virtio::reset() {
-  // Needs to determine whether the BAR addrspace is IO/MEM
+  uint64_t cfg_addr = _bar_region + _bar_offset + VIRTIO_PCI_STATUS;
+
+  if (_iospace) {
+    hw::outp(cfg_addr, 0);
+  } else {
+    volatile uint8_t *status = (volatile uint8_t*)cfg_addr;
+  
+    *status = 0;
+  }
 }
 
 void Virtio::set_ack_and_driver_bits() {
-  // Needs to determine whether the BAR addrspace is IO/MEM
+  uint64_t cfg_addr = _bar_region + _bar_offset + VIRTIO_PCI_STATUS;
+  if (_iospace) {
+    uint8_t cur_status = hw::inp(cfg_addr);
+
+    hw::outp(cfg_addr, cur_status | VIRTIO_CONFIG_S_ACKNOWLEDGE | VIRTIO_CONFIG_S_DRIVER);
+  } else {
+    volatile uint8_t *status = (volatile uint8_t*)cfg_addr;
+
+    *status = *status | VIRTIO_CONFIG_S_ACKNOWLEDGE | VIRTIO_CONFIG_S_DRIVER;
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 uint8_t Virtio::get_legacy_irq()
 {

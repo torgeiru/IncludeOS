@@ -173,7 +173,7 @@ namespace hw {
     uint16_t status = read16(PCI_STATUS_REG);
     if ((status & 0x10) == 0) return;
     // this offset works for non-cardbus bridges
-    uint32_t offset = 0x34;
+    uint32_t offset = PCI_CAPABILITY_REG;
     // read first capability
     offset = read16(offset) & 0xff;
     offset &= ~0x3; // lower 2 bits reserved

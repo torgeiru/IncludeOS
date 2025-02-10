@@ -54,14 +54,17 @@
 #define VIRTIO_F_RING_EVENT_IDX 29
 #define VIRTIO_F_VERSION_1 32
 
-// From sanos virtio.h
+/* Common configuration space */
+#define VIRTIO_PCI_STATUS               20
+
+/* Remove this later in my Virtio implementation */
 #define VIRTIO_PCI_HOST_FEATURES        0   // Features supported by the host
 #define VIRTIO_PCI_GUEST_FEATURES       4   // Features activated by the guest
 #define VIRTIO_PCI_QUEUE_PFN            8   // PFN for the currently selected queue
 #define VIRTIO_PCI_QUEUE_SIZE           12  // Queue size for the currently selected queue
 #define VIRTIO_PCI_QUEUE_SEL            14  // Queue selector
 #define VIRTIO_PCI_QUEUE_NOTIFY         16  // Queue notifier
-#define VIRTIO_PCI_STATUS               18  // Device status register
+// #define VIRTIO_PCI_STATUS               18  // Device status register
 #define VIRTIO_PCI_ISR                  19  // Interrupt status register
 #define VIRTIO_PCI_CONFIG               20  // Configuration data offset
 #define VIRTIO_PCI_CONFIG_MSIX          24  // .. when MSI-X is enabled
@@ -79,8 +82,8 @@ struct __attribute__((packed)) virtio_pci_cap {
   uint8_t bar;         /* Where to find it. */ 
   uint8_t id;          /* Multiple capabilities of the same type */ 
   uint8_t padding[2];  /* Pad to full dword. */ 
-  uint32_t offset;    /* Offset within bar. */ 
-  uint32_t length;    /* Length of the structure, in bytes. */ 
+  uint32_t offset;     /* Offset within bar. */ 
+  uint32_t length;     /* Length of the structure, in bytes. */ 
 };
 
 struct __attribute__((packed)) virtio_pci_cap64 { 
@@ -88,6 +91,34 @@ struct __attribute__((packed)) virtio_pci_cap64 {
   uint32_t offset_hi; 
   uint32_t length_hi; 
 };
+
+struct virtio_pci_common_cfg { 
+  /* About the whole device. */ 
+  uint32_t device_feature_select;     /* read-write */ 
+  uint32_t device_feature;            /* read-only for driver */ 
+  uint32_t driver_feature_select;     /* read-write */ 
+  uint32_t driver_feature;            /* read-write */ 
+  uint16_t config_msix_vector;        /* read-write */ 
+  uint16_t num_queues;                /* read-only for driver */ 
+  uint8_t device_status;              /* read-write */ 
+  uint8_t config_generation;          /* read-only for driver */ 
+ 
+  /* About a specific virtqueue. */ 
+  uint16_t queue_select;              /* read-write */ 
+  uint16_t queue_size;                /* read-write */ 
+  uint16_t queue_msix_vector;         /* read-write */ 
+  uint16_t queue_enable;              /* read-write */ 
+  uint16_t queue_notify_off;          /* read-only for driver */ 
+  uint64_t queue_desc;                /* read-write */ 
+  uint64_t queue_driver;              /* read-write */ 
+  uint64_t queue_device;              /* read-write */ 
+  uint16_t queue_notif_config_data;   /* read-only for driver */ 
+  uint16_t queue_reset;               /* read-write */ 
+ 
+  /* About the administration virtqueue. */ 
+  uint16_t admin_queue_index;         /* read-only for driver */ 
+  uint16_t admin_queue_num;         /* read-only for driver */ 
+}; 
 
 //#include <class_irq_handler.hpp>
 class Virtio
@@ -400,6 +431,11 @@ private:
   hw::PCI_Device& _pcidev;
   uint8_t common_cfg_bar;
   uint32_t common_cfg_offset;
+
+  // Virtio common config
+  uint64_t _bar_region;
+  uint64_t _bar_offset;
+  bool _iospace;
 
   //We'll get this from PCI_device::iobase(), but that lookup takes longer
   uint32_t _iobase = 0;
