@@ -69,6 +69,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
   set_ack_and_driver_bits();
   CHECK(true, "Setting acknowledgement and drive bits");
 
+  /** Reading and negotiating features */
+  read_features();
 }
 
 void Virtio::get_config(void* buf, int len)
@@ -110,7 +112,7 @@ void Virtio::find_common_cfg() {
       _bar_offset = _pcidev.read32(offset + 0x8);
 
       // Check if 64 bit bar
-      if (bar_value & 4 == 4) {
+      if ((bar_value & 4) == 4) {
         uint64_t bar_higher = (uint64_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + bar + 1);
         _bar_region |= bar_higher;
         _bar_offset |= ((uint64_t) _pcidev.read32(offset + 0x10)) << 32;
@@ -129,8 +131,8 @@ void Virtio::reset() {
   if (_iospace) {
     hw::outp(cfg_addr, 0);
   } else {
-    volatile uint8_t *status = (volatile uint8_t*)cfg_addr;
-  
+    uint8_t *status = (uint8_t*)cfg_addr;
+
     *status = 0;
   }
 }
@@ -148,7 +150,16 @@ void Virtio::set_ack_and_driver_bits() {
   }
 }
 
+void Virtio::read_features() {
+  uint64_t cfg_addr = _bar_region + _bar_offset + VIRTIO_PCI_FEATURES;
+  uint32_t dev_features;
 
+  if (_iospace) {
+    dev_features = hw::inp(cfg_addr);
+  } else {
+    dev_features = *((uint32_t*)cfg_addr);
+  }
+}
 
 
 

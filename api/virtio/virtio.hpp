@@ -55,7 +55,15 @@
 #define VIRTIO_F_VERSION_1 32
 
 /* Common configuration space */
+struct test_structure {
+  int A;
+  int B;
+  int C;
+};
+
 #define VIRTIO_PCI_STATUS               20
+#define VIRTIO_PCI_FEATURES             4
+#define VIRTIO_PCI_FEATURES_SELECT      8
 
 /* Remove this later in my Virtio implementation */
 #define VIRTIO_PCI_HOST_FEATURES        0   // Features supported by the host
@@ -73,52 +81,6 @@
 #define VIRTIO_CONFIG_S_DRIVER          2
 #define VIRTIO_CONFIG_S_DRIVER_OK       4
 #define VIRTIO_CONFIG_S_FAILED          0x80
-
-struct __attribute__((packed)) virtio_pci_cap { 
-  uint8_t cap_vndr;    /* Generic PCI field: PCI_CAP_ID_VNDR */ 
-  uint8_t cap_next;    /* Generic PCI field: next ptr. */ 
-  uint8_t cap_len;     /* Generic PCI field: capability length */ 
-  uint8_t cfg_type;    /* Identifies the structure. */ 
-  uint8_t bar;         /* Where to find it. */ 
-  uint8_t id;          /* Multiple capabilities of the same type */ 
-  uint8_t padding[2];  /* Pad to full dword. */ 
-  uint32_t offset;     /* Offset within bar. */ 
-  uint32_t length;     /* Length of the structure, in bytes. */ 
-};
-
-struct __attribute__((packed)) virtio_pci_cap64 { 
-  struct virtio_pci_cap cap; 
-  uint32_t offset_hi; 
-  uint32_t length_hi; 
-};
-
-struct virtio_pci_common_cfg { 
-  /* About the whole device. */ 
-  uint32_t device_feature_select;     /* read-write */ 
-  uint32_t device_feature;            /* read-only for driver */ 
-  uint32_t driver_feature_select;     /* read-write */ 
-  uint32_t driver_feature;            /* read-write */ 
-  uint16_t config_msix_vector;        /* read-write */ 
-  uint16_t num_queues;                /* read-only for driver */ 
-  uint8_t device_status;              /* read-write */ 
-  uint8_t config_generation;          /* read-only for driver */ 
- 
-  /* About a specific virtqueue. */ 
-  uint16_t queue_select;              /* read-write */ 
-  uint16_t queue_size;                /* read-write */ 
-  uint16_t queue_msix_vector;         /* read-write */ 
-  uint16_t queue_enable;              /* read-write */ 
-  uint16_t queue_notify_off;          /* read-only for driver */ 
-  uint64_t queue_desc;                /* read-write */ 
-  uint64_t queue_driver;              /* read-write */ 
-  uint64_t queue_device;              /* read-write */ 
-  uint16_t queue_notif_config_data;   /* read-only for driver */ 
-  uint16_t queue_reset;               /* read-write */ 
- 
-  /* About the administration virtqueue. */ 
-  uint16_t admin_queue_index;         /* read-only for driver */ 
-  uint16_t admin_queue_num;         /* read-only for driver */ 
-}; 
 
 //#include <class_irq_handler.hpp>
 class Virtio
@@ -373,6 +335,9 @@ public:
 
   /** Setting acknowledgement and driver bit within device status */
   void set_ack_and_driver_bits();
+
+  /** Reading features from device */
+  void read_features();
 
   /** Negotiate supported features with host */
   void negotiate_features(uint32_t features);
