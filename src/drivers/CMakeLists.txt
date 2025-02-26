@@ -32,7 +32,7 @@ if (${PLATFORM} STREQUAL "default")
     virtiocon.cpp
     virtioblk.cpp
     virtionet.cpp
-    # virtiofs.cpp
+    virtiofs.cpp
     vmxnet3.cpp
     e1000.cpp
   )

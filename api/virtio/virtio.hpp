@@ -39,6 +39,63 @@
 
 #define PAGE_SIZE 4096
 
+/* Virtio PCI capability */
+struct __attribute__((packed)) virtio_pci_cap { 
+  uint8_t cap_vndr;    /* Generic PCI field: PCI_CAP_ID_VNDR */ 
+  uint8_t cap_next;    /* Generic PCI field: next ptr. */ 
+  uint8_t cap_len;     /* Generic PCI field: capability length */ 
+  uint8_t cfg_type;    /* Identifies the structure. */ 
+  uint8_t bar;         /* Where to find it. */ 
+  uint8_t id;          /* Multiple capabilities of the same type */ 
+  uint8_t padding[2];  /* Pad to full dword. */ 
+  uint32_t offset;     /* Offset within bar. */ 
+  uint32_t length;     /* Length of the structure, in bytes. */ 
+};
+
+/* Virtio PCI capability 64 */
+struct __attribute__((packed)) virtio_pci_cap64 { 
+  struct virtio_pci_cap cap; 
+  uint32_t offset_hi;
+  uint32_t length_hi;
+};
+
+#define VIRTIO_PCI_CAP_BAR      offsetof(struct virtio_pci_cap, bar)
+#define VIRTIO_PCI_CAP_BAROFF   offsetof(struct virtio_pci_cap, offset)
+#define VIRTIO_PCI_CAP_BAROFF64 offsetof(struct virtio_pci_cap64, offset_hi)
+
+struct __attribute__((packed)) virtio_pci_common_cfg { 
+  /* About the whole device. */ 
+  uint32_t device_feature_select;      /* read-write */ 
+  uint32_t device_feature;             /* read-only for driver */ 
+  uint32_t driver_feature_select;      /* read-write */ 
+  uint32_t driver_feature;             /* read-write */ 
+  uint16_t config_msix_vector;         /* read-write */ 
+  uint16_t num_queues;                 /* read-only for driver */ 
+  uint8_t device_status;               /* read-write */ 
+  uint8_t config_generation;           /* read-only for driver */ 
+ 
+  /* About a specific virtqueue. */ 
+  uint16_t queue_select;              /* read-write */ 
+  uint16_t queue_size;                /* read-write */ 
+  uint16_t queue_msix_vector;         /* read-write */ 
+  uint16_t queue_enable;              /* read-write */ 
+  uint16_t queue_notify_off;          /* read-only for driver */ 
+  uint64_t queue_desc;                /* read-write */ 
+  uint64_t queue_driver;              /* read-write */ 
+  uint64_t queue_device;              /* read-write */ 
+  uint16_t queue_notif_config_data;   /* read-only for driver */ 
+  uint16_t queue_reset;               /* read-write */ 
+ 
+  /* About the administration virtqueue. */ 
+  uint16_t admin_queue_index;         /* read-only for driver */ 
+  uint16_t admin_queue_num;           /* read-only for driver */ 
+};
+
+/* Common configuration space */
+#define VIRTIO_PCI_STATUS          offsetof(struct virtio_pci_common_cfg, device_status)
+#define VIRTIO_PCI_FEATURES        offsetof(struct virtio_pci_common_cfg, device_feature)
+#define VIRTIO_PCI_FEATURES_SELECT offsetof(struct virtio_pci_common_cfg, device_feature_select)
+
 /* Types of configurations */ 
 #define VIRTIO_PCI_CAP_COMMON_CFG        1 
 #define VIRTIO_PCI_CAP_NOTIFY_CFG        2 
@@ -53,17 +110,6 @@
 #define VIRTIO_F_RING_INDIRECT_DESC 28
 #define VIRTIO_F_RING_EVENT_IDX 29
 #define VIRTIO_F_VERSION_1 32
-
-/* Common configuration space */
-struct test_structure {
-  int A;
-  int B;
-  int C;
-};
-
-#define VIRTIO_PCI_STATUS               20
-#define VIRTIO_PCI_FEATURES             4
-#define VIRTIO_PCI_FEATURES_SELECT      8
 
 /* Remove this later in my Virtio implementation */
 #define VIRTIO_PCI_HOST_FEATURES        0   // Features supported by the host

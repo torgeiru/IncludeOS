@@ -5,7 +5,7 @@
 #include <hw/pci_manager.hpp>
 #include <info>
 
-VirtioFS::VirtioFS(hw::PCI_Device& d) {
+VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d) {
   static int id_count = 0;
   id_ = id_count++;
 }

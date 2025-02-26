@@ -5,8 +5,9 @@
 #include <string>
 #include <hw/vfs_device.hpp>
 #include <hw/pci_device.hpp>
+#include <virtio/virtio.hpp>
 
-class VirtioFS : public hw::VFS_device {
+class VirtioFS : public Virtio, public hw::VFS_device {
 public:
   /** Constructor and VirtioFS driver factory */
   VirtioFS(hw::PCI_Device& d);
