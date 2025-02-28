@@ -20,27 +20,6 @@ namespace hw {
 
     /** Method to get the device's identifier */
     virtual int id() const noexcept = 0;
-
-    /** Method for creating a file */
-    virtual void create_file() = 0;
-
-    /** Method for reading from VFS */
-    virtual void read() = 0;
-
-    /** Method for writing to VFS */
-    virtual void write() = 0;
-
-    /** Method for renaming a file or directory */
-    virtual void rename() = 0;
-
-    /** Method for deleting a file */
-    virtual void delete_file() = 0;
-
-    /** Method for making a directory */
-    virtual void mkdir() = 0;
-
-    /** Method for deleting a directory */
-    virtual void rmdir() = 0;
   };
 }
 

@@ -19,14 +19,6 @@ public:
   std::string device_name() const override;
 
   /** VFS operations overriden with mock functions for now */
-  void create_file() override;
-  void read() override;
-  void write() override;
-  void rename() override;
-  void delete_file() override;
-  void mkdir() override;
-  void rmdir() override;
-
 private:
   static int id_counter;
   int id_;

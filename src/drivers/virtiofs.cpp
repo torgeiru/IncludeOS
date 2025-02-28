@@ -24,35 +24,6 @@ std::string VirtioFS::device_name() const {
   return "VirtioFS" + std::to_string(id_);
 }
 
-/** Just a bunch of mock functions for now... */
-void VirtioFS::create_file() {
-  INFO("VirtioFS", "Mock create file");
-}
-
-void VirtioFS::read() {
-  INFO("VirtioFS", "Mock read from file");
-}
-
-void VirtioFS::write() {
-  INFO("VirtioFS", "Mock write to file");
-}
-
-void VirtioFS::rename() {
-  INFO("VirtioFS", "Mock rename");
-}
-
-void VirtioFS::delete_file() {
-  INFO("VirtioFS", "Mock delete file");
-}
-
-void VirtioFS::mkdir() {
-  INFO("VirtioFS", "Mock mkdir");
-}
-
-void VirtioFS::rmdir() {
-  INFO("VirtioFS", "Mock rmdir");
-}
-
 __attribute__((constructor))
 void autoreg_virtiofs() {
   // Make this part less hacky for the future
