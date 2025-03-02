@@ -135,12 +135,6 @@ void Virtio::set_ack_and_driver_bits() {
 void Virtio::read_features() {
   _common_cfg->device_feature_select = 0;
   INFO("Virtio", "Features: 0x%x", _common_cfg->device_feature);
-
-  _common_cfg->device_feature_select = 1;
-  INFO("Virtio", "Features: 0x%x", _common_cfg->device_feature);
-
-  _common_cfg->device_feature_select = 0;
-  INFO("Virtio", "Features: 0x%x", _common_cfg->device_feature);
 }
 
 

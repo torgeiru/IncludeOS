@@ -93,15 +93,6 @@ struct __attribute__((packed)) virtio_pci_common_cfg {
   uint16_t admin_queue_num;           /* read-only for driver */ 
 };
 
-/* Common configuration space */
-#define VIRTIO_PCI_STATUS                offsetof(struct virtio_pci_common_cfg, device_status)
-
-#define VIRTIO_PCI_DEVICE_FEATURE_SELECT offsetof(struct virtio_pci_common_cfg, device_feature_select)
-#define VIRTIO_PCI_DEVICE_FEATURE        offsetof(struct virtio_pci_common_cfg, device_feature)
-
-#define VIRTIO_PCI_DRIVER_FEATURE_SELECT offsetof(struct virtio_pci_common_cfg, driver_feature_select)
-#define VIRTIO_PCI_DRIVER_FEATURE        offsetof(struct virtio_pci_common_cfg, driver_feature)
-
 /* Types of configurations */ 
 #define VIRTIO_PCI_CAP_COMMON_CFG        1 
 #define VIRTIO_PCI_CAP_NOTIFY_CFG        2 
@@ -124,7 +115,7 @@ struct __attribute__((packed)) virtio_pci_common_cfg {
 #define VIRTIO_PCI_QUEUE_SIZE           12  // Queue size for the currently selected queue
 #define VIRTIO_PCI_QUEUE_SEL            14  // Queue selector
 #define VIRTIO_PCI_QUEUE_NOTIFY         16  // Queue notifier
-// #define VIRTIO_PCI_STATUS               18  // Device status register
+#define VIRTIO_PCI_STATUS               18  // Device status register
 #define VIRTIO_PCI_ISR                  19  // Interrupt status register
 #define VIRTIO_PCI_CONFIG               20  // Configuration data offset
 #define VIRTIO_PCI_CONFIG_MSIX          24  // .. when MSI-X is enabled
