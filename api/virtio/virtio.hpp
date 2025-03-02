@@ -52,8 +52,10 @@ struct __attribute__((packed)) virtio_pci_cap {
   uint32_t length;     /* Length of the structure, in bytes. */ 
 };
 
+#define VIRTIO_PCI_CAP_LEN sizeof(struct virtio_pci_cap)
+
 /* Virtio PCI capability 64 */
-struct __attribute__((packed)) virtio_pci_cap64 { 
+struct __attribute__((packed)) virtio_pci_cap64 {
   struct virtio_pci_cap cap; 
   uint32_t offset_hi;
   uint32_t length_hi;
@@ -92,9 +94,13 @@ struct __attribute__((packed)) virtio_pci_common_cfg {
 };
 
 /* Common configuration space */
-#define VIRTIO_PCI_STATUS          offsetof(struct virtio_pci_common_cfg, device_status)
-#define VIRTIO_PCI_FEATURES        offsetof(struct virtio_pci_common_cfg, device_feature)
-#define VIRTIO_PCI_FEATURES_SELECT offsetof(struct virtio_pci_common_cfg, device_feature_select)
+#define VIRTIO_PCI_STATUS                offsetof(struct virtio_pci_common_cfg, device_status)
+
+#define VIRTIO_PCI_DEVICE_FEATURE_SELECT offsetof(struct virtio_pci_common_cfg, device_feature_select)
+#define VIRTIO_PCI_DEVICE_FEATURE        offsetof(struct virtio_pci_common_cfg, device_feature)
+
+#define VIRTIO_PCI_DRIVER_FEATURE_SELECT offsetof(struct virtio_pci_common_cfg, driver_feature_select)
+#define VIRTIO_PCI_DRIVER_FEATURE        offsetof(struct virtio_pci_common_cfg, driver_feature)
 
 /* Types of configurations */ 
 #define VIRTIO_PCI_CAP_COMMON_CFG        1 
@@ -444,9 +450,7 @@ private:
   uint32_t common_cfg_offset;
 
   // Virtio common config
-  uint64_t _bar_region;
-  uint64_t _bar_offset;
-  bool _iospace;
+  volatile struct virtio_pci_common_cfg *_common_cfg;
 
   //We'll get this from PCI_device::iobase(), but that lookup takes longer
   uint32_t _iobase = 0;

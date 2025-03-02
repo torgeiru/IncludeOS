@@ -51,8 +51,6 @@ Virtio::Virtio(hw::PCI_Device& dev)
   CHECK(_STD_ID, "Device ID 0x%x is in valid range", _virtio_device_id);
   assert(_STD_ID);
 
-  _pcidev.probe_resources();
-
   /**
       Match Device revision ID. Virtio Std. §4.1.2.2
   */
@@ -65,11 +63,13 @@ Virtio::Virtio(hw::PCI_Device& dev)
   find_common_cfg();
 
   /** Initializing the device. Virtio Std. §3.1 */
-  // reset();
-  // CHECK(true, "Resetting Virtio device");
+  reset();
+  CHECK(true, "Resetting Virtio device");
 
-  // set_ack_and_driver_bits();
-  // CHECK(true, "Setting acknowledgement and drive bits");
+  set_ack_and_driver_bits();
+  CHECK(true, "Setting acknowledgement and drive bits");
+
+  read_features();
 
   os::panic("Panicking for no reason!");
 
@@ -95,26 +95,26 @@ void Virtio::find_common_cfg() {
       cap_vndr == PCI_CAP_ID_VNDR && 
       cfg_type == VIRTIO_PCI_CAP_COMMON_CFG
     ) {
-      uint8_t bar = (uint8_t)(_pcidev.read16(offset + VIRTIO_PCI_CAP_BAR) & 0xff);
-      uint32_t bar_value = _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + bar);
+      uint8_t bar        = (uint8_t)(_pcidev.read16(offset + VIRTIO_PCI_CAP_BAR) & 0xff);
+      uint32_t bar_value = _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + (bar << 2));
 
-      _bar_region = (uint64_t)(bar_value & ~7);
-      _iospace    = (bar_value & 1 == 1) ? true : false;
-      _bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
+      bool iospace = ((bar_value & 1) == 1) ? true : false;
+      CHECK(not iospace, "Not IO space for bar regions");
+      assert(not iospace);
+
+      uint64_t bar_region = (uint64_t)(bar_value & ~15);
+      uint64_t bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
 
       // Check if 64 bit bar
-      if ((bar_value & 4) == 4) {
-        uint64_t bar_higher    = (uint64_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + bar + 1);
+      if (cap_len > VIRTIO_PCI_CAP_LEN) {
+        uint64_t bar_higher    = (uint64_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2));
         uint64_t baroff_higher = (uint64_t) _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64);
 
-        _bar_region |= (bar_higher << 32);
-        _bar_offset |= (baroff_higher << 32);
-
-        INFO("Virtio", "Common configuration cap is 64 bit");
+        bar_region |= (bar_higher << 32);
+        bar_offset |= (baroff_higher << 32);
       }
 
-      INFO("Virtio", "Common configuration cap_len: %d", cap_len);
-      INFO("Virtio", "Virtio (32) capability length is: %d", sizeof(struct virtio_pci_cap));
+      _common_cfg = (volatile struct virtio_pci_common_cfg*)(bar_region + bar_offset);
 
       break;
     }
@@ -124,52 +124,23 @@ void Virtio::find_common_cfg() {
 }
 
 void Virtio::reset() {
-  uint64_t cfg_addr = _bar_region + _bar_offset + VIRTIO_PCI_STATUS;
-
-  if (_iospace) {
-    hw::outp(cfg_addr, 0);
-  } else {
-    uint8_t *status = (uint8_t*)cfg_addr;
-
-    *status = 0;
-  }
+  _common_cfg->device_status = 0;
 }
 
 void Virtio::set_ack_and_driver_bits() {
-  uint64_t cfg_addr = _bar_region + _bar_offset + VIRTIO_PCI_STATUS;
-  if (_iospace) {
-    uint8_t cur_status = hw::inp(cfg_addr);
-
-    hw::outp(cfg_addr, cur_status | VIRTIO_CONFIG_S_ACKNOWLEDGE | VIRTIO_CONFIG_S_DRIVER);
-  } else {
-    volatile uint8_t *status = (volatile uint8_t*)cfg_addr;
-
-    *status = *status | VIRTIO_CONFIG_S_ACKNOWLEDGE | VIRTIO_CONFIG_S_DRIVER;
-  }
+  _common_cfg->device_status |= VIRTIO_CONFIG_S_ACKNOWLEDGE;
+  _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER;
 }
 
 void Virtio::read_features() {
-  uint64_t cfg_addr = _bar_region + _bar_offset;
-  uint32_t dev_features;
+  _common_cfg->device_feature_select = 0;
+  INFO("Virtio", "Features: 0x%x", _common_cfg->device_feature);
 
-  INFO("Virtio", "Attempting to dump common cfg...");
+  _common_cfg->device_feature_select = 1;
+  INFO("Virtio", "Features: 0x%x", _common_cfg->device_feature);
 
-  if (_iospace) {
-    for (int i = 0; i < 200; i++) {
-      dev_features = hw::inpd(cfg_addr + i << 2);
-    
-      INFO("Virtio", "Dword at %d: 0x%x", i, dev_features);
-    }
-  } else {
-    /*
-    for (int i = 0; i < 200; i++) {
-      dev_features = *((uint32_t*)(cfg_addr + i << 2));
-
-      INFO("Virtio", "Dword at %d: 0x%x", i, dev_features);
-    }*/
-  }
-
-  assert(false);
+  _common_cfg->device_feature_select = 0;
+  INFO("Virtio", "Features: 0x%x", _common_cfg->device_feature);
 }
 
 
