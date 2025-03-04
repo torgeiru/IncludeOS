@@ -41,7 +41,7 @@ set(CAPABS "${CAPABS} -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLAT
 set(WARNS  "-Wall -Wextra") #-pedantic
 
 # configure options
-option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
+option(debug "Build with debugging symbols (OBS: increases binary size)" ON)
 option(minimal "Build for minimal size" OFF)
 option(stripped "reduce size" OFF)
 

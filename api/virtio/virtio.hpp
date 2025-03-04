@@ -123,7 +123,9 @@ struct __attribute__((packed)) virtio_pci_common_cfg {
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE     1
 #define VIRTIO_CONFIG_S_DRIVER          2
 #define VIRTIO_CONFIG_S_DRIVER_OK       4
-#define VIRTIO_CONFIG_S_FAILED          0x80
+#define VIRTIO_CONFIG_S_FEATURES_OK     8
+#define VIRTIO_CONFIG_S_NEEDS_RESET     64
+#define VIRTIO_CONFIG_S_FAILED          128
 
 //#include <class_irq_handler.hpp>
 class Virtio
@@ -379,9 +381,6 @@ public:
   /** Setting acknowledgement and driver bit within device status */
   void set_ack_and_driver_bits();
 
-  /** Reading features from device */
-  void read_features();
-
   /** Negotiate supported features with host */
   void negotiate_features(uint32_t features);
 
@@ -437,18 +436,16 @@ protected:
   }
 private:
   hw::PCI_Device& _pcidev;
-  uint8_t common_cfg_bar;
-  uint32_t common_cfg_offset;
 
-  // Virtio common config
+  /* Configuration structures */
   volatile struct virtio_pci_common_cfg *_common_cfg;
 
-  //We'll get this from PCI_device::iobase(), but that lookup takes longer
+  /* We'll get this from PCI_device::iobase(), but that lookup takes longer */
   uint32_t _iobase = 0;
   uint32_t _features = 0;
   uint16_t _virtio_device_id = 0;
 
-  // Indicate if virtio device ID is legacy or standard
+  /* Indicate if virtio device ID is legacy or standard */
   bool _LEGACY_ID = 0;
   bool _STD_ID = 0;
 

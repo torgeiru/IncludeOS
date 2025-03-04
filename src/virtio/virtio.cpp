@@ -25,6 +25,8 @@
 #include <assert.h>
 #include <debug>
 
+// #define VIRTIO_CHECKS
+
 #define VIRTIO_MSI_CONFIG_VECTOR  20
 #define VIRTIO_MSI_QUEUE_VECTOR   22
 
@@ -59,7 +61,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
   CHECK(rev_id_ok, "Device Revision ID (%d) supported", dev.rev_id());
   assert(rev_id_ok);
 
-  // Finding common configuration structure
+  /** Finding common configuration structure */
   find_common_cfg();
 
   /** Initializing the device. Virtio Std. §3.1 */
@@ -69,11 +71,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
   set_ack_and_driver_bits();
   CHECK(true, "Setting acknowledgement and drive bits");
 
-  read_features();
-
-  os::panic("Panicking for no reason!");
-
-  /** Reading and negotiating features */
+  INFO("Virtio", "Handing over control to the device subsystem for now");
 }
 
 void Virtio::find_common_cfg() {
@@ -83,14 +81,14 @@ void Virtio::find_common_cfg() {
 
   uint32_t offset = _pcidev.read32(PCI_CAPABILITY_REG) & 0xfc;
 
-  // Must be device vendor specific capability
+  /** Must be device vendor specific capability */
   while (offset) {
     uint32_t data    = _pcidev.read32(offset);
     uint8_t cap_vndr = (uint8_t) (data & 0xff);
     uint8_t cap_len  = (uint8_t) ((data >> 16) & 0xff);
     uint8_t cfg_type = (uint8_t) (data >> 24);
 
-    // Skipping other than vendor specific capability
+    /** Skipping other than vendor specific capability */ 
     if (
       cap_vndr == PCI_CAP_ID_VNDR && 
       cfg_type == VIRTIO_PCI_CAP_COMMON_CFG
@@ -105,13 +103,13 @@ void Virtio::find_common_cfg() {
       uint64_t bar_region = (uint64_t)(bar_value & ~15);
       uint64_t bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
 
-      // Check if 64 bit bar
+      /** Check if 64 bit bar  */
       if (cap_len > VIRTIO_PCI_CAP_LEN) {
-        uint64_t bar_higher    = (uint64_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2));
-        uint64_t baroff_higher = (uint64_t) _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64);
+        uint64_t bar_hi    = (uint64_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2));
+        uint64_t baroff_hi = (uint64_t) _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64);
 
-        bar_region |= (bar_higher << 32);
-        bar_offset |= (baroff_higher << 32);
+        bar_region |= (bar_hi << 32);
+        bar_offset |= (baroff_hi << 32);
       }
 
       _common_cfg = (volatile struct virtio_pci_common_cfg*)(bar_region + bar_offset);
@@ -131,106 +129,6 @@ void Virtio::set_ack_and_driver_bits() {
   _common_cfg->device_status |= VIRTIO_CONFIG_S_ACKNOWLEDGE;
   _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER;
 }
-
-void Virtio::read_features() {
-  _common_cfg->device_feature_select = 0;
-  INFO("Virtio", "Features: 0x%x", _common_cfg->device_feature);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void Virtio::get_config(void* buf, int len)
 {
@@ -281,12 +179,14 @@ uint32_t Virtio::probe_features() {
 }
 
 void Virtio::negotiate_features(uint32_t features) {
-  //_features = hw::inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
   this->_features = features;
-  debug("<Virtio> Wanted features: 0x%lx \n", _features);
+  INFO("Virtio", "Wanted features: 0x%lx", _features);
+  
+  /*
   hw::outpd(_iobase + VIRTIO_PCI_GUEST_FEATURES, _features);
-  _features = probe_features();
-  debug("<Virtio> Got features: 0x%lx \n",_features);
+  _features = probe_features();*/
+
+  INFO("Virtio", "Got features: 0x%lx", _features);
 }
 
 void Virtio::move_to_this_cpu()

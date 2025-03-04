@@ -38,20 +38,9 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   : Virtio(d), hw::Block_device(), req(device_name() + ".req0", queue_size(0), 0, iobase()), inflight(0)
 {
   INFO("VirtioBlk", "Initializing");
-  {
-    auto& reqs = Statman::get().create(
-      Stat::UINT32, device_name() + ".requests");
-    this->requests = &reqs.get_uint32();
-    *this->requests = 0;
 
-    auto& err = Statman::get().create(
-      Stat::UINT32, device_name() + ".errors");
-    this->errors = &err.get_uint32();
-    *this->errors = 0;
-  }
+  uint32_t needed_features = FEAT(VIRTIO_BLK_F_BLK_SIZE);
 
-  uint32_t needed_features =
-    FEAT(VIRTIO_BLK_F_BLK_SIZE);
   negotiate_features(needed_features);
 
   CHECK(features() & FEAT(VIRTIO_BLK_F_BARRIER),
@@ -74,40 +63,7 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   CHECK ((features() & needed_features) == needed_features,
          "Negotiated needed features");
 
-  // Step 1 - Initialize REQ queue
-  auto success = assign_queue(0, req.queue_desc());
-  CHECK(success, "Request queue assigned (%p) to device",
-        req.queue_desc());
-
-  // Step 3 - Fill receive queue with buffers
-  // DEBUG: Disable
-  INFO("VirtioBlk", "Queue size: %i\tRequest size: %zu\n",
-       req.size(), sizeof(request_t));
-
-  // Get device configuration
-  get_config();
-
-  // Signal setup complete.
-  setup_complete((features() & needed_features) == needed_features);
-  CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
-
-  // Hook up IRQ handler (inherited from Virtio)
-  if (has_msix())
-  {
-    assert(get_msix_vectors() >= 2);
-    auto& irqs = this->get_irqs();
-    // update IRQ subscriptions
-    Events::get().subscribe(irqs[0], {this, &VirtioBlk::service_RX});
-    Events::get().subscribe(irqs[1], {this, &VirtioBlk::msix_conf_handler});
-  }
-  else
-  {
-    auto& irqs = this->get_irqs();
-    Events::get().subscribe(irqs[0], {this, &VirtioBlk::irq_handler});
-  }
-
-  // Done
-  INFO("VirtioBlk", "Block device with %zu sectors capacity", config.capacity);
+  os::panic("Panicking for no reason!");
 }
 
 void VirtioBlk::get_config()
@@ -295,7 +251,6 @@ void VirtioBlk::deactivate()
 /** Global constructor - register VirtioBlk's driver factory at the PCI_manager */
 struct Autoreg_virtioblk {
   Autoreg_virtioblk() {
-    // hw::PCI_manager::register_blk(PCI::VENDOR_VIRTIO, 0x1001, &VirtioBlk::new_instance); // (deprecated, legacy)
     hw::PCI_manager::register_blk(PCI::VENDOR_VIRTIO, 0x1042, &VirtioBlk::new_instance);
   }
 } autoreg_virtioblk;
