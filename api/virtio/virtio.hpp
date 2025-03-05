@@ -373,9 +373,9 @@ public:
   uint8_t get_legacy_irq();
 
   /** Finds the common configuration address */
-  void find_common_cfg();
+  void find_cap_cfgs();
 
-  /** Reset the virtio device - depends on find_common_cfg */
+  /** Reset the virtio device - depends on find_cap_cfgs */
   void reset();
 
   /** Setting acknowledgement and driver bit within device status */
@@ -439,6 +439,7 @@ private:
 
   /* Configuration structures */
   volatile struct virtio_pci_common_cfg *_common_cfg;
+  volatile uintptr_t _specific_cfg; // specific to the device
 
   /* We'll get this from PCI_device::iobase(), but that lookup takes longer */
   uint32_t _iobase = 0;

@@ -61,8 +61,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
   CHECK(rev_id_ok, "Device Revision ID (%d) supported", dev.rev_id());
   assert(rev_id_ok);
 
-  /** Finding common configuration structure */
-  find_common_cfg();
+  /** Finding capability structures */
+  find_cap_cfgs();
 
   /** Initializing the device. Virtio Std. §3.1 */
   reset();
@@ -74,7 +74,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
   INFO("Virtio", "Handing over control to the device subsystem for now");
 }
 
-void Virtio::find_common_cfg() {
+void Virtio::find_cap_cfgs() {
   uint16_t status = _pcidev.read16(PCI_STATUS_REG);
 
   if ((status & 0x10) == 0) return;
@@ -90,9 +90,9 @@ void Virtio::find_common_cfg() {
 
     /** Skipping other than vendor specific capability */ 
     if (
-      cap_vndr == PCI_CAP_ID_VNDR && 
-      cfg_type == VIRTIO_PCI_CAP_COMMON_CFG
+      cap_vndr == PCI_CAP_ID_VNDR
     ) {
+      /** Grabbing bar region  */
       uint8_t bar        = (uint8_t)(_pcidev.read16(offset + VIRTIO_PCI_CAP_BAR) & 0xff);
       uint32_t bar_value = _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + (bar << 2));
 
@@ -100,19 +100,31 @@ void Virtio::find_common_cfg() {
       CHECK(not iospace, "Not IO space for bar regions");
       assert(not iospace);
 
-      uint64_t bar_region = (uint64_t)(bar_value & ~15);
-      uint64_t bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
+      /** Grabbing bar offset for config */
+      uintptr_t bar_region = (uintptr_t)(bar_value & ~15);
+      uintptr_t bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
 
       /** Check if 64 bit bar  */
       if (cap_len > VIRTIO_PCI_CAP_LEN) {
-        uint64_t bar_hi    = (uint64_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2));
-        uint64_t baroff_hi = (uint64_t) _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64);
+        uintptr_t bar_hi   = (uintptr_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2));
+        uintptr_t baroff_hi = (uintptr_t) _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64);
 
         bar_region |= (bar_hi << 32);
         bar_offset |= (baroff_hi << 32);
       }
 
-      _common_cfg = (volatile struct virtio_pci_common_cfg*)(bar_region + bar_offset);
+      /** Determine config type and calculate config address */
+      uintptr_t cfg_addr = bar_region + bar_offset;
+
+      switch(cfg_type) {
+        case VIRTIO_PCI_CAP_COMMON_CFG:
+          _common_cfg = (volatile struct virtio_pci_common_cfg*)cfg_addr;
+          break;
+        case VIRTIO_PCI_CAP_DEVICE_CFG:
+          _specific_cfg = cfg_addr;
+          INFO("Virtio", "Specific config address: 0x%lx",_specific_cfg);
+          break;
+      }
 
       break;
     }

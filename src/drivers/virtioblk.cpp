@@ -43,26 +43,6 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
 
   negotiate_features(needed_features);
 
-  CHECK(features() & FEAT(VIRTIO_BLK_F_BARRIER),
-        "Barrier is enabled");
-  CHECK(features() & FEAT(VIRTIO_BLK_F_SIZE_MAX),
-        "Size-max is known");
-  CHECK(features() & FEAT(VIRTIO_BLK_F_SEG_MAX),
-        "Seg-max is known");
-  CHECK(features() & FEAT(VIRTIO_BLK_F_GEOMETRY),
-        "Geometry structure is used");
-  CHECK(features() & FEAT(VIRTIO_BLK_F_RO),
-        "Device is read-only");
-  CHECK(features() & FEAT(VIRTIO_BLK_F_BLK_SIZE),
-        "Block-size is known");
-  CHECK(features() & FEAT(VIRTIO_BLK_F_SCSI),
-        "SCSI is enabled :(");
-  CHECK(features() & FEAT(VIRTIO_BLK_F_FLUSH),
-        "Flush enabled");
-
-  CHECK ((features() & needed_features) == needed_features,
-         "Negotiated needed features");
-
   os::panic("Panicking for no reason!");
 }
 
