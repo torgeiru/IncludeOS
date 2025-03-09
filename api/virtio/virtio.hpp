@@ -2,10 +2,9 @@
 #ifndef VIRTIO_VIRTIO_HPP
 #define VIRTIO_VIRTIO_HPP
 
-#include "../hw/pci_device.hpp"
+#include <hw/pci_device.hpp>
 #include <net/inet_common.hpp>
 #include <stdint.h>
-#include <vector>
 
 // #define PAGE_SIZE 4096
 
@@ -22,8 +21,6 @@ struct __attribute__((packed)) virtio_pci_cap {
   uint32_t length;     /* Length of the structure, in bytes. */ 
 };
 
-#define VIRTIO_PCI_CAP_LEN sizeof(struct virtio_pci_cap)
-
 /* Virtio PCI capability 64 */
 struct __attribute__((packed)) virtio_pci_cap64 {
   struct virtio_pci_cap cap; 
@@ -31,9 +28,19 @@ struct __attribute__((packed)) virtio_pci_cap64 {
   uint32_t length_hi;
 };
 
-#define VIRTIO_PCI_CAP_BAR      offsetof(struct virtio_pci_cap, bar)
-#define VIRTIO_PCI_CAP_BAROFF   offsetof(struct virtio_pci_cap, offset)
-#define VIRTIO_PCI_CAP_BAROFF64 offsetof(struct virtio_pci_cap64, offset_hi)
+struct __attribute__((packed)) virtio_pci_notify_cap { 
+  struct virtio_pci_cap cap; 
+  uint32_t notify_off_multiplier; /* Multiplier for queue_notify_off. */ 
+};
+
+#define VIRTIO_PCI_CAP_LEN     sizeof(struct virtio_pci_cap)
+#define VIRTIO_PCI_CAP_LEN64   sizeof(struct virtio_pci_cap64)
+#define VIRTIO_PCI_NOT_CAP_LEN sizeof(struct virtio_pci_notify_cap)
+
+#define VIRTIO_PCI_CAP_BAR        offsetof(struct virtio_pci_cap, bar)
+#define VIRTIO_PCI_CAP_BAROFF     offsetof(struct virtio_pci_cap, offset)
+#define VIRTIO_PCI_CAP_BAROFF64   offsetof(struct virtio_pci_cap64, offset_hi)
+#define VIRTIO_PCI_NOTIFY_CAP_MUL offsetof(struct virtio_pci_notify_cap, notify_off_multiplier)
 
 struct __attribute__((packed)) virtio_pci_common_cfg { 
   /* About the whole device. */ 
@@ -61,6 +68,12 @@ struct __attribute__((packed)) virtio_pci_common_cfg {
   /* About the administration virtqueue. */ 
   uint16_t admin_queue_index;         /* read-only for driver */ 
   uint16_t admin_queue_num;           /* read-only for driver */ 
+};
+
+struct __attribute__((packed)) virtio_pci_isr_cfg {
+  uint32_t queue_interrupt   : 1;
+  uint32_t dev_cfg_intterupt : 1;
+  uint32_t reserved          : 30;
 };
 
 /* Types of configurations */ 
@@ -104,6 +117,9 @@ public:
   /** Negotiate supported features with device */
   bool negotiate_features();
 
+  /** Setting driver ok bit within device status */
+  void set_driver_ok_bit();
+
   /** Indicate which Virtio version (PCI revision ID) is supported.
 
       Currently only Legacy is supported (partially the 1.0 standard)
@@ -119,9 +135,13 @@ public:
 private:
   hw::PCI_Device& _pcidev;
 
-  /* Configuration structures */
+  /* Configuration structures, bar numbers, offsets and offset multipliers */
   volatile struct virtio_pci_common_cfg *_common_cfg;
   volatile uintptr_t _specific_cfg; // specific to the device
+  volatile struct virtio_pci_isr_cfg *_isr_cfg;
+
+  uint32_t _notify_off_multiplier;
+  uintptr_t _notify_region;
 
   /* Indicate if virtio device ID is legacy or standard */
   bool _LEGACY_ID = 0;

@@ -1,6 +1,6 @@
 #include <virtio/virtio.hpp>
 #include <os.hpp>
-#include <cassert>
+#include <assert.h>
 #include <info>
 #include <hw/pci.hpp>
 
@@ -54,11 +54,7 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   CHECK(negotiation_success, "Feature negotiation was a success");
   assert(negotiate_success);
 
-  // setup_virtqueues();
-
-  // set_driver_ok_bit();
-
-  INFO("Virtio", "Handing over control to the device specific subsystem");
+  INFO("Virtio", "Handing over control to the device specific subsystem for now");
 }
 
 void Virtio::find_cap_cfgs() {
@@ -91,7 +87,7 @@ void Virtio::find_cap_cfgs() {
       uintptr_t bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
 
       /* Check if 64 bit bar  */
-      if (cap_len > VIRTIO_PCI_CAP_LEN) {
+      if (cap_len > VIRTIO_PCI_NOT_CAP_LEN) {
         uintptr_t bar_hi   = (uintptr_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2));
         uintptr_t baroff_hi = (uintptr_t) _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64);
 
@@ -108,6 +104,13 @@ void Virtio::find_cap_cfgs() {
           break;
         case VIRTIO_PCI_CAP_DEVICE_CFG:
           _specific_cfg = cfg_addr;
+          break;
+        case VIRTIO_PCI_CAP_NOTIFY_CFG:
+          _notify_region = cfg_addr;
+          _notify_off_multiplier = _pcidev.read32(offset + VIRTIO_PCI_NOTIFY_CAP_MUL);
+          break;
+        case VIRTIO_PCI_CAP_ISR_CFG:
+          _isr_cfg = (volatile struct virtio_pci_isr_cfg*)cfg_addr;
           break;
       }
     }
@@ -136,8 +139,12 @@ bool Virtio::negotiate_features() {
   _common_cfg->device_feature_select = 1;
   uint32_t dev_features_hi = _common_cfg->device_feature;
 
+  /* Checking if required features are available */
   uint32_t supported_features_lo = dev_features_lo & required_feats_lo;
   uint32_t supported_features_hi = dev_features_hi & required_feats_hi;
+
+  // INFO("Virtio", "0x%x 0x%x", supported_features_hi, supported_features_lo);
+  // INFO("Virtio", "0x%x 0x%x", required_feats_hi, required_feats_lo);
 
   if (supported_features_lo != required_feats_lo)
     return false;
@@ -160,4 +167,8 @@ bool Virtio::negotiate_features() {
     return false;    
 
   return true;
+}
+
+void Virtio::set_driver_ok_bit() {
+  _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER_OK;
 }
