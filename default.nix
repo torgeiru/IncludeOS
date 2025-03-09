@@ -1,9 +1,15 @@
 { withCcache ? false, # Enable ccache. Requires correct permissions, see overlay.nix.
-  smp ? false, # Enable multcore support (SMP)
+  
+  smp ? false,        # Enable multcore support (SMP)
+  
+  debugsyms ? false,  # Include debug symbols in chainloader and executable
+  
   nixpkgs ? ./pinned.nix,
+  
   overlays ? [
-    (import ./overlay.nix { inherit withCcache; inherit smp; } )
+    (import ./overlay.nix { inherit withCcache; inherit smp; inherit debugsyms; } )
   ],
+  
   pkgs ? import nixpkgs { config = {}; inherit overlays; }
 }:
 

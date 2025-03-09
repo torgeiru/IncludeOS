@@ -1,9 +1,11 @@
 {
-  withCcache, # Enable ccache. Requires correct permissions, see below.
-  smp,      # Enable multicore support (SMP)
+  withCcache ? false, # Enable ccache. Requires correct permissions, see below.
+  
+  smp ? false,        # Enable multicore support (SMP)
+  
+  debugsyms ? false,  # Include debug symbols in chainloader and executable
 } :
 final: prev: {
-
   stdenvIncludeOS = prev.pkgsStatic.lib.makeScope prev.pkgsStatic.newScope (self: {
     llvmPkgs = prev.pkgsStatic.llvmPackages_18;
     stdenv = self.llvmPkgs.libcxxStdenv; # Use this as base stdenv
@@ -157,7 +159,7 @@ final: prev: {
 
       smpFlags = if smp then [ "-DSMP=ON" ] else [ "-DSMP=OFF" ];
 
-      cmakeFlags = archFlags ++ smpFlags;
+      cmakeFlags = archFlags ++ smpFlags ++ (if debugsyms then [ "-DCMAKE_BUILD_TYPE=Debug" ] else []);
 
       # Add some pasthroughs, for easily building the dependencies (for debugging):
       # $ nix-build -A NAME

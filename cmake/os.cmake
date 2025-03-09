@@ -196,6 +196,7 @@ function(os_add_executable TARGET NAME)
 
   # TODO: if not debug strip
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message("DEBUGGING FFS")
     set(STRIP_LV )
   else()
     set(STRIP_LV ${CMAKE_STRIP} --strip-all ${CMAKE_CURRENT_BINARY_DIR}/${TARGET})

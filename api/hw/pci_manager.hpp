@@ -23,6 +23,7 @@
 #include <hw/block_device.hpp>
 #include <hw/vfs_device.hpp>
 #include <hw/pci_device.hpp>
+#include <hw/con_device.hpp>
 
 namespace hw {
 
@@ -40,6 +41,9 @@ public:
 
   using VFS_driver = delegate< std::unique_ptr<hw::VFS_device> (PCI_Device&) >;
   static void register_vfs(uint16_t, uint16_t, VFS_driver);
+
+  using CON_driver = delegate< std::unique_ptr<hw::CON_device> (PCI_Device&) >;
+  static void register_con(uint16_t, uint16_t, CON_driver);
 
   static void init();
   static void init_devices(uint8_t classcode);

@@ -1,0 +1,26 @@
+#pragma once
+#ifndef CON_DEVICE_HPP
+#define CON_DEVICE_HPP
+
+#include <string>
+#include "device.hpp"
+
+namespace hw {
+  class CON_device : public Device {
+  public:
+    /** Method to get the type of device */
+    Device::Type device_type() const noexcept override
+    { return Device::Type::Con; }
+
+    /** Method to get the name of the device */
+    virtual std::string device_name() const override = 0;
+  
+    /** Method used to deactivate device */
+    void deactivate() override {}
+
+    /** Method to get the device's identifier */
+    virtual int id() const noexcept = 0;
+  };
+}
+
+#endif

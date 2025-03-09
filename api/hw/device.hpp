@@ -25,7 +25,8 @@ namespace hw {
     {
       Block,
       Nic,
-      Vfs
+      Vfs,
+      Con
     };
     // ^^^Adding an additional enum type of Vfs
 

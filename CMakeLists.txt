@@ -10,6 +10,8 @@ option(PROFILE "Compile with startup profilers" OFF)
 
 include(cmake/includeos.cmake)
 
+message("Included IncludeOS!")
+
 add_subdirectory(src)
 
 # Install cmake files

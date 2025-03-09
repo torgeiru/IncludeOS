@@ -58,6 +58,8 @@ endif()
 
 # initialize C and C++ compiler flags
 if (NOT ${PLATFORM} STREQUAL "userspace")
+  
+
   if (CMAKE_COMPILER_IS_GNUCC)
     # gcc/g++ settings
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c")

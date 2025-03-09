@@ -108,6 +108,8 @@ void __platform_init()
   kernel::state().block_drivers_ready = true;
   // Initialize network devices
   hw::PCI_manager::init_devices(PCI::NIC);
+  // Initialize console devices for custom use (Torgeir Skovholt VirtioFS implementation)
+  hw::PCI_manager::init_devices(PCI::COMMUNICATION);
   // Print registered devices
   os::machine().print_devices();
 }

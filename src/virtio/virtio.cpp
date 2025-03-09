@@ -1,44 +1,20 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include <virtio/virtio.hpp>
-#include <kernel/events.hpp>
 #include <os.hpp>
-#include <kernel.hpp>
+#include <cassert>
+#include <info>
 #include <hw/pci.hpp>
-#include <smp>
-#include <arch.hpp>
-#include <assert.h>
-#include <debug>
 
-// #define VIRTIO_CHECKS
-
-#define VIRTIO_MSI_CONFIG_VECTOR  20
-#define VIRTIO_MSI_QUEUE_VECTOR   22
-
-Virtio::Virtio(hw::PCI_Device& dev)
-  : _pcidev(dev), _virtio_device_id(dev.product_id())
+Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) : 
+  _pcidev(dev), 
+  _required_feats(REQUIRED_VQUEUE_FEATS | dev_specific_feats), 
+  _virtio_device_id(dev.product_id()
+)
 {
   INFO("Virtio","Attaching to  PCI addr 0x%x",dev.pci_addr());
+  /* PCI Device discovery. Virtio std. §4.1.2  */
 
-  /** PCI Device discovery. Virtio std. §4.1.2  */
-
-  /**
-      Match vendor ID and Device ID : §4.1.2.2
+  /* 
+    Match vendor ID and Device ID : §4.1.2.2 
   */
   assert (dev.vendor_id() == PCI::VENDOR_VIRTIO && 
     "Must be a Virtio device");
@@ -53,25 +29,36 @@ Virtio::Virtio(hw::PCI_Device& dev)
   CHECK(_STD_ID, "Device ID 0x%x is in valid range", _virtio_device_id);
   assert(_STD_ID);
 
-  /**
-      Match Device revision ID. Virtio Std. §4.1.2.2
+  /* 
+    Match Device revision ID. Virtio Std. §4.1.2.2 
   */
   bool rev_id_ok = version_supported(dev.rev_id());
 
   CHECK(rev_id_ok, "Device Revision ID (%d) supported", dev.rev_id());
   assert(rev_id_ok);
 
-  /** Finding capability structures */
+  /* Finding capability structures */
   find_cap_cfgs();
 
-  /** Initializing the device. Virtio Std. §3.1 */
+  /* 
+    Initializing the device. Virtio Std. §3.1 
+  */  
   reset();
   CHECK(true, "Resetting Virtio device");
 
   set_ack_and_driver_bits();
   CHECK(true, "Setting acknowledgement and drive bits");
 
-  INFO("Virtio", "Handing over control to the device subsystem for now");
+  bool negotiation_success = negotiate_features();
+
+  CHECK(negotiation_success, "Feature negotiation was a success");
+  assert(negotiate_success);
+
+  // setup_virtqueues();
+
+  // set_driver_ok_bit();
+
+  INFO("Virtio", "Handing over control to the device specific subsystem");
 }
 
 void Virtio::find_cap_cfgs() {
@@ -81,30 +68,29 @@ void Virtio::find_cap_cfgs() {
 
   uint32_t offset = _pcidev.read32(PCI_CAPABILITY_REG) & 0xfc;
 
-  /** Must be device vendor specific capability */
+  /* Must be device vendor specific capability */
   while (offset) {
     uint32_t data    = _pcidev.read32(offset);
     uint8_t cap_vndr = (uint8_t) (data & 0xff);
     uint8_t cap_len  = (uint8_t) ((data >> 16) & 0xff);
     uint8_t cfg_type = (uint8_t) (data >> 24);
 
-    /** Skipping other than vendor specific capability */ 
+    /* Skipping other than vendor specific capability */ 
     if (
       cap_vndr == PCI_CAP_ID_VNDR
     ) {
-      /** Grabbing bar region  */
+      /* Grabbing bar region */
       uint8_t bar        = (uint8_t)(_pcidev.read16(offset + VIRTIO_PCI_CAP_BAR) & 0xff);
       uint32_t bar_value = _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + (bar << 2));
 
-      bool iospace = ((bar_value & 1) == 1) ? true : false;
-      CHECK(not iospace, "Not IO space for bar regions");
-      assert(not iospace);
+      // bool iospace = ((bar_value & 1) == 1) ? true : false;
+      // assert(not iospace);
 
-      /** Grabbing bar offset for config */
-      uintptr_t bar_region = (uintptr_t)(bar_value & ~15);
+      /* Grabbing bar offset for config */
+      uintptr_t bar_region = (uintptr_t)(bar_value & ~0xf);
       uintptr_t bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
 
-      /** Check if 64 bit bar  */
+      /* Check if 64 bit bar  */
       if (cap_len > VIRTIO_PCI_CAP_LEN) {
         uintptr_t bar_hi   = (uintptr_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2));
         uintptr_t baroff_hi = (uintptr_t) _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64);
@@ -113,7 +99,7 @@ void Virtio::find_cap_cfgs() {
         bar_offset |= (baroff_hi << 32);
       }
 
-      /** Determine config type and calculate config address */
+      /* Determine config type and calculate config address */
       uintptr_t cfg_addr = bar_region + bar_offset;
 
       switch(cfg_type) {
@@ -122,11 +108,8 @@ void Virtio::find_cap_cfgs() {
           break;
         case VIRTIO_PCI_CAP_DEVICE_CFG:
           _specific_cfg = cfg_addr;
-          INFO("Virtio", "Specific config address: 0x%lx",_specific_cfg);
           break;
       }
-
-      break;
     }
 
     offset = (data >> 8) & 0xff;
@@ -142,91 +125,39 @@ void Virtio::set_ack_and_driver_bits() {
   _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER;
 }
 
-void Virtio::get_config(void* buf, int len)
-{
-  // io addr is different when MSI-X is enabled
-  uint32_t ioaddr = _iobase;
-  ioaddr += (has_msix()) ? VIRTIO_PCI_CONFIG_MSIX : VIRTIO_PCI_CONFIG;
+bool Virtio::negotiate_features() {
+  uint32_t required_feats_lo = (uint32_t)(_required_feats & 0xffffffff);
+  uint32_t required_feats_hi = (uint32_t)(_required_feats >> 32);
 
-  uint8_t* ptr = (uint8_t*) buf;
-  for (int i = 0; i < len; i++) {
-    ptr[i] = hw::inp(ioaddr + i);
-  }
-}
+  /* Read device features */
+  _common_cfg->device_feature_select = 0;
+  uint32_t dev_features_lo = _common_cfg->device_feature;
 
-uint8_t Virtio::get_legacy_irq()
-{
-  // Get legacy IRQ from PCI
-  uint32_t value = _pcidev.read32(PCI::CONFIG_INTR);
-  if ((value & 0xFF) != 0xFF) {
-    return value & 0xFF;
-  }
-  return 0;
-}
+  _common_cfg->device_feature_select = 1;
+  uint32_t dev_features_hi = _common_cfg->device_feature;
 
-uint32_t Virtio::queue_size(uint16_t index) {
-  hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
-  return hw::inpw(iobase() + VIRTIO_PCI_QUEUE_SIZE);
-}
+  uint32_t supported_features_lo = dev_features_lo & required_feats_lo;
+  uint32_t supported_features_hi = dev_features_hi & required_feats_hi;
 
-bool Virtio::assign_queue(uint16_t index, const void* queue_desc)
-{
-  hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
-  hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, kernel::addr_to_page((uintptr_t) queue_desc));
+  if (supported_features_lo != required_feats_lo)
+    return false;
 
-  if (_pcidev.has_msix())
-  {
-    // also update virtio MSI-X queue vector
-    hw::outpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR, index);
-    // the programming could fail, and the reason is allocation failed on vmm
-    // in which case we probably don't wanna continue anyways
-    assert(hw::inpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR) == index);
-  }
+  if (supported_features_hi != required_feats_hi)
+    return false;
 
-  return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == kernel::addr_to_page((uintptr_t) queue_desc);
-}
+  /* Writing subset of supported features */
+  _common_cfg->driver_feature_select = 0;
+  _common_cfg->driver_feature = supported_features_lo;
 
-uint32_t Virtio::probe_features() {
-  return hw::inpd(iobase() + VIRTIO_PCI_HOST_FEATURES);
-}
+  _common_cfg->driver_feature_select = 1;
+  _common_cfg->driver_feature = supported_features_hi;
 
-void Virtio::negotiate_features(uint32_t features) {
-  this->_features = features;
-  INFO("Virtio", "Wanted features: 0x%lx", _features);
-  
-  /*
-  hw::outpd(_iobase + VIRTIO_PCI_GUEST_FEATURES, _features);
-  _features = probe_features();*/
+  /* Writing features_ok */
+  _common_cfg->device_status |= VIRTIO_CONFIG_S_FEATURES_OK;
 
-  INFO("Virtio", "Got features: 0x%lx", _features);
-}
+  /* Checking if features_ok bit is still set */
+  if ((_common_cfg->device_status & VIRTIO_CONFIG_S_FEATURES_OK) == 0)
+    return false;    
 
-void Virtio::move_to_this_cpu()
-{
-  if (has_msix())
-  {
-    // unsubscribe IRQs on old CPU
-    for (size_t i = 0; i < irqs.size(); i++)
-    {
-      auto& oldman = Events::get(this->current_cpu);
-      oldman.unsubscribe(this->irqs[i]);
-    }
-    // resubscribe on the new CPU
-    this->current_cpu = SMP::cpu_id();
-    for (size_t i = 0; i < irqs.size(); i++)
-    {
-      this->irqs[i] = Events::get().subscribe(nullptr);
-      _pcidev.rebalance_msix_vector(i, current_cpu, IRQ_BASE + this->irqs[i]);
-    }
-  }
-}
-
-void Virtio::setup_complete(bool ok)
-{
-  uint8_t value = hw::inp(_iobase + VIRTIO_PCI_STATUS);
-  value |= ok ? VIRTIO_CONFIG_S_DRIVER_OK : VIRTIO_CONFIG_S_FAILED;
-  if (!ok) {
-    INFO("Virtio", "Setup failed, status: %hhx", value);
-  }
-  hw::outp(_iobase + VIRTIO_PCI_STATUS, value);
+  return true;
 }
