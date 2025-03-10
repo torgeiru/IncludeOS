@@ -24,8 +24,8 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
   _LEGACY_ID = _virtio_device_id >= 0x1000 and _virtio_device_id <= 0x103f;
 
-  CHECK(!_LEGACY_ID, "Device ID 0x%x is not legacy", _virtio_device_id);
-  _virtio_assert(!_LEGACY_ID);
+  CHECK(not _LEGACY_ID, "Device ID 0x%x is not legacy", _virtio_device_id);
+  _virtio_assert(not LEGACY_ID);
 
   CHECK(_STD_ID, "Device ID 0x%x is in valid range", _virtio_device_id);
   _virtio_assert(_STD_ID);

@@ -83,14 +83,21 @@ struct __attribute__((packed)) virtio_pci_isr_cfg {
 #define VIRTIO_PCI_CAP_VENDOR_CFG        9
 
 /* All feats these must be supported by device */
+#define VIRTIO_F_INDIRECT_DESC (1ULL << 28)
+#define VIRTIO_F_EVENT_IDX     (1ULL << 29)
 #define VIRTIO_F_VERSION_1          (1ULL << 32)
-#define VIRTIO_F_RING_INDIRECT_DESC (1ULL << 28)
-#define VIRTIO_F_RING_EVENT_IDX     (1ULL << 29)
+#define VIRTIO_F_RING_PACKED        (1ULL << 34)
+
+/* Virtio queue features that may be useful for devices */
+#define VIRTIO_F_IN_ORDER           (1ULL << 35)
+#define VIRTIO_F_RING_RESET         (1ULL << 40)
 
 #define REQUIRED_VQUEUE_FEATS ( \
   VIRTIO_F_VERSION_1 | \
-  VIRTIO_F_RING_INDIRECT_DESC | \
-  VIRTIO_F_RING_EVENT_IDX)
+  VIRTIO_F_INDIRECT_DESC | \
+  VIRTIO_F_EVENT_IDX \
+  VIRTIO_F_RING_PACKED
+)
 
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE     1
 #define VIRTIO_CONFIG_S_DRIVER          2
@@ -101,8 +108,6 @@ struct __attribute__((packed)) virtio_pci_isr_cfg {
 
 class Virtio {
 public:
-  // class Queue {};
-
   /** Setting driver ok bit within device status */
   void set_driver_ok_bit();
 
