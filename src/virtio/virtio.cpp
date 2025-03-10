@@ -16,48 +16,47 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   /* 
     Match vendor ID and Device ID : §4.1.2.2 
   */
-  assert (dev.vendor_id() == PCI::VENDOR_VIRTIO && 
-    "Must be a Virtio device");
-  CHECK(true, "Vendor ID is VIRTIO");
+
+  bool vendor_is_virtio = (dev.vendor_id() == PCI::VENDOR_VIRTIO);
+  CHECK(vendor_is_virtio, "Vendor ID is VIRTIO");
+  _virtio_assert(vendor_is_virtio);
 
   _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
   _LEGACY_ID = _virtio_device_id >= 0x1000 and _virtio_device_id <= 0x103f;
 
   CHECK(!_LEGACY_ID, "Device ID 0x%x is not legacy", _virtio_device_id);
-  assert(!_LEGACY_ID);
+  _virtio_assert(!_LEGACY_ID);
 
   CHECK(_STD_ID, "Device ID 0x%x is in valid range", _virtio_device_id);
-  assert(_STD_ID);
+  _virtio_assert(_STD_ID);
 
   /* 
     Match Device revision ID. Virtio Std. §4.1.2.2 
   */
-  bool rev_id_ok = version_supported(dev.rev_id());
+  bool rev_id_ok = _version_supported(dev.rev_id());
 
   CHECK(rev_id_ok, "Device Revision ID (%d) supported", dev.rev_id());
-  assert(rev_id_ok);
+  _virtio_assert(rev_id_ok);
 
   /* Finding capability structures */
-  find_cap_cfgs();
+  _find_cap_cfgs();
 
   /* 
     Initializing the device. Virtio Std. §3.1 
   */  
-  reset();
+  _reset();
   CHECK(true, "Resetting Virtio device");
 
-  set_ack_and_driver_bits();
+  _set_ack_and_driver_bits();
   CHECK(true, "Setting acknowledgement and drive bits");
 
-  bool negotiation_success = negotiate_features();
+  bool negotiation_success = _negotiate_features();
 
   CHECK(negotiation_success, "Feature negotiation was a success");
-  assert(negotiate_success);
-
-  INFO("Virtio", "Handing over control to the device specific subsystem for now");
+  _virtio_assert(negotiation_success, false);
 }
 
-void Virtio::find_cap_cfgs() {
+void Virtio::_find_cap_cfgs() {
   uint16_t status = _pcidev.read16(PCI_STATUS_REG);
 
   if ((status & 0x10) == 0) return;
@@ -79,16 +78,13 @@ void Virtio::find_cap_cfgs() {
       uint8_t bar        = (uint8_t)(_pcidev.read16(offset + VIRTIO_PCI_CAP_BAR) & 0xff);
       uint32_t bar_value = _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + (bar << 2));
 
-      // bool iospace = ((bar_value & 1) == 1) ? true : false;
-      // assert(not iospace);
-
       /* Grabbing bar offset for config */
       uintptr_t bar_region = (uintptr_t)(bar_value & ~0xf);
       uintptr_t bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
 
       /* Check if 64 bit bar  */
       if (cap_len > VIRTIO_PCI_NOT_CAP_LEN) {
-        uintptr_t bar_hi   = (uintptr_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2));
+        uintptr_t bar_hi    = (uintptr_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2));
         uintptr_t baroff_hi = (uintptr_t) _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64);
 
         bar_region |= (bar_hi << 32);
@@ -119,16 +115,16 @@ void Virtio::find_cap_cfgs() {
   }
 }
 
-void Virtio::reset() {
+void Virtio::_reset() {
   _common_cfg->device_status = 0;
 }
 
-void Virtio::set_ack_and_driver_bits() {
+void Virtio::_set_ack_and_driver_bits() {
   _common_cfg->device_status |= VIRTIO_CONFIG_S_ACKNOWLEDGE;
   _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER;
 }
 
-bool Virtio::negotiate_features() {
+bool Virtio::_negotiate_features() {
   uint32_t required_feats_lo = (uint32_t)(_required_feats & 0xffffffff);
   uint32_t required_feats_hi = (uint32_t)(_required_feats >> 32);
 
@@ -142,9 +138,6 @@ bool Virtio::negotiate_features() {
   /* Checking if required features are available */
   uint32_t supported_features_lo = dev_features_lo & required_feats_lo;
   uint32_t supported_features_hi = dev_features_hi & required_feats_hi;
-
-  // INFO("Virtio", "0x%x 0x%x", supported_features_hi, supported_features_lo);
-  // INFO("Virtio", "0x%x 0x%x", required_feats_hi, required_feats_lo);
 
   if (supported_features_lo != required_feats_lo)
     return false;
@@ -164,9 +157,19 @@ bool Virtio::negotiate_features() {
 
   /* Checking if features_ok bit is still set */
   if ((_common_cfg->device_status & VIRTIO_CONFIG_S_FEATURES_OK) == 0)
-    return false;    
+    return false;
 
   return true;
+}
+
+void Virtio::_virtio_assert(bool condition, bool omit_fail_bit) {
+  if (not condition) {
+    os::panic("Virtio assert failed");
+
+    if (not omit_fail_bit) {
+      _common_cfg->device_status |= VIRTIO_CONFIG_S_FAILED;
+    }
+  }
 }
 
 void Virtio::set_driver_ok_bit() {

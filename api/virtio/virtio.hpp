@@ -3,10 +3,7 @@
 #define VIRTIO_VIRTIO_HPP
 
 #include <hw/pci_device.hpp>
-#include <net/inet_common.hpp>
 #include <stdint.h>
-
-// #define PAGE_SIZE 4096
 
 /* Virtio PCI capability */
 struct __attribute__((packed)) virtio_pci_cap { 
@@ -85,11 +82,10 @@ struct __attribute__((packed)) virtio_pci_isr_cfg {
 #define VIRTIO_PCI_CAP_SHARED_MEMORY_CFG 8 
 #define VIRTIO_PCI_CAP_VENDOR_CFG        9
 
-/* I implement these features for my virtqueue */
+/* All feats these must be supported by device */
 #define VIRTIO_F_VERSION_1          (1ULL << 32)
 #define VIRTIO_F_RING_INDIRECT_DESC (1ULL << 28)
 #define VIRTIO_F_RING_EVENT_IDX     (1ULL << 29)
-// #define VIRTIO_F_ACCESS_PLATFORM    (1ULL << 36)
 
 #define REQUIRED_VQUEUE_FEATS ( \
   VIRTIO_F_VERSION_1 | \
@@ -105,20 +101,31 @@ struct __attribute__((packed)) virtio_pci_isr_cfg {
 
 class Virtio {
 public:
-  /** Finds the common configuration address */
-  void find_cap_cfgs();
-
-  /** Reset the virtio device - depends on find_cap_cfgs */
-  void reset();
-
-  /** Setting acknowledgement and driver bit within device status */
-  void set_ack_and_driver_bits();
-
-  /** Negotiate supported features with device */
-  bool negotiate_features();
+  // class Queue {};
 
   /** Setting driver ok bit within device status */
   void set_driver_ok_bit();
+
+  Virtio(hw::PCI_Device& pci, uint64_t dev_specific_feats);
+
+private:
+  /** Finds the common configuration address */
+  void _find_cap_cfgs();
+
+  /** Reset the virtio device - depends on find_cap_cfgs */
+  void _reset();
+
+  /** Setting acknowledgement and driver bit within device status */
+  void _set_ack_and_driver_bits();
+
+  /** Negotiate supported features with device */
+  bool _negotiate_features();
+
+  /** Panics if there is an assert error.
+   *  Unikernel should not continue further because device is a dependency.
+   *  Write failed bit to device status.
+   */
+  void _virtio_assert(bool condition, bool omit_fail_bit = true);
 
   /** Indicate which Virtio version (PCI revision ID) is supported.
 
@@ -128,11 +135,8 @@ public:
       Therefore I must change from "<= 0" to "== 1". I only want to drive
       non-transitional modern Virtio devices.
   */
-  static inline bool version_supported(uint16_t i) { return i == 1; }
+  inline bool _version_supported(uint16_t i) { return i == 1; }
 
-  Virtio(hw::PCI_Device& pci, uint64_t dev_specific_feats);
-
-private:
   hw::PCI_Device& _pcidev;
 
   /* Configuration structures, bar numbers, offsets and offset multipliers */
