@@ -30,8 +30,6 @@ set(LIBRARIES
   fs
   posix
   virtio
-  # virtio3
-  # fuse
   hw
 )
 

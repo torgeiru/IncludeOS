@@ -83,10 +83,10 @@ struct __attribute__((packed)) virtio_pci_isr_cfg {
 #define VIRTIO_PCI_CAP_VENDOR_CFG        9
 
 /* All feats these must be supported by device */
-#define VIRTIO_F_INDIRECT_DESC (1ULL << 28)
-#define VIRTIO_F_EVENT_IDX     (1ULL << 29)
+#define VIRTIO_F_INDIRECT_DESC      (1ULL << 28)
+#define VIRTIO_F_EVENT_IDX          (1ULL << 29)
 #define VIRTIO_F_VERSION_1          (1ULL << 32)
-#define VIRTIO_F_RING_PACKED        (1ULL << 34)
+#define VIRTIO_F_RING_PACKED        (1ULL << 34) // TODO: Add support for this. Negotiate and use this if available, better performance.
 
 /* Virtio queue features that may be useful for devices */
 #define VIRTIO_F_IN_ORDER           (1ULL << 35)
@@ -94,10 +94,7 @@ struct __attribute__((packed)) virtio_pci_isr_cfg {
 
 #define REQUIRED_VQUEUE_FEATS ( \
   VIRTIO_F_VERSION_1 | \
-  VIRTIO_F_INDIRECT_DESC | \
-  VIRTIO_F_EVENT_IDX \
-  VIRTIO_F_RING_PACKED
-)
+  VIRTIO_F_EVENT_IDX)
 
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE     1
 #define VIRTIO_CONFIG_S_DRIVER          2
@@ -133,13 +130,9 @@ private:
   void _virtio_assert(bool condition, bool omit_fail_bit = true);
 
   /** Indicate which Virtio version (PCI revision ID) is supported.
-
-      Currently only Legacy is supported (partially the 1.0 standard)
-      
-      I am currently adding support for modern Virtio (1.3).
-      Therefore I must change from "<= 0" to "== 1". I only want to drive
-      non-transitional modern Virtio devices.
-  */
+   *  I am currently adding support for modern Virtio (1.3).
+   *  This implementation only drives non-transitional modern Virtio devices.
+   */
   inline bool _version_supported(uint16_t i) { return i == 1; }
 
   hw::PCI_Device& _pcidev;

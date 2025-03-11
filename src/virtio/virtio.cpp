@@ -16,7 +16,6 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   /* 
     Match vendor ID and Device ID : §4.1.2.2 
   */
-
   bool vendor_is_virtio = (dev.vendor_id() == PCI::VENDOR_VIRTIO);
   CHECK(vendor_is_virtio, "Vendor ID is VIRTIO");
   _virtio_assert(vendor_is_virtio);
@@ -25,12 +24,12 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   _LEGACY_ID = _virtio_device_id >= 0x1000 and _virtio_device_id <= 0x103f;
 
   CHECK(not _LEGACY_ID, "Device ID 0x%x is not legacy", _virtio_device_id);
-  _virtio_assert(not LEGACY_ID);
+  _virtio_assert(not _LEGACY_ID);
 
   CHECK(_STD_ID, "Device ID 0x%x is in valid range", _virtio_device_id);
   _virtio_assert(_STD_ID);
 
-  /* 
+  /*
     Match Device revision ID. Virtio Std. §4.1.2.2 
   */
   bool rev_id_ok = _version_supported(dev.rev_id());
@@ -52,7 +51,7 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
 
   bool negotiation_success = _negotiate_features();
 
-  CHECK(negotiation_success, "Feature negotiation was a success");
+  CHECK(negotiation_success, "Required features were negotiated successfully");
   _virtio_assert(negotiation_success, false);
 }
 
@@ -136,21 +135,24 @@ bool Virtio::_negotiate_features() {
   uint32_t dev_features_hi = _common_cfg->device_feature;
 
   /* Checking if required features are available */
-  uint32_t supported_features_lo = dev_features_lo & required_feats_lo;
-  uint32_t supported_features_hi = dev_features_hi & required_feats_hi;
+  uint32_t supported_feats_lo = dev_features_lo & required_feats_lo;
+  uint32_t supported_feats_hi = dev_features_hi & required_feats_hi;
 
-  if (supported_features_lo != required_feats_lo)
+  INFO("Virtio", "Required feats:  0x%x 0x%x", required_feats_hi, required_feats_lo);
+  INFO("Virtio", "Supported feats: 0x%x 0x%x", supported_feats_hi, supported_feats_lo);
+
+  if (supported_feats_lo != required_feats_lo)
     return false;
 
-  if (supported_features_hi != required_feats_hi)
+  if (supported_feats_hi != required_feats_hi)
     return false;
 
   /* Writing subset of supported features */
   _common_cfg->driver_feature_select = 0;
-  _common_cfg->driver_feature = supported_features_lo;
+  _common_cfg->driver_feature = supported_feats_lo;
 
   _common_cfg->driver_feature_select = 1;
-  _common_cfg->driver_feature = supported_features_hi;
+  _common_cfg->driver_feature = supported_feats_hi;
 
   /* Writing features_ok */
   _common_cfg->device_status |= VIRTIO_CONFIG_S_FEATURES_OK;
@@ -164,7 +166,7 @@ bool Virtio::_negotiate_features() {
 
 void Virtio::_virtio_assert(bool condition, bool omit_fail_bit) {
   if (not condition) {
-    os::panic("Virtio assert failed");
+    os::panic("Virtio failed");
 
     if (not omit_fail_bit) {
       _common_cfg->device_status |= VIRTIO_CONFIG_S_FAILED;
