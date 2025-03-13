@@ -9,6 +9,11 @@ VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS) {
   _id = id_count++;
 
   INFO("VirtioCon", "Initializing Virtio Console");
+
+  /* Setting up virtqueues */
+
+  /* Setting driver ok. Driver is live :) */
+  
 }
 
 /** Factory method used to create VirtioFS driver object */

@@ -138,8 +138,8 @@ bool Virtio::_negotiate_features() {
   uint32_t supported_feats_lo = dev_features_lo & required_feats_lo;
   uint32_t supported_feats_hi = dev_features_hi & required_feats_hi;
 
-  INFO("Virtio", "Required feats:  0x%x 0x%x", required_feats_hi, required_feats_lo);
-  INFO("Virtio", "Supported feats: 0x%x 0x%x", supported_feats_hi, supported_feats_lo);
+  // INFO("Virtio", "Required feats:  0x%x 0x%x", required_feats_hi, required_feats_lo);
+  // INFO("Virtio", "Supported feats: 0x%x 0x%x", supported_feats_hi, supported_feats_lo);
 
   if (supported_feats_lo != required_feats_lo)
     return false;

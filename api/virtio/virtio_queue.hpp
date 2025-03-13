@@ -2,16 +2,18 @@
 #ifndef VIRTIO_QUEUE_HPP
 #define VIRTIO_QUEUE_HPP
 
-#include <vector>
-#include <span>
-
-#include <virtio/virtio.hpp>
+#include <util/units.hpp>
 #include <stddef.h>
 #include <stdint.h>
+#include <span>
+
+using std::span;
+using Virtbuffer = span<uint8_t>;
 
 /* Note: The Queue Size value does not have to be a power of 2. */
 #define VQUEUE_MAX_SIZE 32768
 #define VQUEUE_SIZE     1024
+#define BUFFER_SIZE     4_KiB;
 
 #define DESC_TBL_ALIGN   16
 #define AVAIL_RING_ALIGN 2
@@ -45,7 +47,7 @@ struct virtq_avail {
 struct virtq_used_elem {
   uint32_t id;  /* Index of start of used descriptor chain. */
   uint32_t len; /* # Of bytes written into the device writable potion of the buffer described by descriptor chain */
-};
+} __attribute__((packed, aligned(USED_RING_ALIGN)));
 
 struct virtq_used {
   uint16_t flags;                           /* Flags for the used ring */
@@ -54,29 +56,20 @@ struct virtq_used {
   uint16_t avail_event;                     /* Only if VIRTIO_F_EVENT_IDX */
 } __attribute__((packed, aligned(USED_RING_ALIGN)));
 
+/* 
+  Start of Virtio queue implementation
+*/
 class Virtqueue {
 public:
-  Virtqueue();
+  Virtqueue(int vqueue_id);
   ~Virtqueue();
 
-  void enqueue_avail();
-  void dequeue_used();
-
 private:
-  uint16_t last_used;
+  int _VQUEUE_ID;
+
+  struct virtq_desc _desc_table[VQUEUE_SIZE];
+  struct virtq_avail _avail_ring;
+  struct virtq_used _used_ring;
 };
 
 #endif
-
-/*
-2.6.1 Virtqueue Reset
-
-When VIRTIO_F_RING_RESET is negotiated, the driver can reset a virtqueue individually. The way to reset the virtqueue is transport specific.
-
-Virtqueue reset is divided into two parts. The driver first resets a queue and can afterwards optionally re-enable it.
-
-*/
-
-/* TODO: Research the buddy allocator implementation within IncludeOS */
-/* TODO: Find out whether or not I need to implement my own kind of allocator for my driver. */
-/* TODO: Finding the best allocation patterns for the buddy allocator. */

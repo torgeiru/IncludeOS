@@ -2,7 +2,9 @@
 #ifndef VIRTIO_VIRTIO_HPP
 #define VIRTIO_VIRTIO_HPP
 
+#include <virtio_queue.hpp>
 #include <hw/pci_device.hpp>
+#include <vector>
 #include <stdint.h>
 
 /* Virtio PCI capability */
@@ -86,7 +88,7 @@ struct virtio_pci_isr_cfg {
 #define VIRTIO_F_INDIRECT_DESC      (1ULL << 28)
 #define VIRTIO_F_EVENT_IDX          (1ULL << 29)
 #define VIRTIO_F_VERSION_1          (1ULL << 32)
-#define VIRTIO_F_RING_PACKED        (1ULL << 34) // TODO: Add support for this. Negotiate and use this if available, better performance. However, doesn't work for VirtioFS :(
+#define VIRTIO_F_RING_PACKED        (1ULL << 34) // TODO: Add support for this. Negotiate and use this if available, better performance. However, doesn't work for VirtioFS ATM :(
 
 /* Virtio queue features that may be useful for devices. Don't understand them too well now. */
 #define VIRTIO_F_IN_ORDER           (1ULL << 35)
@@ -136,6 +138,7 @@ private:
   inline bool _version_supported(uint16_t i) { return i == 1; }
 
   hw::PCI_Device& _pcidev;
+  std::vector<Virtqueue> _virtqueues;
 
   /* Configuration structures, bar numbers, offsets and offset multipliers */
   volatile struct virtio_pci_common_cfg *_common_cfg;
