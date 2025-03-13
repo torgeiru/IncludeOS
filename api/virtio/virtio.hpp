@@ -119,7 +119,7 @@ private:
   /** Reset the virtio device - depends on find_cap_cfgs */
   void _reset();
 
-  /** Setting acknowledgement and driver bit within device status */
+  /** Setting acknowledgement and driver status bits within device status */
   void _set_ack_and_driver_bits();
 
   /** Negotiate supported features with device */
@@ -143,7 +143,7 @@ private:
   /* Configuration structures, bar numbers, offsets and offset multipliers */
   volatile struct virtio_pci_common_cfg *_common_cfg;
   volatile uintptr_t _specific_cfg; // specific to the device
-  volatile struct virtio_pci_isr_cfg *_isr_cfg;
+  // volatile struct virtio_pci_isr_cfg *_isr_cfg;
 
   uint32_t _notify_off_multiplier;
   uintptr_t _notify_region;

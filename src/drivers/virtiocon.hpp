@@ -16,10 +16,10 @@
 #define REQUIRED_VCON_FEATS VIRTIO_CONSOLE_F_EMERG_WRITE
 
 struct virtio_console_config { 
-  uint16_t cols; 
-  uint16_t rows; 
-  uint32_t max_nr_ports; 
-  uint32_t emerg_wr; 
+  uint16_t cols;         /* Columns */
+  uint16_t rows;         /* Rows */
+  uint32_t max_nr_ports; /* Maximum number of ports */
+  uint32_t emerg_wr;     /* Emergency port */
 }; 
 
 class VirtioCon : public Virtio, public hw::CON_device {

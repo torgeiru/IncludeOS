@@ -37,7 +37,10 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   CHECK(rev_id_ok, "Device Revision ID (%d) supported", dev.rev_id());
   _virtio_assert(rev_id_ok);
 
-  /* Finding capability structures */
+  /* Parsing MSI-X capability */
+  _pcidev.parse_capabilities();
+
+  /* Finding Virtio structures */
   _find_cap_cfgs();
 
   /* 
@@ -104,9 +107,9 @@ void Virtio::_find_cap_cfgs() {
           _notify_region = cfg_addr;
           _notify_off_multiplier = _pcidev.read32(offset + VIRTIO_PCI_NOTIFY_CAP_MUL);
           break;
-        case VIRTIO_PCI_CAP_ISR_CFG:
-          _isr_cfg = (volatile struct virtio_pci_isr_cfg*)cfg_addr;
-          break;
+        //case VIRTIO_PCI_CAP_ISR_CFG:
+        //  _isr_cfg = (volatile struct virtio_pci_isr_cfg*)cfg_addr;
+        //  break;
       }
     }
 

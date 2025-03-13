@@ -10,7 +10,9 @@ Virtqueue::Virtqueue(int vqueue_id) : _VQUEUE_ID(vqueue_id) {
   _used_ring.flags       = 0;
   _used_ring.avail_event = 0;
 
-  /*  */
+  /* */
 }
 
-Virtqueue::~Virtqueue() {}
+Virtqueue::~Virtqueue() {
+  /* Destroying the virtqueue. Neida xD*/
+}
