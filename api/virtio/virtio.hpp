@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 /* Virtio PCI capability */
-struct __attribute__((packed)) virtio_pci_cap { 
+struct virtio_pci_cap { 
   uint8_t cap_vndr;    /* Generic PCI field: PCI_CAP_ID_VNDR */ 
   uint8_t cap_next;    /* Generic PCI field: next ptr. */ 
   uint8_t cap_len;     /* Generic PCI field: capability length */ 
@@ -16,19 +16,19 @@ struct __attribute__((packed)) virtio_pci_cap {
   uint8_t padding[2];  /* Pad to full dword. */ 
   uint32_t offset;     /* Offset within bar. */ 
   uint32_t length;     /* Length of the structure, in bytes. */ 
-};
+} __attribute__((packed));
 
 /* Virtio PCI capability 64 */
-struct __attribute__((packed)) virtio_pci_cap64 {
+struct virtio_pci_cap64 {
   struct virtio_pci_cap cap; 
   uint32_t offset_hi;
   uint32_t length_hi;
-};
+} __attribute__((packed));
 
-struct __attribute__((packed)) virtio_pci_notify_cap { 
+struct virtio_pci_notify_cap { 
   struct virtio_pci_cap cap; 
   uint32_t notify_off_multiplier; /* Multiplier for queue_notify_off. */ 
-};
+} __attribute__((packed));
 
 #define VIRTIO_PCI_CAP_LEN     sizeof(struct virtio_pci_cap)
 #define VIRTIO_PCI_CAP_LEN64   sizeof(struct virtio_pci_cap64)
@@ -39,7 +39,7 @@ struct __attribute__((packed)) virtio_pci_notify_cap {
 #define VIRTIO_PCI_CAP_BAROFF64   offsetof(struct virtio_pci_cap64, offset_hi)
 #define VIRTIO_PCI_NOTIFY_CAP_MUL offsetof(struct virtio_pci_notify_cap, notify_off_multiplier)
 
-struct __attribute__((packed)) virtio_pci_common_cfg { 
+struct virtio_pci_common_cfg { 
   /* About the whole device. */ 
   uint32_t device_feature_select;      /* read-write */ 
   uint32_t device_feature;             /* read-only for driver */ 
@@ -65,13 +65,13 @@ struct __attribute__((packed)) virtio_pci_common_cfg {
   /* About the administration virtqueue. */ 
   uint16_t admin_queue_index;         /* read-only for driver */ 
   uint16_t admin_queue_num;           /* read-only for driver */ 
-};
+} __attribute__((packed));
 
-struct __attribute__((packed)) virtio_pci_isr_cfg {
+struct virtio_pci_isr_cfg {
   uint32_t queue_interrupt   : 1;
   uint32_t dev_cfg_intterupt : 1;
   uint32_t reserved          : 30;
-};
+} __attribute__((packed));
 
 /* Types of configurations */ 
 #define VIRTIO_PCI_CAP_COMMON_CFG        1 
@@ -86,9 +86,9 @@ struct __attribute__((packed)) virtio_pci_isr_cfg {
 #define VIRTIO_F_INDIRECT_DESC      (1ULL << 28)
 #define VIRTIO_F_EVENT_IDX          (1ULL << 29)
 #define VIRTIO_F_VERSION_1          (1ULL << 32)
-#define VIRTIO_F_RING_PACKED        (1ULL << 34) // TODO: Add support for this. Negotiate and use this if available, better performance.
+#define VIRTIO_F_RING_PACKED        (1ULL << 34) // TODO: Add support for this. Negotiate and use this if available, better performance. However, doesn't work for VirtioFS :(
 
-/* Virtio queue features that may be useful for devices */
+/* Virtio queue features that may be useful for devices. Don't understand them too well now. */
 #define VIRTIO_F_IN_ORDER           (1ULL << 35)
 #define VIRTIO_F_RING_RESET         (1ULL << 40)
 

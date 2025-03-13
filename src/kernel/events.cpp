@@ -21,7 +21,8 @@
 #include <statman>
 #include <smp>
 #include <arch.hpp>
-//#define DEBUG_SMP
+
+// #define DEBUG_SMP
 
 static SMP::Array<Events> managers;
 static Spinlock em_lock_;
