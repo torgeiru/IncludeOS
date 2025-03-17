@@ -38,7 +38,7 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   _virtio_assert(rev_id_ok);
 
   /* Parsing MSI-X capability */
-  _pcidev.parse_capabilities();
+  // _pcidev.parse_capabilities();
 
   /* Finding Virtio structures */
   _find_cap_cfgs();

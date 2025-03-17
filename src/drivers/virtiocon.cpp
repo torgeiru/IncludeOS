@@ -37,6 +37,5 @@ std::string VirtioCon::device_name() const {
 
 __attribute__((constructor))
 void autoreg_virtiocon() {
-  // Make this part less hacky for the future
   hw::PCI_manager::register_con(PCI::VENDOR_VIRTIO, 0x1043, &VirtioCon::new_instance);
 }

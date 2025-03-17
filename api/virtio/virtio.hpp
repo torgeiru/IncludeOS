@@ -2,7 +2,6 @@
 #ifndef VIRTIO_VIRTIO_HPP
 #define VIRTIO_VIRTIO_HPP
 
-#include <virtio_queue.hpp>
 #include <hw/pci_device.hpp>
 #include <vector>
 #include <stdint.h>

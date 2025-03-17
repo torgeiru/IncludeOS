@@ -6,7 +6,6 @@
 #include <hw/con_device.hpp>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
-#include <cassert>
 #include <info>
 
 #define VIRTIO_CONSOLE_F_SIZE        (1ULL << 0)

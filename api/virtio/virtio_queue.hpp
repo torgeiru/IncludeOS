@@ -5,10 +5,25 @@
 #include <util/units.hpp>
 #include <stddef.h>
 #include <stdint.h>
-#include <span>
+
+#include <memory>
+#include <vector>
 
 using std::span;
-using Virtbuffer = span<uint8_t>;
+using Virtbuffer = uint8_t*;
+
+typedef struct {
+  bool write_only;
+  Virtbuffer buffer;
+} VirtToken;
+
+using std::unique_ptr;
+using std::make_unique;
+using std::move;
+using std::vector;
+using VirtTokens = unique_ptr<vector<VirtToken>>;
+
+using Descriptors = unique_ptr<vector<uint8_t>>;
 
 /* Note: The Queue Size value does not have to be a power of 2. */
 #define VQUEUE_MAX_SIZE 32768
@@ -64,7 +79,13 @@ public:
   Virtqueue(int vqueue_id);
   ~Virtqueue();
 
+  void enqueue(VirtTokens tokens);
+  VirtTokens dequeue();
+
 private:
+  inline unique_ptr<vector<uint8_t>> _alloc_desc_chain();
+  inline void _free_desc_chain(uint8_t desc_start);
+
   int _VQUEUE_ID;
 
   struct virtq_desc _desc_table[VQUEUE_SIZE];
