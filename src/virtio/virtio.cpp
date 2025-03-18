@@ -98,7 +98,7 @@ void Virtio::_find_cap_cfgs() {
 
       switch(cfg_type) {
         case VIRTIO_PCI_CAP_COMMON_CFG:
-          _common_cfg = (volatile struct virtio_pci_common_cfg*)cfg_addr;
+          _common_cfg = (volatile virtio_pci_common_cfg*)cfg_addr;
           break;
         case VIRTIO_PCI_CAP_DEVICE_CFG:
           _specific_cfg = cfg_addr;

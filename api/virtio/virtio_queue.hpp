@@ -9,11 +9,10 @@
 #include <memory>
 #include <vector>
 
-using std::span;
 using Virtbuffer = uint8_t*;
 
 typedef struct {
-  bool write_only;
+  uint16_t write_flag;
   Virtbuffer buffer;
 } VirtToken;
 
@@ -28,7 +27,7 @@ using Descriptors = unique_ptr<vector<uint8_t>>;
 /* Note: The Queue Size value does not have to be a power of 2. */
 #define VQUEUE_MAX_SIZE 32768
 #define VQUEUE_SIZE     1024
-#define BUFFER_SIZE     4_KiB;
+#define DESC_BUF_SIZE   4_KiB;
 
 #define DESC_TBL_ALIGN   16
 #define AVAIL_RING_ALIGN 2
@@ -39,37 +38,37 @@ using Descriptors = unique_ptr<vector<uint8_t>>;
 #define VIRTQ_DESC_F_WRITE    2
 #define VIRTQ_DESC_F_INDIRECT 4
 
-struct virtq_desc {
+typedef struct __attribute__((packed, aligned(DESC_TBL_ALIGN))) {
   uint64_t addr;  /* Address (guest-physical) */
   uint32_t len;   /* Length */
   uint16_t flags; /* The flags as indicated above */
   uint16_t next;  /* Next field if flags & NEXT */
-} __attribute__((packed, aligned(DESC_TBL_ALIGN)));
+} virtq_desc;
 
 /* Available ring flags */
 #define VIRTQ_AVAIL_F_NO_INTERRUPT 1
 
-struct virtq_avail {
+typedef struct __attribute__((packed, aligned(AVAIL_RING_ALIGN))) {
   uint16_t flags;             /* Flags for the avail ring */
   uint16_t idx;               /* Next index modulo queue size to insert */
   uint16_t ring[VQUEUE_SIZE]; /* Ring of descriptors */
   uint16_t used_event;        /* Only if VIRTIO_F_EVENT_IDX */
-} __attribute__((packed, aligned(AVAIL_RING_ALIGN)));
+} virtq_avail;
 
 /* Used ring flags */
 #define VIRTQ_USED_F_NO_NOTIFY 1
 
-struct virtq_used_elem {
+typedef struct __attribute__((packed, aligned(USED_RING_ALIGN))) {
   uint32_t id;  /* Index of start of used descriptor chain. */
   uint32_t len; /* # Of bytes written into the device writable potion of the buffer described by descriptor chain */
-} __attribute__((packed, aligned(USED_RING_ALIGN)));
+} virtq_used_elem;
 
-struct virtq_used {
+typedef struct __attribute__((packed, aligned(USED_RING_ALIGN))) {
   uint16_t flags;                           /* Flags for the used ring */
   uint16_t idx;                             /* Flags  */
   struct virtq_used_elem ring[VQUEUE_SIZE]; /* Ring of descriptors */
   uint16_t avail_event;                     /* Only if VIRTIO_F_EVENT_IDX */
-} __attribute__((packed, aligned(USED_RING_ALIGN)));
+} virtq_used;
 
 /* 
   Start of Virtio queue implementation
@@ -85,12 +84,15 @@ public:
 private:
   inline unique_ptr<vector<uint8_t>> _alloc_desc_chain();
   inline void _free_desc_chain(uint8_t desc_start);
+  inline void _notify();
 
   int _VQUEUE_ID;
+  volatile uint16_t *_notify_addr;
+  uint16_t _last_used;
 
-  struct virtq_desc _desc_table[VQUEUE_SIZE];
-  struct virtq_avail _avail_ring;
-  struct virtq_used _used_ring;
+  volatile virtq_desc _desc_table[VQUEUE_SIZE];
+  volatile virtq_avail _avail_ring;
+  volatile virtq_used _used_ring;
 };
 
 #endif
