@@ -13,6 +13,7 @@ using Virtbuffer = uint8_t*;
 
 typedef struct {
   uint16_t write_flag;
+  uint32_t device_written;
   Virtbuffer buffer;
 } VirtToken;
 
@@ -83,7 +84,7 @@ public:
 
 private:
   inline unique_ptr<vector<uint8_t>> _alloc_desc_chain();
-  inline void _free_desc_chain(uint8_t desc_start);
+  inline void _free_desc(uint8_t desc);
   inline void _notify();
 
   int _VQUEUE_ID;

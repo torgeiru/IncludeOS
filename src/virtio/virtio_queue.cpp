@@ -18,7 +18,7 @@ Virtqueue::~Virtqueue() {}
 
 Descriptors Virtqueue::_alloc_desc_chain() {}
 
-inline void Virtqueue::_free_desc_chain(uint8_t desc_start) {}
+inline void Virtqueue::_free_desc(uint8_t desc) {}
 
 inline void Virtqueue::_notify() {}
 
@@ -29,18 +29,18 @@ void Virtqueue::enqueue(VirtTokens tokens) {
 
   /* Linking up the descriptor chain */
   for (int i = 0, j = 1; i < token_count; i++, j++) {
-    auto *desc = &_desc_table[descs[i]];
+    virtq_desc& desc = _desc_table[descs[i]];
     VirtToken& token = tokens[i];
 
-    desc->addr  = (uint64_t)token.buffer;
-    desc->len   = DESC_BUF_SIZE;
-    desc->flags = token.write_flag;
+    desc.addr  = (uint64_t)token.buffer;
+    desc.len   = DESC_BUF_SIZE;
+    desc.flags = token.write_flag;
 
     if (j < token_count) {
-      desc->flags |= VIRTQ_DESC_F_NEXT;
-      desc->next   = descs[j];
+      desc.flags |= VIRTQ_DESC_F_NEXT;
+      desc.next   = descs[j];
     } else {
-      desc->next   = 0;
+      desc.next   = 0;
     }
   }
 
@@ -52,18 +52,19 @@ void Virtqueue::enqueue(VirtTokens tokens) {
 
   /* Notify the the device */
   _notify();
-
-  /* Think more about avail event thingy */
 }
 
 VirtTokens Virtqueue::dequeue() {
-  /* Calculating number of desc buffers used */
+  /* Grabbing entry */
+  auto& used_elem = _used_ring[_last_used++];
+  int desc_buffer_count = (used_elem.len / DESC_BUF_SIZE) + 
+    ((used_elem.len & DESC_BUF_SIZE) == 0) ? 1 : 0;
 
-  /* I have a few questions??? */
+  /* Setting up virtio buffer tokens */
+  VirtTokens tokens;
+  tokens->reserve(desc_buffer_count);
 
-  /* Incrementing last used */
+  int cur_
 
-  /* Notify the device */
-
-  /* Returning the virt tokens */
+  return move(tokens);
 }
