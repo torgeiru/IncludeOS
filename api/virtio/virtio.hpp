@@ -84,14 +84,16 @@ typedef struct  __attribute__((packed)) {
 #define VIRTIO_PCI_CAP_VENDOR_CFG        9
 
 /* All feats these must be supported by device */
-#define VIRTIO_F_INDIRECT_DESC      (1ULL << 28)
 #define VIRTIO_F_EVENT_IDX          (1ULL << 29)
 #define VIRTIO_F_VERSION_1          (1ULL << 32)
-#define VIRTIO_F_RING_PACKED        (1ULL << 34) // TODO: Add support for this. Negotiate and use this if available, better performance. However, doesn't work for VirtioFS ATM :(
+
+/*  Other features */
+#define VIRTIO_F_INDIRECT_DESC      (1ULL << 28)
+#define VIRTIO_F_RING_PACKED        (1ULL << 34)
 
 /* Virtio queue features that may be useful for devices. Don't understand them too well now. */
 #define VIRTIO_F_IN_ORDER           (1ULL << 35)
-#define VIRTIO_F_RING_RESET         (1ULL << 40)
+#define VIRTIO_F_RING_RESET         (1ULL << 40) // May be useful for hot (un)-plugging devices?
 
 #define REQUIRED_VQUEUE_FEATS ( \
   VIRTIO_F_VERSION_1 | \
@@ -104,8 +106,14 @@ typedef struct  __attribute__((packed)) {
 #define VIRTIO_CONFIG_S_NEEDS_RESET     64
 #define VIRTIO_CONFIG_S_FAILED          128
 
+/* 
+  Virtio control plane implementation 
+*/
 class Virtio {
 public:
+  /** Method for setting up a specific virtqueue */
+  void setup_virtqueue();
+
   /** Setting driver ok bit within device status */
   void set_driver_ok_bit();
 
@@ -128,6 +136,7 @@ private:
    *  Unikernel should not continue further because device is a dependency.
    *  Write failed bit to device status.
    */
+  /* TODO: Find a more IncludeOS specific way of assertion */
   void _virtio_assert(bool condition, bool omit_fail_bit = true);
 
   /** Indicate which Virtio version (PCI revision ID) is supported.

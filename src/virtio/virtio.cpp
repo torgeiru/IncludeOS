@@ -140,10 +140,7 @@ bool Virtio::_negotiate_features() {
   /* Checking if required features are available */
   uint32_t supported_feats_lo = dev_features_lo & required_feats_lo;
   uint32_t supported_feats_hi = dev_features_hi & required_feats_hi;
-
-  // INFO("Virtio", "Required feats:  0x%x 0x%x", required_feats_hi, required_feats_lo);
-  // INFO("Virtio", "Supported feats: 0x%x 0x%x", supported_feats_hi, supported_feats_lo);
-
+  
   if (supported_feats_lo != required_feats_lo)
     return false;
 
@@ -179,4 +176,8 @@ void Virtio::_virtio_assert(bool condition, bool omit_fail_bit) {
 
 void Virtio::set_driver_ok_bit() {
   _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER_OK;
+}
+
+void Virtio::setup_virtqueue() {
+  
 }

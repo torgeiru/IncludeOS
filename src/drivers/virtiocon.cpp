@@ -11,9 +11,8 @@ VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS) {
   INFO("VirtioCon", "Initializing Virtio Console");
 
   /* Setting up virtqueues */
-  setup_virtqueues(2);
-
-  /* receiveq(port0) [0], transmitq(port0) [1], control receiveq (ignore) [2] and control transmitq (ignore) [3] */
+  setup_virtqueue();
+  setup_virtqueue();
 
   /* Setting driver ok. Device is live :) */
   set_driver_ok_bit();

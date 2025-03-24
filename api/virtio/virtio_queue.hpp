@@ -13,7 +13,6 @@ using Virtbuffer = uint8_t*;
 
 typedef struct {
   uint16_t write_flag;
-  uint32_t device_written;
   Virtbuffer buffer;
 } VirtToken;
 
@@ -22,7 +21,6 @@ using std::make_unique;
 using std::move;
 using std::vector;
 using VirtTokens = unique_ptr<vector<VirtToken>>;
-
 using Descriptors = unique_ptr<vector<uint8_t>>;
 
 /* Note: The Queue Size value does not have to be a power of 2. */
@@ -37,7 +35,7 @@ using Descriptors = unique_ptr<vector<uint8_t>>;
 /* Descriptor flags */
 #define VIRTQ_DESC_F_NEXT     1
 #define VIRTQ_DESC_F_WRITE    2
-#define VIRTQ_DESC_F_INDIRECT 4
+#define VIRTQ_DESC_F_INDIRECT 4 // Unused in my Virtio implementation.
 
 typedef struct __attribute__((packed, aligned(DESC_TBL_ALIGN))) {
   uint64_t addr;  /* Address (guest-physical) */
@@ -53,7 +51,7 @@ typedef struct __attribute__((packed, aligned(AVAIL_RING_ALIGN))) {
   uint16_t flags;             /* Flags for the avail ring */
   uint16_t idx;               /* Next index modulo queue size to insert */
   uint16_t ring[VQUEUE_SIZE]; /* Ring of descriptors */
-  uint16_t used_event;        /* Only if VIRTIO_F_EVENT_IDX */
+  uint16_t used_event;        /* Only if VIRTIO_F_EVENT_IDX is supported by device*/
 } virtq_avail;
 
 /* Used ring flags */
@@ -61,13 +59,13 @@ typedef struct __attribute__((packed, aligned(AVAIL_RING_ALIGN))) {
 
 typedef struct __attribute__((packed, aligned(USED_RING_ALIGN))) {
   uint32_t id;  /* Index of start of used descriptor chain. */
-  uint32_t len; /* # Of bytes written into the device writable potion of the buffer described by descriptor chain */
+  uint32_t len; /* Bytes written into the device writable potion of the buffer chain */
 } virtq_used_elem;
 
 typedef struct __attribute__((packed, aligned(USED_RING_ALIGN))) {
   uint16_t flags;                           /* Flags for the used ring */
   uint16_t idx;                             /* Flags  */
-  struct virtq_used_elem ring[VQUEUE_SIZE]; /* Ring of descriptors */
+  virtq_used_elem ring[VQUEUE_SIZE]; /* Ring of descriptors */
   uint16_t avail_event;                     /* Only if VIRTIO_F_EVENT_IDX */
 } virtq_used;
 
@@ -80,11 +78,11 @@ public:
   ~Virtqueue();
 
   void enqueue(VirtTokens tokens);
-  VirtTokens dequeue();
+  VirtTokens dequeue(int& device_written);
 
 private:
   inline unique_ptr<vector<uint8_t>> _alloc_desc_chain();
-  inline void _free_desc(uint8_t desc);
+  inline void _free_desc(uint16_t desc_start);
   inline void _notify();
 
   int _VQUEUE_ID;
