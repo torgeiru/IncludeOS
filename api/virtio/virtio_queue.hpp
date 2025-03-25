@@ -2,6 +2,8 @@
 #ifndef VIRTIO_QUEUE_HPP
 #define VIRTIO_QUEUE_HPP
 
+#include <virtio/virtio.hpp>
+
 #include <util/units.hpp>
 #include <stddef.h>
 #include <stdint.h>
@@ -74,8 +76,7 @@ typedef struct __attribute__((packed, aligned(USED_RING_ALIGN))) {
 */
 class Virtqueue {
 public:
-  Virtqueue(int vqueue_id);
-  ~Virtqueue();
+  Virtqueue(Virtio& virtio_dev, int vqueue_id);
 
   void enqueue(VirtTokens tokens);
   VirtTokens dequeue(int& device_written);
@@ -85,6 +86,8 @@ private:
   inline void _free_desc(uint16_t desc_start);
   inline void _notify();
 
+
+  Virtio& _virtio_dev
   int _VQUEUE_ID;
   volatile uint16_t *_notify_addr;
   uint16_t _last_used;

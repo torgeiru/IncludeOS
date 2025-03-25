@@ -6,6 +6,8 @@
 #include <hw/con_device.hpp>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
+#include <virtio/virtio_queue.hpp>
+
 #include <info>
 
 #define VIRTIO_CONSOLE_F_SIZE        (1ULL << 0)
@@ -14,12 +16,12 @@
 
 #define REQUIRED_VCON_FEATS VIRTIO_CONSOLE_F_EMERG_WRITE
 
-struct virtio_console_config { 
+typedef struct __attribute__((packed)) { 
   uint16_t cols;         /* Columns */
   uint16_t rows;         /* Rows */
   uint32_t max_nr_ports; /* Maximum number of ports */
   uint32_t emerg_wr;     /* Emergency port */
-}; 
+} virtio_console_config;
 
 class VirtioCon : public Virtio, public hw::CON_device {
 public:
@@ -33,6 +35,7 @@ public:
   std::string device_name() const override;
 
 private:
+  Virtqueue _tx, _rx;
   int _id;
 };
 

@@ -68,12 +68,6 @@ typedef struct __attribute__((packed)) {
   uint16_t admin_queue_num;           /* read-only for driver */ 
 } virtio_pci_common_cfg;
 
-typedef struct  __attribute__((packed)) {
-  uint32_t queue_interrupt   : 1;
-  uint32_t dev_cfg_intterupt : 1;
-  uint32_t reserved          : 30;
-} virtio_pci_isr_cfg;
-
 /* Types of configurations */ 
 #define VIRTIO_PCI_CAP_COMMON_CFG        1 
 #define VIRTIO_PCI_CAP_NOTIFY_CFG        2 
@@ -111,9 +105,6 @@ typedef struct  __attribute__((packed)) {
 */
 class Virtio {
 public:
-  /** Method for setting up a specific virtqueue */
-  void setup_virtqueue();
-
   /** Setting driver ok bit within device status */
   void set_driver_ok_bit();
 
@@ -146,12 +137,10 @@ private:
   inline bool _version_supported(uint16_t i) { return i == 1; }
 
   hw::PCI_Device& _pcidev;
-  std::vector<Virtqueue> _virtqueues;
 
   /* Configuration structures, bar numbers, offsets and offset multipliers */
   volatile virtio_pci_common_cfg *_common_cfg;
   volatile uintptr_t _specific_cfg; // specific to the device
-  // volatile struct virtio_pci_isr_cfg *_isr_cfg;
 
   uint32_t _notify_off_multiplier;
   uintptr_t _notify_region;

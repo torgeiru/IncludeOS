@@ -107,9 +107,6 @@ void Virtio::_find_cap_cfgs() {
           _notify_region = cfg_addr;
           _notify_off_multiplier = _pcidev.read32(offset + VIRTIO_PCI_NOTIFY_CAP_MUL);
           break;
-        //case VIRTIO_PCI_CAP_ISR_CFG:
-        //  _isr_cfg = (volatile struct virtio_pci_isr_cfg*)cfg_addr;
-        //  break;
       }
     }
 
@@ -176,8 +173,4 @@ void Virtio::_virtio_assert(bool condition, bool omit_fail_bit) {
 
 void Virtio::set_driver_ok_bit() {
   _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER_OK;
-}
-
-void Virtio::setup_virtqueue() {
-  
 }

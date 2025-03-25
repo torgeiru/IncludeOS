@@ -1,6 +1,7 @@
 #include <virtio/virtio_queue.hpp>
 
-Virtqueue::Virtqueue(int vqueue_id, uint16_t *notify_addr) : 
+Virtqueue::Virtqueue(Virtio& virtio_dev, int vqueue_id, uint16_t *notify_addr) : 
+_virtio_dev(virtio_dev)
 _VQUEUE_ID(vqueue_id), 
 _notify_addr(notify_addr), 
 _last_used(0) {
@@ -14,11 +15,6 @@ _last_used(0) {
   _used_ring.avail_event = 0;
 
   /* Hook up interrupts */
-  /* Kick */
-}
-
-Virtqueue::~Virtqueue() {
-  // Destructor for my virtqueue implementation
 }
 
 /* TODO: Create some tests for allocating and freeing descriptors */
@@ -62,7 +58,7 @@ void Virtqueue::enqueue(VirtTokens tokens) {
   _notify();
 }
 
-#define ROUNDED_DIV (x, y) (x / y) + ((x % y) == 0 ? 0 : 1)
+#define ROUNDED_DIV (x, y) (x / y) + (((x % y) == 0 ? 0 : 1))
 
 VirtTokens Virtqueue::dequeue(int& device_written) {
   /* Grabbing entry */
