@@ -35,6 +35,7 @@ public:
   std::string device_name() const override;
 
 private:
+ /* The device will contain */
   Virtqueue _tx, _rx;
   int _id;
 };

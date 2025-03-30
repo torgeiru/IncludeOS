@@ -1,28 +1,56 @@
+#include <stdlib.h> // #include<cstdlib.h>
+#include <expects>
+#include <util/bitops.hpp>
 #include <virtio/virtio_queue.hpp>
 
 Virtqueue::Virtqueue(Virtio& virtio_dev, int vqueue_id, uint16_t *notify_addr) : 
 _virtio_dev(virtio_dev)
 _VQUEUE_ID(vqueue_id), 
-_notify_addr(notify_addr), 
-_last_used(0) {
+_notify_addr(notify_addr) {
+  /* Allocating split virtqueue parts */
+  using util::bits::is_aligned;
+
+  _desc_table = aligned_alloc(DESC_TBL_ALIGN, sizeof(virtq_desc) * VQUEUE_SIZE);
+  Expects((_desc_table != NULL) && is_aligned<DESC_TBL_ALIGN>(_desc_table));
+
+  _avail_ring = aligned_alloc(AVAIL_RING_ALIGN, sizeof(virtq_avail));
+  Expects((_avail_ring != NULL) && is_aligned<AVAIL_RING_ALIGN>(_avail_ring));
+  
+  _used_ring  = aligned_alloc(USED_RING_ALIGN, sizeof(virtq_used));
+  Expects((_used_ring != NULL) && is_aligned<USED_RING_ALIGN>(_used_ring));
+
   /* Initialize avail and used rings */
-  _avail_ring.idx = 0;
-  _avail_ring.flags = 0;
-  _avail_ring.used_event = 0;
+  _avail_ring->idx = 0;
+  _avail_ring->flags = 0;
+  _avail_ring->used_event = 0;
 
-  _used_ring.idx = 0;
-  _used_ring.flags = 0;
-  _used_ring.avail_event = 0;
+  _used_ring->idx = 0;
+  _used_ring->flags = 0;
+  _used_ring->avail_event = 0;
 
-  /* Hook up interrupts */
+  /* Initializing free vector of octad descriptors for virtring allocation */
+  _free_descs.reserve(DESC_OCTAD_COUNT);
+  for (int i = 0; i < DESC_OCTAD_COUNT; ++i) {
+    _free_descs.push_back(i);
+  }
+
+  /* Initialize rest and hook up with MSI interrupts */
+  _last_used = 0;
+
 }
 
-/* TODO: Create some tests for allocating and freeing descriptors */
+/* I am unsure if this will ever be called. */
+Virtqueue::~Virtqueue() {
+  free(_desc_table);
+  free(_avail_ring);
+  free(_used_ring);
+}
+
 /* Allocates descriptors */
-Descriptors Virtqueue::_alloc_desc_chain() {}
+Descriptors Virtqueue::_alloc_desc_chain(int size) {}
 
 /* Frees a descriptor chain starting at desc */
-inline void Virtqueue::_free_desc(uint16_t desc_start) {}
+void Virtqueue::_free_desc(uint16_t desc_start) {}
 
 inline void Virtqueue::_notify() {}
 
@@ -57,8 +85,6 @@ void Virtqueue::enqueue(VirtTokens tokens) {
   /* Notify the the device */
   _notify();
 }
-
-#define ROUNDED_DIV (x, y) (x / y) + (((x % y) == 0 ? 0 : 1))
 
 VirtTokens Virtqueue::dequeue(int& device_written) {
   /* Grabbing entry */

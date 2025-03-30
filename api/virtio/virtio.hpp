@@ -84,10 +84,8 @@ typedef struct __attribute__((packed)) {
 /*  Other features */
 #define VIRTIO_F_INDIRECT_DESC      (1ULL << 28)
 #define VIRTIO_F_RING_PACKED        (1ULL << 34)
-
-/* Virtio queue features that may be useful for devices. Don't understand them too well now. */
 #define VIRTIO_F_IN_ORDER           (1ULL << 35)
-#define VIRTIO_F_RING_RESET         (1ULL << 40) // May be useful for hot (un)-plugging devices?
+#define VIRTIO_F_RING_RESET         (1ULL << 40)
 
 #define REQUIRED_VQUEUE_FEATS ( \
   VIRTIO_F_VERSION_1 | \
