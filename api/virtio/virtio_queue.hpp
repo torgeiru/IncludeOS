@@ -23,7 +23,7 @@ using std::make_unique;
 using std::move;
 using std::vector;
 using VirtTokens = unique_ptr<vector<VirtToken>>;
-using Descriptors = unique_ptr<vector<uint8_t>>;
+using Descriptors = unique_ptr<vector<uint16_t>>;
 
 /* Note: The Queue Size value does not have to be a power of 2. */
 #define VQUEUE_MAX_SIZE  32768
@@ -73,7 +73,7 @@ typedef struct __attribute__((packed)) {
   uint16_t avail_event;                     /* Only if VIRTIO_F_EVENT_IDX */
 } virtq_used;
 
-/* 
+/*
   Start of Virtio queue implementation
 */
 class Virtqueue {
@@ -85,7 +85,7 @@ public:
   VirtTokens dequeue(int& device_written);
 
 private:
-  unique_ptr<vector<uint8_t>> _alloc_desc_chain(int size);
+  Descriptors _alloc_desc_chain(int desc_count);
   void _free_desc(uint16_t desc_start);
   inline void _notify();
 

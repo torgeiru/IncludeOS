@@ -1,11 +1,11 @@
-#include <stdlib.h> // #include<cstdlib.h>
+#include <stdlib.h>
 #include <expects>
 #include <util/bitops.hpp>
 #include <virtio/virtio_queue.hpp>
 
-Virtqueue::Virtqueue(Virtio& virtio_dev, int vqueue_id, uint16_t *notify_addr) : 
+Virtqueue::Virtqueue(Virtio& virtio_dev, int vqueue_id, uint16_t *notify_addr) :
 _virtio_dev(virtio_dev)
-_VQUEUE_ID(vqueue_id), 
+_VQUEUE_ID(vqueue_id),
 _notify_addr(notify_addr) {
   /* Allocating split virtqueue parts */
   using util::bits::is_aligned;
@@ -15,7 +15,7 @@ _notify_addr(notify_addr) {
 
   _avail_ring = aligned_alloc(AVAIL_RING_ALIGN, sizeof(virtq_avail));
   Expects((_avail_ring != NULL) && is_aligned<AVAIL_RING_ALIGN>(_avail_ring));
-  
+
   _used_ring  = aligned_alloc(USED_RING_ALIGN, sizeof(virtq_used));
   Expects((_used_ring != NULL) && is_aligned<USED_RING_ALIGN>(_used_ring));
 
@@ -29,28 +29,67 @@ _notify_addr(notify_addr) {
   _used_ring->avail_event = 0;
 
   /* Initializing free vector of octad descriptors for virtring allocation */
-  _free_descs.reserve(DESC_OCTAD_COUNT);
+  _free_descs.reserve(DESC_OCTAD_COUNT); /* Look into initializers */
   for (int i = 0; i < DESC_OCTAD_COUNT; ++i) {
     _free_descs.push_back(i);
   }
 
   /* Initialize rest and hook up with MSI interrupts */
   _last_used = 0;
-
 }
 
-/* I am unsure if this will ever be called. */
+/* I am unsure if this will ever be called */
 Virtqueue::~Virtqueue() {
   free(_desc_table);
   free(_avail_ring);
   free(_used_ring);
 }
 
-/* Allocates descriptors */
-Descriptors Virtqueue::_alloc_desc_chain(int size) {}
+#define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
+#define MIN(x, y) (x > y ? y : x)
 
-/* Frees a descriptor chain starting at desc */
-void Virtqueue::_free_desc(uint16_t desc_start) {}
+/* Allocates descriptors */
+Descriptors Virtqueue::_alloc_desc(int desc_count) {
+  Descriptors allocd_descs(desc_count);
+
+  int octad_count = ROUNDED_DIV(desc_count, 8);
+
+  /* For debugging purposes */
+  Expects(_free_descs.size() >= octad_count);
+
+  int remaining = desc_count;
+  for (int i = 0; i < octad_count; ++i) {
+    int seq_desc_count = MIN(8, remaining);
+
+    uint16_t octad_start = _free_descs.back() << 3;
+
+    for (int j = 0; j < seq_desc_count; ++j) {
+      uint16_t allocd_desc = octad_start + j;
+      allocd_descs.push_back(allocd_desc);
+    }
+
+    _free_descs.pop_back();
+    remaining -= 8;
+  }
+
+  return move(allocd_descs);
+}
+
+/* Frees a descriptor chain starting at desc_start */
+/* Possible with further optimizations here. */
+void Virtqueue::_free_desc_chain(uint16_t desc_start) {
+  uint16_t cur_desc_idx = desc_start;
+  virtq_desc *cur_desc = &_desc_table[desc_start];
+
+  while(cur_desc_idx) {
+    if ((cur_desc_idx & 0x7) == 0) {
+      _free_descs.push_back(cur_desc_idx);
+    }
+
+    cur_desc_idx = cur_desc->next;
+    cur_desc = &_desc_table[cur_desc_idx];
+  }
+}
 
 inline void Virtqueue::_notify() {}
 
@@ -89,7 +128,7 @@ void Virtqueue::enqueue(VirtTokens tokens) {
 VirtTokens Virtqueue::dequeue(int& device_written) {
   /* Grabbing entry */
   virtq_used_elem& used_elem = _used_ring.ring[_last_used++];
-  
+
   int desc_buffer_count = ROUNDED_DIV(used_elem.len, DESC_BUF_SIZE);
 
   /* Setting up virtio buffer tokens */
