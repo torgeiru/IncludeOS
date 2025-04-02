@@ -2,6 +2,7 @@
 #ifndef VIRTIO_VIRTIO_HPP
 #define VIRTIO_VIRTIO_HPP
 
+#include <smp_utils>
 #include <hw/pci_device.hpp>
 #include <vector>
 #include <stdint.h>
@@ -108,6 +109,11 @@ public:
 
   Virtio(hw::PCI_Device& pci, uint64_t dev_specific_feats);
 
+  inline Spinlock& common_cfg_lock() { return _common_cfg_lock; }
+  inline volatile virtio_pci_common_cfg& common_cfg() { return *_common_cfg; }
+  inline uint32_t notify_off_multiplier() { return _notify_off_multiplier; }
+  inline uint16_t *notify_region() { return _notify_region; }
+
 private:
   /** Finds the common configuration address */
   void _find_cap_cfgs();
@@ -135,13 +141,15 @@ private:
   inline bool _version_supported(uint16_t i) { return i == 1; }
 
   hw::PCI_Device& _pcidev;
+  Spinlock _common_cfg_lock;
 
-  /* Configuration structures, bar numbers, offsets and offset multipliers */
+  /* Configuration structures */
   volatile virtio_pci_common_cfg *_common_cfg;
   volatile uintptr_t _specific_cfg; // specific to the device
 
+  /* Offsets and offset multipliers */
   uint32_t _notify_off_multiplier;
-  uintptr_t _notify_region;
+  uint16_t *_notify_region;
 
   /* Indicate if virtio device ID is legacy or standard */
   bool _LEGACY_ID = 0;

@@ -38,7 +38,12 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   _virtio_assert(rev_id_ok);
 
   /* Parsing MSI-X capability */
-  // _pcidev.parse_capabilities();
+  _pcidev.parse_capabilities();
+
+  /* This Virtio-impl requires MSI interrupts */
+  bool msi_support = _pcidev.has_msix();
+  CHECK(msi_support, "Supports MSI interrupts!");
+  _virtio_assert(msi_support);
 
   /* Finding Virtio structures */
   _find_cap_cfgs();
@@ -104,7 +109,7 @@ void Virtio::_find_cap_cfgs() {
           _specific_cfg = cfg_addr;
           break;
         case VIRTIO_PCI_CAP_NOTIFY_CFG:
-          _notify_region = cfg_addr;
+          _notify_region = (uint16_t*)cfg_addr;
           _notify_off_multiplier = _pcidev.read32(offset + VIRTIO_PCI_NOTIFY_CAP_MUL);
           break;
       }

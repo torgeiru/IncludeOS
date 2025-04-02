@@ -1,4 +1,6 @@
 #include <stdlib.h>
+
+#include <arch>
 #include <expects>
 #include <util/bitops.hpp>
 #include <virtio/virtio_queue.hpp>
@@ -19,7 +21,7 @@ _notify_addr(notify_addr) {
   _used_ring  = aligned_alloc(USED_RING_ALIGN, sizeof(virtq_used));
   Expects((_used_ring != NULL) && is_aligned<USED_RING_ALIGN>(_used_ring));
 
-  /* Initialize avail and used rings */
+  /* Initialize split virtqueue parts */
   _avail_ring->idx = 0;
   _avail_ring->flags = 0;
   _avail_ring->used_event = 0;
@@ -28,14 +30,18 @@ _notify_addr(notify_addr) {
   _used_ring->flags = 0;
   _used_ring->avail_event = 0;
 
-  /* Initializing free vector of octad descriptors for virtring allocation */
-  _free_descs.reserve(DESC_OCTAD_COUNT); /* Look into initializers */
+  /* Initializing other virtqueue related stuff */
+  _free_descs.reserve(DESC_OCTAD_COUNT);
   for (int i = 0; i < DESC_OCTAD_COUNT; ++i) {
     _free_descs.push_back(i);
   }
 
-  /* Initialize rest and hook up with MSI interrupts */
   _last_used = 0;
+
+  _virtio_dev.common_cfg().queue_select = vqueue_id;
+
+  _avail_notify = _virtio_dev.notify_region() + 
+    _virtio_dev.common_cfg().queue_notify_off * _virtio_dev.notify_off_multiplier();
 }
 
 /* I am unsure if this will ever be called */
@@ -91,7 +97,9 @@ void Virtqueue::_free_desc_chain(uint16_t desc_start) {
   }
 }
 
-inline void Virtqueue::_notify() {}
+inline void Virtqueue::_notify() {
+  *_avail_notify = _VQUEUE_ID;
+}
 
 void Virtqueue::enqueue(VirtTokens tokens) {
   /* Allocate free descriptors */
@@ -119,9 +127,16 @@ void Virtqueue::enqueue(VirtTokens tokens) {
   _avail_ring.flags = 0;
   _avail_ring.ring[_avail_ring.idx % VQUEUE_SIZE] = descs[0];
   _avail_ring.used_event = 0; // Change this
+
+  /* Memory fence before incrementing idx according to §2.7.13 (Virtio 1.3) */
+  __arch_hw_barrier();
+
   _avail_ring.idx++;
 
-  /* Notify the the device */
+  /* Memory fence before checking for notification supression according to ^ */
+  __arch_hw_barrier();
+
+  /* Notify the the device if no notification suppresion */
   _notify();
 }
 
@@ -143,7 +158,6 @@ VirtTokens Virtqueue::dequeue(int& device_written) {
   }
 
   _free_desc(used_elem.id);
-  _notify();
 
   /* Write to device_written and return tokens to caller */
   device_written = used_elem.len;

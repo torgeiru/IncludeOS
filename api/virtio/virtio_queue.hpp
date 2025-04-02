@@ -94,12 +94,14 @@ private:
   volatile uint16_t *_notify_addr;
 
   /* Split virtqueue parts */
-  uint16_t _last_used;
-  vector<uint16_t> _free_descs;
-
   volatile virtq_desc *_desc_table;
   volatile virtq_avail *_avail_ring;
   volatile virtq_used *_used_ring;
+
+  /* Other virtqueue stuff */
+  uint16_t _last_used;
+  vector<uint16_t> _free_descs;
+  volatile uint16_t *avail_notify;
 };
 
 #endif
