@@ -49,13 +49,13 @@ typedef struct __attribute__((packed)) {
 } virtq_desc;
 
 /* Available ring flags */
-#define VIRTQ_AVAIL_F_NO_INTERRUPT 1 // Unused
+#define VIRTQ_AVAIL_F_NO_INTERRUPT 1
 
 typedef struct __attribute__((packed)) {
   uint16_t flags;             /* Flags for the avail ring */
   uint16_t idx;               /* Next index modulo queue size to insert */
   uint16_t ring[VQUEUE_SIZE]; /* Ring of descriptors */
-  uint16_t used_event;        /* Only if VIRTIO_F_EVENT_IDX is supported by device*/
+  uint16_t used_event;        /* Only if VIRTIO_F_EVENT_IDX is supported by device. */
 } virtq_avail;
 
 /* Used ring flags */
@@ -70,7 +70,7 @@ typedef struct __attribute__((packed)) {
   uint16_t flags;                           /* Flags for the used ring */
   uint16_t idx;                             /* Flags  */
   virtq_used_elem ring[VQUEUE_SIZE]; /* Ring of descriptors */
-  uint16_t avail_event;                     /* Only if VIRTIO_F_EVENT_IDX */
+  uint16_t avail_event;                     /* Only if VIRTIO_F_EVENT_IDX is supported by device */
 } virtq_used;
 
 /*

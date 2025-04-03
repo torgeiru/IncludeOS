@@ -42,6 +42,22 @@ _notify_addr(notify_addr) {
 
   _avail_notify = _virtio_dev.notify_region() + 
     _virtio_dev.common_cfg().queue_notify_off * _virtio_dev.notify_off_multiplier();
+
+    /* Initializing configuration space according to §4.1.5.1.3 */
+
+    /*
+      1.
+          Write the virtqueue index to queue_select. 
+      2.
+          Read the virtqueue size from queue_size. This controls how big the virtqueue is (see 2.6 Virtqueues). If this field is 0, the virtqueue does not exist. 
+      3.
+          Optionally, select a smaller virtqueue size and write it to queue_size. 
+      4.
+          Allocate and zero Descriptor Table, Available and Used rings for the virtqueue in contiguous physical memory. 
+      5.
+          Optionally, if MSI-X capability is present and enabled on the device, select a vector to use to request interrupts triggered by virtqueue events. Write the MSI-X Table entry number corresponding to this vector into queue_msix_vector. Read queue_msix_vector: on success, previously written value is returned; on failure, NO_VECTOR value is returned.
+      
+    */
 }
 
 /* I am unsure if this will ever be called */
@@ -136,7 +152,7 @@ void Virtqueue::enqueue(VirtTokens tokens) {
   /* Memory fence before checking for notification supression according to ^ */
   __arch_hw_barrier();
 
-  /* Notify the the device if no notification suppresion */
+  /* Notify the the device */
   _notify();
 }
 
