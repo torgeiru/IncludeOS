@@ -4,7 +4,6 @@
 
 #include <virtio/virtio.hpp>
 
-#include <util/units.hpp>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -20,7 +19,6 @@ typedef struct {
 
 using std::unique_ptr;
 using std::make_unique;
-using std::move;
 using std::vector;
 using VirtTokens = unique_ptr<vector<VirtToken>>;
 using Descriptors = unique_ptr<vector<uint16_t>>;
@@ -30,7 +28,7 @@ using Descriptors = unique_ptr<vector<uint16_t>>;
 #define VQUEUE_SIZE      4096
 #define DESC_OCTAD_COUNT (VQUEUE_SIZE >> 3)
 
-#define DESC_BUF_SIZE    4_KiB;
+#define DESC_BUF_SIZE    4096
 
 #define DESC_TBL_ALIGN   16
 #define AVAIL_RING_ALIGN 2
@@ -67,10 +65,10 @@ typedef struct __attribute__((packed)) {
 } virtq_used_elem;
 
 typedef struct __attribute__((packed)) {
-  uint16_t flags;                           /* Flags for the used ring */
-  uint16_t idx;                             /* Flags  */
+  uint16_t flags;                    /* Flags for the used ring */
+  volatile uint16_t idx;             /* Flags  */
   virtq_used_elem ring[VQUEUE_SIZE]; /* Ring of descriptors */
-  uint16_t avail_event;                     /* Only if VIRTIO_F_EVENT_IDX is supported by device */
+  uint16_t avail_event;              /* Only if VIRTIO_F_EVENT_IDX is supported by device */
 } virtq_used;
 
 /*
@@ -78,30 +76,30 @@ typedef struct __attribute__((packed)) {
 */
 class Virtqueue {
 public:
-  Virtqueue(Virtio& virtio_dev, int vqueue_id);
-  ~Virtqueue();
+  Virtqueue(Virtio& virtio_dev, int vqueue_id, uint16_t *notify_addr);
+  // ~Virtqueue();
 
   void enqueue(VirtTokens tokens);
   VirtTokens dequeue(int& device_written);
 
 private:
-  Descriptors _alloc_desc_chain(int desc_count);
+  Descriptors _alloc_descs(size_t desc_count);
   void _free_desc(uint16_t desc_start);
   inline void _notify();
 
-  Virtio& _virtio_dev
+  Virtio& _virtio_dev;
   int _VQUEUE_ID;
   volatile uint16_t *_notify_addr;
 
   /* Split virtqueue parts */
-  volatile virtq_desc *_desc_table;
-  volatile virtq_avail *_avail_ring;
-  volatile virtq_used *_used_ring;
+  virtq_desc *_desc_table;
+  virtq_avail *_avail_ring;
+  virtq_used *_used_ring;
 
   /* Other virtqueue stuff */
   uint16_t _last_used;
   vector<uint16_t> _free_descs;
-  volatile uint16_t *avail_notify;
+  volatile uint16_t *_avail_notify;
 };
 
 #endif

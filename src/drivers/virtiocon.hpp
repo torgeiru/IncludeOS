@@ -36,7 +36,7 @@ public:
 
 private:
  /* The device will contain */
-  Virtqueue _tx, _rx;
+  // Virtqueue _tx, _rx;
   int _id;
 };
 

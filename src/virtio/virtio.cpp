@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <info>
 #include <hw/pci.hpp>
+#include <kernel/events.hpp>
 
 Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) : 
   _pcidev(dev), 
@@ -37,14 +38,6 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   CHECK(rev_id_ok, "Device Revision ID (%d) supported", dev.rev_id());
   _virtio_assert(rev_id_ok);
 
-  /* Parsing MSI-X capability */
-  _pcidev.parse_capabilities();
-
-  /* This Virtio-impl requires MSI interrupts */
-  bool msi_support = _pcidev.has_msix();
-  CHECK(msi_support, "Supports MSI interrupts!");
-  _virtio_assert(msi_support);
-
   /* Finding Virtio structures */
   _find_cap_cfgs();
 
@@ -61,6 +54,21 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
 
   CHECK(negotiation_success, "Required features were negotiated successfully");
   _virtio_assert(negotiation_success, false);
+
+  /* Parsing MSI-X capability */
+  _pcidev.parse_capabilities();
+
+  if (_pcidev.msix_cap()) {
+    _pcidev.init_msix();
+    uint8_t msix_vectors = dev.get_msix_vectors();
+    INFO("Virtio", "There are %d MSI vectors", msix_vectors);
+
+    auto irq = Events::get().subscribe(35, nullptr);
+    INFO("Virtio", "IRQ allocated for Virtio is %d", irq);
+    // dev.setup_msix_vector(current_cpu, IRQ_BASE + irq);
+  } else {
+    os::panic("MSI is unsupported. This is not allowed!");
+  }
 }
 
 void Virtio::_find_cap_cfgs() {
@@ -73,33 +81,33 @@ void Virtio::_find_cap_cfgs() {
   /* Must be device vendor specific capability */
   while (offset) {
     uint32_t data    = _pcidev.read32(offset);
-    uint8_t cap_vndr = (uint8_t) (data & 0xff);
-    uint8_t cap_len  = (uint8_t) ((data >> 16) & 0xff);
-    uint8_t cfg_type = (uint8_t) (data >> 24);
+    uint8_t cap_vndr = static_cast<uint8_t>(data & 0xff);
+    uint8_t cap_len  = static_cast<uint8_t>((data >> 16) & 0xff);
+    uint8_t cfg_type = static_cast<uint8_t>(data >> 24);
 
     /* Skipping other than vendor specific capability */ 
     if (
       cap_vndr == PCI_CAP_ID_VNDR
     ) {
       /* Grabbing bar region */
-      uint8_t bar        = (uint8_t)(_pcidev.read16(offset + VIRTIO_PCI_CAP_BAR) & 0xff);
+      uint8_t bar        = static_cast<uint8_t>(_pcidev.read16(offset + VIRTIO_PCI_CAP_BAR) & 0xff);
       uint32_t bar_value = _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + (bar << 2));
 
       /* Grabbing bar offset for config */
-      uintptr_t bar_region = (uintptr_t)(bar_value & ~0xf);
-      uintptr_t bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
+      uint64_t bar_region = static_cast<uint64_t>(bar_value & ~0xf);
+      uint64_t bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
 
       /* Check if 64 bit bar  */
       if (cap_len > VIRTIO_PCI_NOT_CAP_LEN) {
-        uintptr_t bar_hi    = (uintptr_t) _pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2));
-        uintptr_t baroff_hi = (uintptr_t) _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64);
+        uint64_t bar_hi    = static_cast<uint64_t>(_pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2)));
+        uint64_t baroff_hi = static_cast<uint64_t>(_pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64));
 
         bar_region |= (bar_hi << 32);
         bar_offset |= (baroff_hi << 32);
       }
 
       /* Determine config type and calculate config address */
-      uintptr_t cfg_addr = bar_region + bar_offset;
+      uint64_t cfg_addr = bar_region + bar_offset;
 
       switch(cfg_type) {
         case VIRTIO_PCI_CAP_COMMON_CFG:
@@ -109,7 +117,7 @@ void Virtio::_find_cap_cfgs() {
           _specific_cfg = cfg_addr;
           break;
         case VIRTIO_PCI_CAP_NOTIFY_CFG:
-          _notify_region = (uint16_t*)cfg_addr;
+          _notify_region = reinterpret_cast<uint16_t*>(cfg_addr);
           _notify_off_multiplier = _pcidev.read32(offset + VIRTIO_PCI_NOTIFY_CAP_MUL);
           break;
       }
@@ -129,8 +137,8 @@ void Virtio::_set_ack_and_driver_bits() {
 }
 
 bool Virtio::_negotiate_features() {
-  uint32_t required_feats_lo = (uint32_t)(_required_feats & 0xffffffff);
-  uint32_t required_feats_hi = (uint32_t)(_required_feats >> 32);
+  uint32_t required_feats_lo = static_cast<uint32_t>(_required_feats & 0xffffffff);
+  uint32_t required_feats_hi = static_cast<uint32_t>(_required_feats >> 32);
 
   /* Read device features */
   _common_cfg->device_feature_select = 0;
@@ -177,5 +185,6 @@ void Virtio::_virtio_assert(bool condition, bool omit_fail_bit) {
 }
 
 void Virtio::set_driver_ok_bit() {
+  INFO("Virtio", "Setting driver ok bit");
   _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER_OK;
 }

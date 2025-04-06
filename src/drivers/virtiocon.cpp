@@ -4,22 +4,14 @@
 #include <hw/con_device.hpp>
 #include <hw/pci_manager.hpp>
 
-VirtioCon::VirtioCon(hw::PCI_Device& d) : 
-public Virtio(d, REQUIRED_VCON_FEATS), 
-_tx(this, 0),
-_rx(this, 1)
+VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS)
 {
   static int id_count;
   _id = id_count++;
 
   INFO("VirtioCon", "Initializing Virtio Console");
-
-  /* Setting up virtqueues */
-
-  /* Setting driver ok. Device is live :) */
-  set_driver_ok_bit();
-
-  INFO("VirtioCon", "Console is alive!");
+  
+  os::panic("Panicking for no reason!");
 }
 
 /** Factory method used to create VirtioFS driver object */

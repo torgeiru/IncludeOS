@@ -21,25 +21,25 @@ typedef struct __attribute__((packed)) {
 } virtio_pci_cap;
 
 /* Virtio PCI capability 64 */
-struct virtio_pci_cap64 {
-  struct virtio_pci_cap cap; 
+typedef struct __attribute__((packed)) {
+  virtio_pci_cap cap; 
   uint32_t offset_hi;
   uint32_t length_hi;
-} __attribute__((packed));
+} virtio_pci_cap64;
 
 typedef struct __attribute__((packed)) { 
-  struct virtio_pci_cap cap; 
+  virtio_pci_cap cap; 
   uint32_t notify_off_multiplier; /* Multiplier for queue_notify_off. */ 
 } virtio_pci_notify_cap;
 
-#define VIRTIO_PCI_CAP_LEN     sizeof(struct virtio_pci_cap)
-#define VIRTIO_PCI_CAP_LEN64   sizeof(struct virtio_pci_cap64)
-#define VIRTIO_PCI_NOT_CAP_LEN sizeof(struct virtio_pci_notify_cap)
+#define VIRTIO_PCI_CAP_LEN     sizeof(virtio_pci_cap)
+#define VIRTIO_PCI_CAP_LEN64   sizeof(virtio_pci_cap64)
+#define VIRTIO_PCI_NOT_CAP_LEN sizeof(virtio_pci_notify_cap)
 
-#define VIRTIO_PCI_CAP_BAR        offsetof(struct virtio_pci_cap, bar)
-#define VIRTIO_PCI_CAP_BAROFF     offsetof(struct virtio_pci_cap, offset)
-#define VIRTIO_PCI_CAP_BAROFF64   offsetof(struct virtio_pci_cap64, offset_hi)
-#define VIRTIO_PCI_NOTIFY_CAP_MUL offsetof(struct virtio_pci_notify_cap, notify_off_multiplier)
+#define VIRTIO_PCI_CAP_BAR        offsetof(virtio_pci_cap, bar)
+#define VIRTIO_PCI_CAP_BAROFF     offsetof(virtio_pci_cap, offset)
+#define VIRTIO_PCI_CAP_BAROFF64   offsetof(virtio_pci_cap64, offset_hi)
+#define VIRTIO_PCI_NOTIFY_CAP_MUL offsetof(virtio_pci_notify_cap, notify_off_multiplier)
 
 typedef struct __attribute__((packed)) { 
   /* About the whole device. */ 
@@ -145,7 +145,7 @@ private:
 
   /* Configuration structures */
   volatile virtio_pci_common_cfg *_common_cfg;
-  volatile uintptr_t _specific_cfg; // specific to the device
+  volatile uint64_t _specific_cfg; // specific to the device
 
   /* Offsets and offset multipliers */
   uint32_t _notify_off_multiplier;
