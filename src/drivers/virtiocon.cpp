@@ -11,6 +11,8 @@ VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS)
 
   INFO("VirtioCon", "Initializing Virtio Console");
   
+  complete_setup();
+
   os::panic("Panicking for no reason!");
 }
 

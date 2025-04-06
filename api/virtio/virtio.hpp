@@ -107,6 +107,9 @@ public:
   /** Setting driver ok bit within device status */
   void set_driver_ok_bit();
 
+  /** Temporary function */
+  void complete_setup();
+
   Virtio(hw::PCI_Device& pci, uint64_t dev_specific_feats);
 
   inline Spinlock& common_cfg_lock() { return _common_cfg_lock; }

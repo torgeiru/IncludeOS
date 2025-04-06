@@ -54,17 +54,19 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
 
   CHECK(negotiation_success, "Required features were negotiated successfully");
   _virtio_assert(negotiation_success, false);
+}
 
+void Virtio::complete_setup() {
   /* Parsing MSI-X capability */
   _pcidev.parse_capabilities();
 
   if (_pcidev.msix_cap()) {
     _pcidev.init_msix();
-    uint8_t msix_vectors = dev.get_msix_vectors();
+    uint8_t msix_vectors = _pcidev.get_msix_vectors();
     INFO("Virtio", "There are %d MSI vectors", msix_vectors);
 
-    auto irq = Events::get().subscribe(35, nullptr);
-    INFO("Virtio", "IRQ allocated for Virtio is %d", irq);
+    // auto irq = Events::get().subscribe(nullptr);
+    // INFO("Virtio", "IRQ allocated for Virtio is %d", irq);
     // dev.setup_msix_vector(current_cpu, IRQ_BASE + irq);
   } else {
     os::panic("MSI is unsupported. This is not allowed!");
@@ -109,7 +111,16 @@ void Virtio::_find_cap_cfgs() {
       /* Determine config type and calculate config address */
       uint64_t cfg_addr = bar_region + bar_offset;
 
+      #define PCI_CAP_ID_MSI        0x05    /* Message Signalled Interrupts */
+      #define PCI_CAP_ID_MSIX       0x11    /* MSI-X */
+
       switch(cfg_type) {
+        case PCI_CAP_ID_MSI:
+          INFO("Virtio", "Found MSI capability!");
+          break;
+        case PCI_CAP_ID_MSIX:
+          INFO("Virtio", "Found MSI-X capability!");
+          break;
         case VIRTIO_PCI_CAP_COMMON_CFG:
           _common_cfg = (volatile virtio_pci_common_cfg*)cfg_addr;
           break;
@@ -151,6 +162,9 @@ bool Virtio::_negotiate_features() {
   uint32_t supported_feats_lo = dev_features_lo & required_feats_lo;
   uint32_t supported_feats_hi = dev_features_hi & required_feats_hi;
   
+  // INFO("Virtio", "0x%lx 0x%lx", supported_feats_lo, required_feats_lo);
+  // INFO("Virtio", "0x%lx 0x%lx", supported_feats_hi, required_feats_hi);
+
   if (supported_feats_lo != required_feats_lo)
     return false;
 

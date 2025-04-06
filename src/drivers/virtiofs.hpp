@@ -7,8 +7,8 @@
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
 
-#define VIRTIO_FS_F_NOTIFICATION (1ULL << 0)
-#define REQUIRED_VFS_FEATS VIRTIO_FS_F_NOTIFICATION
+// #define VIRTIO_FS_F_NOTIFICATION (1ULL << 0)
+#define REQUIRED_VFS_FEATS 0ULL
 
 class VirtioFS : public Virtio, public hw::VFS_device {
 public:

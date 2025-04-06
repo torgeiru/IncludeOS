@@ -8,6 +8,10 @@
 VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS) {
   static int id_count = 0;
   _id = id_count++;
+
+  complete_setup();
+
+  os::panic("Panicking for no reason!");
 }
 
 /** Factory method used to create VirtioFS driver object */
