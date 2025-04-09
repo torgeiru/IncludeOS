@@ -102,10 +102,10 @@ typedef struct __attribute__((packed)) {
 */
 class Virtio {
 public:
+  Virtio(hw::PCI_Device& pci, uint64_t dev_specific_feats);
+
   /** Setting driver ok bit within device status */
   void set_driver_ok_bit();
-
-  Virtio(hw::PCI_Device& pci, uint64_t dev_specific_feats);
 
   /** Modifying the common configuration */
   inline Spinlock& common_cfg_lock() { return _common_cfg_lock; }

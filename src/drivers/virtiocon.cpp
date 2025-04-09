@@ -11,13 +11,17 @@ VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS)
 
   INFO("VirtioCon", "Initializing Virtio Console");
 
-  INFO("VirtioCon", "MSIX vector count  %d", msix_vector_count());
-  INFO("VirtioCon", "Indirect support:  %d", indirect() ? 1 : 0);
-  INFO("VirtioCon", "In_order support:  %d", in_order() ? 1 : 0);
-  INFO("VirtioCon", "Event_idx support: %d", event_idx() ? 1 : 0);
-  INFO("VirtioCon", "Packed support:    %d", packed() ? 1 : 0);
+  INFO("VirtioCon", "MSIX vector count:     %d", msix_vector_count());
+  INFO("VirtioCon", "Notify off multiplier: 0x%x", notify_off_multiplier());
+  INFO("VirtioCon", "Notify region:         0x%lx", notify_region());
 
-  os::panic("Panicking for no reason!");
+  INFO("VirtioCon", "Indirect support:      %d", indirect() ? 1 : 0);
+  INFO("VirtioCon", "In_order support:      %d", in_order() ? 1 : 0);
+  INFO("VirtioCon", "Event_idx support:     %d", event_idx() ? 1 : 0);
+  INFO("VirtioCon", "Packed support:        %d", packed() ? 1 : 0);
+  
+
+  os::panic("Testing virtio layer...");
 
   INFO("VirtioCon", "Device specific initialization complete");
   set_driver_ok_bit();
