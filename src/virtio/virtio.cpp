@@ -145,6 +145,9 @@ bool Virtio::_negotiate_features() {
   _common_cfg->device_feature_select = 1;
   uint32_t dev_features_hi = _common_cfg->device_feature;
 
+  /* Checking support for event_idx */
+  /* Checking support for packed */
+
   /* Checking if required features are available */
   uint32_t supported_feats_lo = dev_features_lo & required_feats_lo;
   uint32_t supported_feats_hi = dev_features_hi & required_feats_hi;

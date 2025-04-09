@@ -72,6 +72,10 @@ typedef struct __attribute__((packed)) {
   uint16_t avail_event;              /* Only if VIRTIO_F_EVENT_IDX is supported by device */
 } virtq_used;
 
+class BaseQueue {};
+class PackedQueue: public BaseQueue {};
+class SplitQueue: public BaseQueue {};
+
 /*
   Start of Virtio queue implementation
 */

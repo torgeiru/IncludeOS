@@ -83,16 +83,14 @@ typedef struct __attribute__((packed)) {
 
 /* TODO: Enabled if exists */
 #define VIRTIO_F_IN_ORDER           (1ULL << 35)
+#define VIRTIO_F_RING_PACKED        (1ULL << 34)
 
 /* Other features */
 #define VIRTIO_F_EVENT_IDX          (1ULL << 29)
 #define VIRTIO_F_INDIRECT_DESC      (1ULL << 28)
-#define VIRTIO_F_RING_PACKED        (1ULL << 34)
 #define VIRTIO_F_RING_RESET         (1ULL << 40)
 
-#define REQUIRED_VQUEUE_FEATS ( \
-  VIRTIO_F_VERSION_1 | \
-  VIRTIO_F_EVENT_IDX)
+#define REQUIRED_VQUEUE_FEATS VIRTIO_F_VERSION_1
 
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE     1
 #define VIRTIO_CONFIG_S_DRIVER          2
