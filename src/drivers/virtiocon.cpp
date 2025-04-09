@@ -11,6 +11,11 @@ VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS)
 
   INFO("VirtioCon", "Initializing Virtio Console");
   
+  common_cfg().queue_select = 0;
+  size_t queue_size = common_cfg().queue_size;
+
+  INFO("VirtioCon", "Queue size is %d", queue_size);
+
   complete_setup();
 
   os::panic("Panicking for no reason!");

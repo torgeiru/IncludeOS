@@ -16,7 +16,7 @@
 
 #define REQUIRED_VCON_FEATS VIRTIO_CONSOLE_F_EMERG_WRITE
 
-typedef struct __attribute__((packed)) { 
+typedef struct __attribute__((packed)) {
   uint16_t cols;         /* Columns */
   uint16_t rows;         /* Rows */
   uint32_t max_nr_ports; /* Maximum number of ports */

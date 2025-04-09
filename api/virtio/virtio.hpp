@@ -90,7 +90,8 @@ typedef struct __attribute__((packed)) {
 
 #define REQUIRED_VQUEUE_FEATS ( \
   VIRTIO_F_VERSION_1 | \
-  VIRTIO_F_EVENT_IDX)
+  VIRTIO_F_EVENT_IDX | \
+  VIRTIO_F_RING_PACKED)
 
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE     1
 #define VIRTIO_CONFIG_S_DRIVER          2

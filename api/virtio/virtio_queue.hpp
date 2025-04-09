@@ -11,6 +11,7 @@
 #include <vector>
 
 using Virtbuffer = uint8_t*;
+using VirtBuflen = size_t;
 
 typedef struct {
   uint16_t write_flag;

@@ -5,17 +5,17 @@
 #include <hw/pci.hpp>
 #include <kernel/events.hpp>
 
-Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) : 
-  _pcidev(dev), 
-  _required_feats(REQUIRED_VQUEUE_FEATS | dev_specific_feats), 
+Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
+  _pcidev(dev),
+  _required_feats(REQUIRED_VQUEUE_FEATS | dev_specific_feats),
   _virtio_device_id(dev.product_id()
 )
 {
   INFO("Virtio","Attaching to  PCI addr 0x%x",dev.pci_addr());
   /* PCI Device discovery. Virtio std. §4.1.2  */
 
-  /* 
-    Match vendor ID and Device ID : §4.1.2.2 
+  /*
+    Match vendor ID and Device ID : §4.1.2.2
   */
   bool vendor_is_virtio = (dev.vendor_id() == PCI::VENDOR_VIRTIO);
   CHECK(vendor_is_virtio, "Vendor ID is VIRTIO");
@@ -31,7 +31,7 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   _virtio_assert(_STD_ID);
 
   /*
-    Match Device revision ID. Virtio Std. §4.1.2.2 
+    Match Device revision ID. Virtio Std. §4.1.2.2
   */
   bool rev_id_ok = _version_supported(dev.rev_id());
 
@@ -41,9 +41,9 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   /* Finding Virtio structures */
   _find_cap_cfgs();
 
-  /* 
-    Initializing the device. Virtio Std. §3.1 
-  */  
+  /*
+    Initializing the device. Virtio Std. §3.1
+  */
   _reset();
   CHECK(true, "Resetting Virtio device");
 
@@ -87,7 +87,7 @@ void Virtio::_find_cap_cfgs() {
     uint8_t cap_len  = static_cast<uint8_t>((data >> 16) & 0xff);
     uint8_t cfg_type = static_cast<uint8_t>(data >> 24);
 
-    /* Skipping other than vendor specific capability */ 
+    /* Skipping other than vendor specific capability */
     if (
       cap_vndr == PCI_CAP_ID_VNDR
     ) {
@@ -111,18 +111,9 @@ void Virtio::_find_cap_cfgs() {
       /* Determine config type and calculate config address */
       uint64_t cfg_addr = bar_region + bar_offset;
 
-      #define PCI_CAP_ID_MSI        0x05    /* Message Signalled Interrupts */
-      #define PCI_CAP_ID_MSIX       0x11    /* MSI-X */
-
       switch(cfg_type) {
-        case PCI_CAP_ID_MSI:
-          INFO("Virtio", "Found MSI capability!");
-          break;
-        case PCI_CAP_ID_MSIX:
-          INFO("Virtio", "Found MSI-X capability!");
-          break;
         case VIRTIO_PCI_CAP_COMMON_CFG:
-          _common_cfg = (volatile virtio_pci_common_cfg*)cfg_addr;
+          _common_cfg = reinterpret_cast<volatile virtio_pci_common_cfg*>(cfg_addr);
           break;
         case VIRTIO_PCI_CAP_DEVICE_CFG:
           _specific_cfg = cfg_addr;
@@ -161,7 +152,7 @@ bool Virtio::_negotiate_features() {
   /* Checking if required features are available */
   uint32_t supported_feats_lo = dev_features_lo & required_feats_lo;
   uint32_t supported_feats_hi = dev_features_hi & required_feats_hi;
-  
+
   // INFO("Virtio", "0x%lx 0x%lx", supported_feats_lo, required_feats_lo);
   // INFO("Virtio", "0x%lx 0x%lx", supported_feats_hi, required_feats_hi);
 
