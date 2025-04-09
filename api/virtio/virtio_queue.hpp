@@ -73,38 +73,44 @@ typedef struct __attribute__((packed)) {
   uint16_t avail_event;              /* Only if VIRTIO_F_EVENT_IDX is supported by device */
 } virtq_used;
 
-class BaseQueue {};
-class PackedQueue: public BaseQueue {};
-class SplitQueue: public BaseQueue {};
+class VirtQueue {
+public:
+  virtual void kick() = 0;
+  virtual void enqueue() = 0;
+  virtual void dequeue() = 0;
+};
+
+// class PackedQueue: public VirtQueue {};
+// class SplitQueue: public VirtQueue {};
 
 /*
   Start of Virtio queue implementation
 */
-class Virtqueue {
-public:
+// class Virtqueue {
+// public:
   // Virtqueue(Virtio& virtio_dev, int vqueue_id, uint16_t *notify_addr);
   // ~Virtqueue();
   // void enqueue(VirtTokens tokens);
   // VirtTokens dequeue(int& device_written);
 
-private:
+// private:
   // Descriptors _alloc_descs(size_t desc_count);
   // void _free_desc(uint16_t desc_start);
   // inline void _notify();
 
-  Virtio& _virtio_dev;
-  int _VQUEUE_ID;
-  volatile uint16_t *_notify_addr;
+  // Virtio& _virtio_dev;
+  // int _VQUEUE_ID;
+  // volatile uint16_t *_notify_addr;
 
   /* Split virtqueue parts */
-  virtq_desc *_desc_table;
-  virtq_avail *_avail_ring;
-  virtq_used *_used_ring;
+  // virtq_desc *_desc_table;
+  // virtq_avail *_avail_ring;
+  // virtq_used *_used_ring;
 
   /* Other virtqueue stuff */
-  uint16_t _last_used;
-  vector<uint16_t> _free_descs;
-  volatile uint16_t *_avail_notify;
-};
+//   uint16_t _last_used;
+//   vector<uint16_t> _free_descs;
+//   volatile uint16_t *_avail_notify;
+// };
 
 #endif

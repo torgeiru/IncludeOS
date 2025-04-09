@@ -148,7 +148,7 @@ bool Virtio::_negotiate_features() {
 
   /* Negotiated (extras) features turned off by default */
   _event_idx = false;
-  _indirect = false; // TODO: Add support for packed virtqueue
+  _indirect = false; // TODO: Add support for indirect descriptors
   _in_order = false;
   _packed = false;   // TODO: Add support for packed virtqueue
 
