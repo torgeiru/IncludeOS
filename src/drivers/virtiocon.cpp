@@ -10,15 +10,13 @@ VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS)
   _id = id_count++;
 
   INFO("VirtioCon", "Initializing Virtio Console");
-  
-  common_cfg().queue_select = 0;
-  size_t queue_size = common_cfg().queue_size;
 
-  INFO("VirtioCon", "Queue size is %d", queue_size);
-
-  complete_setup();
+  INFO("VirtioCon", "MSIX vector count %d", msix_vector_count());
 
   os::panic("Panicking for no reason!");
+
+  INFO("VirtioCon", "Device specific initialization complete");
+  set_driver_ok_bit();
 }
 
 /** Factory method used to create VirtioFS driver object */

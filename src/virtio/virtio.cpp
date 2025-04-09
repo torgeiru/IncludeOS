@@ -14,21 +14,34 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   INFO("Virtio","Attaching to  PCI addr 0x%x",dev.pci_addr());
   /* PCI Device discovery. Virtio std. §4.1.2  */
 
+  /* MSI is the only supported interrupt mechanism */
+  _pcidev.parse_capabilities();
+  bool supports_msix = _pcidev.msix_cap() > 0 ;
+  CHECK(supports_msix, "Device supports MSIX vectors");
+  _virtio_panic(supports_msix);
+
+  /* MSI vector count must be greater than zero */
+  _pcidev.init_msix();
+  _msix_vector_count = _pcidev.get_msix_vectors();
+  bool greater_than_zero = _msix_vector_count > 0;
+  CHECK(greater_than_zero, "MSIX vector count greater than zero");
+  _virtio_panic(greater_than_zero);
+
   /*
     Match vendor ID and Device ID : §4.1.2.2
   */
   bool vendor_is_virtio = (dev.vendor_id() == PCI::VENDOR_VIRTIO);
   CHECK(vendor_is_virtio, "Vendor ID is VIRTIO");
-  _virtio_assert(vendor_is_virtio);
+  _virtio_panic(vendor_is_virtio);
 
   _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
   _LEGACY_ID = _virtio_device_id >= 0x1000 and _virtio_device_id <= 0x103f;
 
   CHECK(not _LEGACY_ID, "Device ID 0x%x is not legacy", _virtio_device_id);
-  _virtio_assert(not _LEGACY_ID);
+  _virtio_panic(not _LEGACY_ID);
 
   CHECK(_STD_ID, "Device ID 0x%x is in valid range", _virtio_device_id);
-  _virtio_assert(_STD_ID);
+  _virtio_panic(_STD_ID);
 
   /*
     Match Device revision ID. Virtio Std. §4.1.2.2
@@ -36,7 +49,7 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   bool rev_id_ok = _version_supported(dev.rev_id());
 
   CHECK(rev_id_ok, "Device Revision ID (%d) supported", dev.rev_id());
-  _virtio_assert(rev_id_ok);
+  _virtio_panic(rev_id_ok);
 
   /* Finding Virtio structures */
   _find_cap_cfgs();
@@ -53,24 +66,7 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   bool negotiation_success = _negotiate_features();
 
   CHECK(negotiation_success, "Required features were negotiated successfully");
-  _virtio_assert(negotiation_success, false);
-}
-
-void Virtio::complete_setup() {
-  /* Parsing MSI-X capability */
-  _pcidev.parse_capabilities();
-
-  if (_pcidev.msix_cap()) {
-    _pcidev.init_msix();
-    uint8_t msix_vectors = _pcidev.get_msix_vectors();
-    INFO("Virtio", "There are %d MSI vectors", msix_vectors);
-
-    // auto irq = Events::get().subscribe(nullptr);
-    // INFO("Virtio", "IRQ allocated for Virtio is %d", irq);
-    // dev.setup_msix_vector(current_cpu, IRQ_BASE + irq);
-  } else {
-    os::panic("MSI is unsupported. This is not allowed!");
-  }
+  _virtio_panic(negotiation_success);
 }
 
 void Virtio::_find_cap_cfgs() {
@@ -179,13 +175,11 @@ bool Virtio::_negotiate_features() {
   return true;
 }
 
-void Virtio::_virtio_assert(bool condition, bool omit_fail_bit) {
+void Virtio::_virtio_panic(bool condition) {
   if (not condition) {
-    os::panic("Virtio failed");
+    os::panic("Virtio device failed");
 
-    if (not omit_fail_bit) {
-      _common_cfg->device_status |= VIRTIO_CONFIG_S_FAILED;
-    }
+    _common_cfg->device_status |= VIRTIO_CONFIG_S_FAILED;
   }
 }
 

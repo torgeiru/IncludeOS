@@ -37,9 +37,7 @@ _notify_addr(notify_addr) {
   _last_used = 0;
 
   _virtio_dev.common_cfg().queue_select = vqueue_id;
-
-  _avail_notify = _virtio_dev.notify_region() + 
-    _virtio_dev.common_cfg().queue_notify_off * _virtio_dev.notify_off_multiplier();
+  _avail_notify = _virtio_dev.notify_region() + _virtio_dev.common_cfg().queue_notify_off * _virtio_dev.notify_off_multiplier();
 
     /* Initializing configuration space according to §4.1.5.1.3 */
 
@@ -59,39 +57,25 @@ _notify_addr(notify_addr) {
 }
 
 /* I am unsure if this will ever be called */
-/*
 Virtqueue::~Virtqueue() {
   free(_desc_table);
   free(_avail_ring);
   free(_used_ring);
 }
-*/
 
 #define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
 #define MIN(x, y) (x > y ? y : x)
 
 /* Allocates descriptors */
 Descriptors Virtqueue::_alloc_descs(size_t desc_count) {
+  /* For debugging purposes */
+  Expects(_free_descs.size() >= desc_count);
+
   Descriptors allocd_descs = make_unique<vector<uint16_t>>(desc_count);
 
-  size_t octad_count = ROUNDED_DIV(desc_count, 8);
-
-  /* For debugging purposes */
-  Expects(_free_descs.size() >= octad_count);
-
-  size_t remaining = desc_count;
-  for (size_t i = 0; i < octad_count; ++i) {
-    size_t seq_desc_count = MIN(8, remaining);
-
-    uint16_t octad_start = _free_descs.back() << 3;
-
-    for (size_t j = 0; j < seq_desc_count; ++j) {
-      uint16_t allocd_desc = octad_start + j;
-      allocd_descs->push_back(allocd_desc);
-    }
-
+  for (int i = 0; i < desc_count; ++i) {
+    allocd_descs.push_back(_free_descs.back());
     _free_descs.pop_back();
-    remaining -= 8;
   }
 
   return allocd_descs;

@@ -10,12 +10,13 @@
 #include <memory>
 #include <vector>
 
-using Virtbuffer = uint8_t*;
+using VirtBuffer = uint8_t*;
 using VirtBuflen = size_t;
 
 typedef struct {
   uint16_t write_flag;
-  Virtbuffer buffer;
+  VirtBuffer buffer;
+  VirtBuflen buflen;
 } VirtToken;
 
 using std::unique_ptr;
@@ -27,7 +28,6 @@ using Descriptors = unique_ptr<vector<uint16_t>>;
 /* Note: The Queue Size value does not have to be a power of 2. */
 #define VQUEUE_MAX_SIZE  32768
 #define VQUEUE_SIZE      4096
-#define DESC_OCTAD_COUNT (VQUEUE_SIZE >> 3)
 
 #define DESC_BUF_SIZE    4096
 
@@ -78,7 +78,7 @@ typedef struct __attribute__((packed)) {
 class Virtqueue {
 public:
   Virtqueue(Virtio& virtio_dev, int vqueue_id, uint16_t *notify_addr);
-  // ~Virtqueue();
+  ~Virtqueue();
 
   void enqueue(VirtTokens tokens);
   VirtTokens dequeue(int& device_written);

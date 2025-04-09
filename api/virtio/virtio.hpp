@@ -79,19 +79,20 @@ typedef struct __attribute__((packed)) {
 #define VIRTIO_PCI_CAP_VENDOR_CFG        9
 
 /* All feats these must be supported by device */
-#define VIRTIO_F_EVENT_IDX          (1ULL << 29)
 #define VIRTIO_F_VERSION_1          (1ULL << 32)
 
-/*  Other features */
+/* TODO: Enabled if exists */
+#define VIRTIO_F_IN_ORDER           (1ULL << 35)
+
+/* Other features */
+#define VIRTIO_F_EVENT_IDX          (1ULL << 29)
 #define VIRTIO_F_INDIRECT_DESC      (1ULL << 28)
 #define VIRTIO_F_RING_PACKED        (1ULL << 34)
-#define VIRTIO_F_IN_ORDER           (1ULL << 35)
 #define VIRTIO_F_RING_RESET         (1ULL << 40)
 
 #define REQUIRED_VQUEUE_FEATS ( \
   VIRTIO_F_VERSION_1 | \
-  VIRTIO_F_EVENT_IDX | \
-  VIRTIO_F_RING_PACKED)
+  VIRTIO_F_EVENT_IDX)
 
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE     1
 #define VIRTIO_CONFIG_S_DRIVER          2
@@ -108,15 +109,14 @@ public:
   /** Setting driver ok bit within device status */
   void set_driver_ok_bit();
 
-  /** Temporary function */
-  void complete_setup();
-
   Virtio(hw::PCI_Device& pci, uint64_t dev_specific_feats);
 
+  /** Various inline functions used by virtqueues and virtio drivers */
   inline Spinlock& common_cfg_lock() { return _common_cfg_lock; }
   inline volatile virtio_pci_common_cfg& common_cfg() { return *_common_cfg; }
   inline uint32_t notify_off_multiplier() { return _notify_off_multiplier; }
   inline uint16_t *notify_region() { return _notify_region; }
+  inline uint16_t msix_vector_count() { return _msix_vector_count; }
 
 private:
   /** Finds the common configuration address */
@@ -131,12 +131,11 @@ private:
   /** Negotiate supported features with device */
   bool _negotiate_features();
 
-  /** Panics if there is an assert error.
+  /** Panics if there is an assert error (condition is false).
    *  Unikernel should not continue further because device is a dependency.
    *  Write failed bit to device status.
    */
-  /* TODO: Find a more IncludeOS specific way of assertion */
-  void _virtio_assert(bool condition, bool omit_fail_bit = true);
+  void _virtio_panic(bool condition);
 
   /** Indicate which Virtio version (PCI revision ID) is supported.
    *  I am currently adding support for modern Virtio (1.3).
@@ -146,6 +145,7 @@ private:
 
   hw::PCI_Device& _pcidev;
   Spinlock _common_cfg_lock;
+  uint16_t _msix_vector_count;
 
   /* Configuration structures */
   volatile virtio_pci_common_cfg *_common_cfg;
