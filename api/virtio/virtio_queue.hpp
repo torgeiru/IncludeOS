@@ -3,6 +3,7 @@
 #define VIRTIO_QUEUE_HPP
 
 #include <virtio/virtio.hpp>
+#include <delegate>
 
 #include <stddef.h>
 #include <stdint.h>

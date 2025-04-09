@@ -19,7 +19,14 @@ VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS)
   INFO("VirtioCon", "In_order support:      %d", in_order() ? 1 : 0);
   INFO("VirtioCon", "Event_idx support:     %d", event_idx() ? 1 : 0);
   INFO("VirtioCon", "Packed support:        %d", packed() ? 1 : 0);
-  
+
+  INFO("VirtioCon", "Num queues:            %d", common_cfg().num_queues);
+
+  for (uint16_t i = 0; i < 4; ++i) {
+    common_cfg().queue_select = i;
+    uint16_t queue_size = common_cfg().queue_size;
+    INFO("VirtioCon", "Virtqueue size (%d):    %d", i, queue_size);
+  }
 
   os::panic("Testing virtio layer...");
 

@@ -150,7 +150,7 @@ bool Virtio::_negotiate_features() {
   _event_idx = false;
   _indirect = false;
   _in_order = false;
-  _packed = false; // TODO: Add support for packed
+  _packed = false; // TODO: Add support for packed virtqueue
 
   /* Checking support for event_idx */
   if (dev_features_lo & VIRTIO_F_EVENT_IDX_LO) {
