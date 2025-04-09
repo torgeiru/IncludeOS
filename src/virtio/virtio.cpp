@@ -7,12 +7,10 @@
 
 Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   _pcidev(dev),
-  _required_feats(REQUIRED_VQUEUE_FEATS | dev_specific_feats),
-  _virtio_device_id(dev.product_id()
-)
+  _required_feats(VIRTIO_F_VERSION_1 | dev_specific_feats),
+  _virtio_device_id(dev.product_id())
 {
   INFO("Virtio","Attaching to  PCI addr 0x%x",dev.pci_addr());
-  /* PCI Device discovery. Virtio std. §4.1.2  */
 
   /* MSI is the only supported interrupt mechanism */
   _pcidev.parse_capabilities();
@@ -145,20 +143,41 @@ bool Virtio::_negotiate_features() {
   _common_cfg->device_feature_select = 1;
   uint32_t dev_features_hi = _common_cfg->device_feature;
 
+  uint32_t nego_feats_lo = required_feats_lo;
+  uint32_t nego_feats_hi = required_feats_hi;
+
+  /* Negotiated (extras) features turned off by default */
+  _event_idx = false;
+  _indirect = false;
+  _in_order = false;
+  _packed = false; // TODO: Add support for packed
+
   /* Checking support for event_idx */
-  /* Checking support for packed */
+  if (dev_features_lo & VIRTIO_F_EVENT_IDX_LO) {
+    nego_feats_lo |= VIRTIO_F_EVENT_IDX_LO;
+    _event_idx = true;
+  }
 
-  /* Checking if required features are available */
-  uint32_t supported_feats_lo = dev_features_lo & required_feats_lo;
-  uint32_t supported_feats_hi = dev_features_hi & required_feats_hi;
+  /* Checking support for indirect descriptors */
+  if (dev_features_lo & VIRTIO_F_INDIRECT_DESC_LO) {
+    nego_feats_lo |= VIRTIO_F_INDIRECT_DESC_LO;
+    _indirect = true;
+  }
 
-  // INFO("Virtio", "0x%lx 0x%lx", supported_feats_lo, required_feats_lo);
-  // INFO("Virtio", "0x%lx 0x%lx", supported_feats_hi, required_feats_hi);
+  /* Checking support for in_order */
+  if (dev_features_hi & VIRTIO_F_IN_ORDER_HI) {
+    nego_feats_hi |= VIRTIO_F_IN_ORDER_HI;
+    _in_order = true;
+  }
 
-  if (supported_feats_lo != required_feats_lo)
+  /* Checking if negotiated features are available */
+  uint32_t supported_feats_lo = dev_features_lo & nego_feats_lo;
+  uint32_t supported_feats_hi = dev_features_hi & nego_feats_hi;
+
+  if (supported_feats_lo != nego_feats_lo)
     return false;
 
-  if (supported_feats_hi != required_feats_hi)
+  if (supported_feats_hi != nego_feats_hi)
     return false;
 
   /* Writing subset of supported features */

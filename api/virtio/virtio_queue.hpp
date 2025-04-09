@@ -81,16 +81,15 @@ class SplitQueue: public BaseQueue {};
 */
 class Virtqueue {
 public:
-  Virtqueue(Virtio& virtio_dev, int vqueue_id, uint16_t *notify_addr);
-  ~Virtqueue();
-
-  void enqueue(VirtTokens tokens);
-  VirtTokens dequeue(int& device_written);
+  // Virtqueue(Virtio& virtio_dev, int vqueue_id, uint16_t *notify_addr);
+  // ~Virtqueue();
+  // void enqueue(VirtTokens tokens);
+  // VirtTokens dequeue(int& device_written);
 
 private:
-  Descriptors _alloc_descs(size_t desc_count);
-  void _free_desc(uint16_t desc_start);
-  inline void _notify();
+  // Descriptors _alloc_descs(size_t desc_count);
+  // void _free_desc(uint16_t desc_start);
+  // inline void _notify();
 
   Virtio& _virtio_dev;
   int _VQUEUE_ID;

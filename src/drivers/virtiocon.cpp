@@ -11,7 +11,11 @@ VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS)
 
   INFO("VirtioCon", "Initializing Virtio Console");
 
-  INFO("VirtioCon", "MSIX vector count %d", msix_vector_count());
+  INFO("VirtioCon", "MSIX vector count  %d", msix_vector_count());
+  INFO("VirtioCon", "Indirect support:  %d", indirect() ? 1 : 0);
+  INFO("VirtioCon", "In_order support:  %d", in_order() ? 1 : 0);
+  INFO("VirtioCon", "Event_idx support: %d", event_idx() ? 1 : 0);
+  INFO("VirtioCon", "Packed support:    %d", packed() ? 1 : 0);
 
   os::panic("Panicking for no reason!");
 
@@ -33,6 +37,7 @@ std::string VirtioCon::device_name() const {
   return "VirtioCon" + std::to_string(_id);
 }
 
+/** Register driver at the driver bank */
 __attribute__((constructor))
 void autoreg_virtiocon() {
   hw::PCI_manager::register_con(PCI::VENDOR_VIRTIO, 0x1043, &VirtioCon::new_instance);

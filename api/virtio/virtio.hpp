@@ -22,7 +22,7 @@ typedef struct __attribute__((packed)) {
 
 /* Virtio PCI capability 64 */
 typedef struct __attribute__((packed)) {
-  virtio_pci_cap cap; 
+  virtio_pci_cap cap;
   uint32_t offset_hi;
   uint32_t length_hi;
 } virtio_pci_cap64;
@@ -79,18 +79,16 @@ typedef struct __attribute__((packed)) {
 #define VIRTIO_PCI_CAP_VENDOR_CFG        9
 
 /* All feats these must be supported by device */
-#define VIRTIO_F_VERSION_1          (1ULL << 32)
+#define VIRTIO_F_VERSION_1      (1ULL << 32)
 
 /* TODO: Enabled if exists */
-#define VIRTIO_F_IN_ORDER           (1ULL << 35)
-#define VIRTIO_F_RING_PACKED        (1ULL << 34)
+#define VIRTIO_F_INDIRECT_DESC_LO (1ULL << 28)
+#define VIRTIO_F_EVENT_IDX_LO     (1ULL << 29)
+#define VIRTIO_F_IN_ORDER_HI      (1ULL << 3)
+#define VIRTIO_F_RING_PACKED_HI   (1ULL << 2)
 
-/* Other features */
-#define VIRTIO_F_EVENT_IDX          (1ULL << 29)
-#define VIRTIO_F_INDIRECT_DESC      (1ULL << 28)
+/* Other features that will not be supported */
 #define VIRTIO_F_RING_RESET         (1ULL << 40)
-
-#define REQUIRED_VQUEUE_FEATS VIRTIO_F_VERSION_1
 
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE     1
 #define VIRTIO_CONFIG_S_DRIVER          2
@@ -109,12 +107,22 @@ public:
 
   Virtio(hw::PCI_Device& pci, uint64_t dev_specific_feats);
 
-  /** Various inline functions used by virtqueues and virtio drivers */
+  /** Modifying the common configuration */
   inline Spinlock& common_cfg_lock() { return _common_cfg_lock; }
   inline volatile virtio_pci_common_cfg& common_cfg() { return *_common_cfg; }
+
+  /** Queue notification information */
   inline uint32_t notify_off_multiplier() { return _notify_off_multiplier; }
   inline uint16_t *notify_region() { return _notify_region; }
+
+  /** Grabbing the number of available msix vectors for device */
   inline uint16_t msix_vector_count() { return _msix_vector_count; }
+  
+  /** Negotiated features */
+  inline bool packed() { return _packed; }
+  inline bool event_idx() { return _event_idx; }
+  inline bool in_order() { return _in_order; }
+  inline bool indirect() { return _indirect; }
 
 private:
   /** Finds the common configuration address */
@@ -144,6 +152,9 @@ private:
   hw::PCI_Device& _pcidev;
   Spinlock _common_cfg_lock;
   uint16_t _msix_vector_count;
+
+  /* Negotiated features */
+  bool _packed, _event_idx, _in_order, _indirect;
 
   /* Configuration structures */
   volatile virtio_pci_common_cfg *_common_cfg;
