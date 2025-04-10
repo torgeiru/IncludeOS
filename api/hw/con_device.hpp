@@ -25,13 +25,7 @@ namespace hw {
 
     /** Method to get the device's identifier */
     virtual int id() const noexcept = 0;
-
-    // /** Method used for reading from the port0 receive queue */
-    // virtual void read_port(void *buffer, size_t read_count) noexcept = 0;
-
-    // /** Method used for writing to the port0 transmit queue */
-    // virtual void write_port(void *buffer, size_t read_count) noexcept = 0;
-  };
+  };  
 }
 
 #endif

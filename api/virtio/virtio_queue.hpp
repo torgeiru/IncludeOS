@@ -83,6 +83,7 @@ public:
 };
 
 class SplitQueue: public BaseQueue {};
+class PackedQueue: public PackedQueue {};
 
 /*
   Start of Virtio queue implementation
@@ -91,6 +92,11 @@ class Virtqueue {
 public:
   Virtqueue(Virtio& virtio_dev, int vqueue_id);
   ~Virtqueue();
+
+  /* Interface */
+  void enqueue(VirtTokens tokens);
+  void dequeue();
+  inline uint16_t descs_left() { return 0; }
 
 private:
   inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }

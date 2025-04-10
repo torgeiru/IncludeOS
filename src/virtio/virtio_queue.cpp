@@ -18,7 +18,5 @@ _VQUEUE_ID(vqueue_id)
   /*  */
 }
 
-Virtqueue::~Virtqueue() {}
-
 #define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
-#define MIN(x, y) (x > y ? y : x)
+// #define MIN(x, y) (x > y ? y : x)

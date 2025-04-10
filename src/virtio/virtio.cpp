@@ -106,6 +106,9 @@ void Virtio::_find_cap_cfgs() {
       uint64_t cfg_addr = bar_region + bar_offset;
 
       switch(cfg_type) {
+        case VIRTIO_PCI_CAP_SHARED_MEMORY_CFG:
+          INFO("Virtio", "Found shared capability!");
+          break;
         case VIRTIO_PCI_CAP_COMMON_CFG:
           _common_cfg = reinterpret_cast<volatile virtio_pci_common_cfg*>(cfg_addr);
           break;
@@ -150,7 +153,6 @@ bool Virtio::_negotiate_features() {
   _event_idx = false;
   _indirect = false; // TODO: Add support for indirect descriptors
   _in_order = false; // TODO: Add support for in order
-  _packed = false;   // TODO: Add support for packed virtqueue
 
   /* Checking support for event_idx */
   if (dev_features_lo & VIRTIO_F_EVENT_IDX_LO) {
@@ -168,12 +170,6 @@ bool Virtio::_negotiate_features() {
   // if (dev_features_hi & VIRTIO_F_IN_ORDER_HI) {
   //   nego_feats_hi |= VIRTIO_F_IN_ORDER_HI;
   //   _in_order = true;
-  // }
-
-  /* Checking support for packed virtqueues */
-  // if (dev_features_hi & VIRTIO_F_RING_PACKED_HI) {
-  //   nego_feats_hi |= VIRTIO_F_RING_PACKED_HI;
-  //   _packed = true;
   // }
 
   /* Checking if negotiated features are available */

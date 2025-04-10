@@ -11,8 +11,6 @@
 #include <virtio/virtio.hpp>
 #include <virtio/virtio_queue.hpp>
 
-#include <info>
-
 #define VIRTIO_CONSOLE_F_SIZE        (1ULL << 0)
 #define VIRTIO_CONSOLE_F_MULTIPORT   (1ULL << 1) /* Not supporting this. Only as single port*/
 #define VIRTIO_CONSOLE_F_EMERG_WRITE (1ULL << 2) /* Can write to emergency bit */
@@ -27,29 +25,19 @@ typedef struct __attribute__((packed)) {
 } virtio_console_config;
 
 class VirtioCon : public Virtio, public hw::CON_device {
-
 public:
   /** Constructor and VirtioCon driver factory */
   VirtioCon(hw::PCI_Device &d);
   static std::unique_ptr<hw::CON_device> new_instance(hw::PCI_Device& d);
 
   int id() const noexcept override;
-
-  /** Overriden device base functions */
   std::string device_name() const override;
 
-  /** Method for blocking sending */
-  void send(Bytebuf buf) {}
-
-  /** Method for blocking receiving */
-  Bytebuf recv() {}
+  /** Method for sending data over port. Blocking operation */
+  void send(std::string& message);
 
 private:
-  Bytebuf received_bytes;  
-
-  /** Receive event handler */
-  /** Receive event delegate */
-  delegate<void()> recv_event;
+  delegate<void(VirtTokens tokens)> _send_tokens;
 
  /* The device will contain */
   Virtqueue _tx, _rx;
