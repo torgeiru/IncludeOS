@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <memory>
 #include <vector>
 
 using VirtBuffer = uint8_t*;
@@ -30,7 +29,7 @@ typedef struct VirtToken {
 using std::unique_ptr;
 using std::make_unique;
 using std::vector;
-using VirtTokens = unique_ptr<vector<VirtToken>>;
+using VirtTokens = vector<VirtToken>;
 using Descriptors = unique_ptr<vector<uint16_t>>;
 
 /* Note: The Queue Size value does not have to be a power of 2. */
@@ -98,10 +97,9 @@ class PackedQueue: public PackedQueue {};
 class Virtqueue {
 public:
   Virtqueue(Virtio& virtio_dev, int vqueue_id);
-  ~Virtqueue();
 
-  /* Interface */
-  void enqueue(VirtTokens tokens);
+  /* Interface for virtqueue*/
+  void enqueue(VirtTokens& tokens);
   void dequeue();
   inline uint16_t descs_left() { return 0; }
 

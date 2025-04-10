@@ -37,7 +37,7 @@ public:
   void send(std::string& message);
 
 private:
-  delegate<void(VirtTokens tokens)> _send_tokens;
+  delegate<void(VirtTokens& tokens)> _send_tokens;
 
  /* The device will contain */
   Virtqueue _tx, _rx;

@@ -40,19 +40,20 @@ int VirtioCon::id() const noexcept {
 void VirtioCon::send(std::string& message) {
   if (_tx.descs_left() == 0) return;
 
-  int len_p_zero = message.length() + 1;
+  size_t mlen = message.length() + 1;
 
   /* Creating and copying virtio message buffer */
-  uint8_t *c_message = (uint8_t*)malloc(len_p_zero);
+  uint8_t *c_message = reinterpret_cast<uint8_t*>(malloc((mlen)));
   Expects(c_message != NULL);
   memcpy(c_message, message.data());
 
-  VirtTokens tokens = make_unique<std::vector<VirtToken>>();
+  VirtTokens tokens;
   tokens.reserve(1);
 
-  tokens->emplace_back(
+  tokens.emplace_back(
     0,
-    
+    c_message,
+    mlen
   );
 
   send_tokens(tokens);
