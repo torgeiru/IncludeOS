@@ -13,8 +13,9 @@ _VQUEUE_ID(vqueue_id)
 
   /* Reading queue size */
   uint16_t queue_size = cfg.queue_size;
-  INFO("VirtQueue", "Queue size (%d) %d", _VQUEUE_ID, queue_size);
 }
 
 #define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
 // #define MIN(x, y) (x > y ? y : x)
+
+void Virtqueue::enqueue(VirtTokens& tokens) {}

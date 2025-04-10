@@ -89,7 +89,7 @@ public:
 };
 
 class SplitQueue: public BaseQueue {};
-class PackedQueue: public PackedQueue {};
+class PackedQueue: public BaseQueue {};
 
 /*
   Start of Virtio queue implementation
@@ -111,5 +111,9 @@ private:
 
   volatile uint16_t *_avail_notify;
 };
+
+class XmitQueue: public Virtqueue {};
+class RecvQueue: public Virtqueue {};
+class HybridQueue: public Virtqueue {};
 
 #endif

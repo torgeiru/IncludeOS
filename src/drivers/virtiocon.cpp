@@ -19,7 +19,10 @@ _rx(*this, 1)
 
   INFO("VirtioCon", "Initializing Virtio Console");
 
+  /* Setting up sending delegate */
   _send_tokens = {&_tx, &Virtqueue::enqueue};
+
+  /* Hooking up stuff with interrupts */
 
   os::panic("Testing virtio layer...");
 
@@ -45,7 +48,7 @@ void VirtioCon::send(std::string& message) {
   /* Creating and copying virtio message buffer */
   uint8_t *c_message = reinterpret_cast<uint8_t*>(malloc((mlen)));
   Expects(c_message != NULL);
-  memcpy(c_message, message.data());
+  memcpy(c_message, message.data(), mlen);
 
   VirtTokens tokens;
   tokens.reserve(1);
@@ -56,7 +59,7 @@ void VirtioCon::send(std::string& message) {
     mlen
   );
 
-  send_tokens(tokens);
+  _send_tokens(tokens);
 }
 
 std::string VirtioCon::device_name() const {

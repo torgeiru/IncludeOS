@@ -119,7 +119,6 @@ public:
   inline uint16_t msix_vector_count() { return _msix_vector_count; }
   
   /** Negotiated features */
-  inline bool packed() { return _packed; }
   inline bool event_idx() { return _event_idx; }
   inline bool in_order() { return _in_order; }
   inline bool indirect() { return _indirect; }
