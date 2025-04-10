@@ -114,6 +114,6 @@ private:
 
 class XmitQueue: public Virtqueue {};
 class RecvQueue: public Virtqueue {};
-class HybridQueue: public Virtqueue {};
+class HybrQueue: public Virtqueue {};
 
 #endif

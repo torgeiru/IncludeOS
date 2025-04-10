@@ -40,7 +40,10 @@ private:
   delegate<void(VirtTokens& tokens)> _send_tokens;
 
  /* The device will contain */
-  Virtqueue _tx, _rx;
+  // Virtqueue _tx, _rx;
+  XmitQueue _tx;
+  RecvQueue _rx;
+  
   int _id;
 };
 
