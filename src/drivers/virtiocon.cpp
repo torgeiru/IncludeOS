@@ -13,8 +13,6 @@ _rx(*this, 1)
 
   INFO("VirtioCon", "Initializing Virtio Console");
 
-  /* */
-
   os::panic("Testing virtio layer...");
 
   INFO("VirtioCon", "Console device initialization successfully!");

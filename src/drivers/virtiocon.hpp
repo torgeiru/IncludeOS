@@ -3,7 +3,9 @@
 #define VIRTIO_CONSOLE_HPP
 
 #include <string>
+#include <vector>
 
+#include <delegate>
 #include <hw/con_device.hpp>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
@@ -35,7 +37,15 @@ public:
   /** Overriden device base functions */
   std::string device_name() const override;
 
+  /** Method for sending data on port */
+  /** Method for receiving data on port */
 private:
+  /** Recv handler */
+  delegate<void()> recv_handler;
+
+  /** Xmit handler */
+  delegate<void()> xmit_handler;
+
  /* The device will contain */
   Virtqueue _tx, _rx;
   int _id;
