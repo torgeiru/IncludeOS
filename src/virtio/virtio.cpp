@@ -149,7 +149,7 @@ bool Virtio::_negotiate_features() {
   /* Negotiated (extras) features turned off by default */
   _event_idx = false;
   _indirect = false; // TODO: Add support for indirect descriptors
-  _in_order = false;
+  _in_order = false; // TODO: Add support for in order
   _packed = false;   // TODO: Add support for packed virtqueue
 
   /* Checking support for event_idx */
@@ -165,10 +165,16 @@ bool Virtio::_negotiate_features() {
   // }
 
   /* Checking support for in_order */
-  if (dev_features_hi & VIRTIO_F_IN_ORDER_HI) {
-    nego_feats_hi |= VIRTIO_F_IN_ORDER_HI;
-    _in_order = true;
-  }
+  // if (dev_features_hi & VIRTIO_F_IN_ORDER_HI) {
+  //   nego_feats_hi |= VIRTIO_F_IN_ORDER_HI;
+  //   _in_order = true;
+  // }
+
+  /* Checking support for packed virtqueues */
+  // if (dev_features_hi & VIRTIO_F_RING_PACKED_HI) {
+  //   nego_feats_hi |= VIRTIO_F_RING_PACKED_HI;
+  //   _packed = true;
+  // }
 
   /* Checking if negotiated features are available */
   uint32_t supported_feats_lo = dev_features_lo & nego_feats_lo;

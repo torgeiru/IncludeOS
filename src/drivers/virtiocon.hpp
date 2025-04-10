@@ -3,6 +3,7 @@
 #define VIRTIO_CONSOLE_HPP
 
 #include <string>
+
 #include <hw/con_device.hpp>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
@@ -36,7 +37,7 @@ public:
 
 private:
  /* The device will contain */
-  // Virtqueue _tx, _rx;
+  Virtqueue _tx, _rx;
   int _id;
 };
 

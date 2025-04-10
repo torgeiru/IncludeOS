@@ -48,9 +48,8 @@ typedef struct __attribute__((packed)) {
   uint16_t next;  /* Next field if flags & NEXT */
 } virtq_desc;
 
-/* Available ring flags */
+/* Available ring stuff */
 #define VIRTQ_AVAIL_F_NO_INTERRUPT 1
-
 typedef struct __attribute__((packed)) {
   uint16_t flags;             /* Flags for the avail ring */
   uint16_t idx;               /* Next index modulo queue size to insert */
@@ -58,9 +57,8 @@ typedef struct __attribute__((packed)) {
   uint16_t used_event;        /* Only if VIRTIO_F_EVENT_IDX is supported by device. */
 } virtq_avail;
 
-/* Used ring flags */
+/* Used ring stuff */
 #define VIRTQ_USED_F_NO_NOTIFY 1
-
 typedef struct __attribute__((packed)) {
   uint32_t id;  /* Index of start of used descriptor chain. */
   uint32_t len; /* Bytes written into the device writable potion of the buffer chain */
@@ -73,44 +71,34 @@ typedef struct __attribute__((packed)) {
   uint16_t avail_event;              /* Only if VIRTIO_F_EVENT_IDX is supported by device */
 } virtq_used;
 
-class VirtQueue {
+#include <expects>
+#include <util/bitops.hpp>
+using util::bits::is_aligned;
+
+class BaseQueue {
 public:
   virtual void kick() = 0;
   virtual void enqueue() = 0;
   virtual void dequeue() = 0;
 };
 
-// class PackedQueue: public VirtQueue {};
-// class SplitQueue: public VirtQueue {};
+class SplitQueue: public BaseQueue {};
 
 /*
   Start of Virtio queue implementation
 */
-// class Virtqueue {
-// public:
-  // Virtqueue(Virtio& virtio_dev, int vqueue_id, uint16_t *notify_addr);
-  // ~Virtqueue();
-  // void enqueue(VirtTokens tokens);
-  // VirtTokens dequeue(int& device_written);
+class Virtqueue {
+public:
+  Virtqueue(Virtio& virtio_dev, int vqueue_id);
+  ~Virtqueue();
 
-// private:
-  // Descriptors _alloc_descs(size_t desc_count);
-  // void _free_desc(uint16_t desc_start);
-  // inline void _notify();
+private:
+  inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
 
-  // Virtio& _virtio_dev;
-  // int _VQUEUE_ID;
-  // volatile uint16_t *_notify_addr;
+  Virtio& _virtio_dev;
+  int _VQUEUE_ID;
 
-  /* Split virtqueue parts */
-  // virtq_desc *_desc_table;
-  // virtq_avail *_avail_ring;
-  // virtq_used *_used_ring;
-
-  /* Other virtqueue stuff */
-//   uint16_t _last_used;
-//   vector<uint16_t> _free_descs;
-//   volatile uint16_t *_avail_notify;
-// };
+  volatile uint16_t *_avail_notify;
+};
 
 #endif

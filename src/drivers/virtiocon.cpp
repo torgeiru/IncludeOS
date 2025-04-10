@@ -4,33 +4,20 @@
 #include <hw/con_device.hpp>
 #include <hw/pci_manager.hpp>
 
-VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS)
+VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS), 
+_tx(*this, 0),
+_rx(*this, 1)
 {
   static int id_count;
   _id = id_count++;
 
   INFO("VirtioCon", "Initializing Virtio Console");
 
-  INFO("VirtioCon", "MSIX vector count:     %d", msix_vector_count());
-  INFO("VirtioCon", "Notify off multiplier: 0x%x", notify_off_multiplier());
-  INFO("VirtioCon", "Notify region:         0x%lx", notify_region());
-
-  INFO("VirtioCon", "Indirect support:      %d", indirect() ? 1 : 0);
-  INFO("VirtioCon", "In_order support:      %d", in_order() ? 1 : 0);
-  INFO("VirtioCon", "Event_idx support:     %d", event_idx() ? 1 : 0);
-  INFO("VirtioCon", "Packed support:        %d", packed() ? 1 : 0);
-
-  INFO("VirtioCon", "Num queues:            %d", common_cfg().num_queues);
-
-  for (uint16_t i = 0; i < 65; ++i) {
-    common_cfg().queue_select = i;
-    uint16_t queue_size = common_cfg().queue_size;
-    INFO("VirtioCon", "Virtqueue size (%d):    %d", i, queue_size);
-  }
+  /* */
 
   os::panic("Testing virtio layer...");
 
-  INFO("VirtioCon", "Device specific initialization complete");
+  INFO("VirtioCon", "Console device initialization successfully!");
   set_driver_ok_bit();
 }
 
