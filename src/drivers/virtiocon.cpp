@@ -1,5 +1,7 @@
 #include "virtiocon.hpp"
 
+#include <memory>
+#include <vector>
 #include <stdlib.h>
 #include <string>
 
@@ -41,11 +43,17 @@ void VirtioCon::send(std::string& message) {
   int len_p_zero = message.length() + 1;
 
   /* Creating and copying virtio message buffer */
-  char *c_message = (char*)malloc(len_p_zero);
+  uint8_t *c_message = (uint8_t*)malloc(len_p_zero);
   Expects(c_message != NULL);
   memcpy(c_message, message.data());
 
-  VirtTokens tokens;
+  VirtTokens tokens = make_unique<std::vector<VirtToken>>();
+  tokens.reserve(1);
+
+  tokens->emplace_back(
+    0,
+    
+  );
 
   send_tokens(tokens);
 }

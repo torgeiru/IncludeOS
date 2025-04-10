@@ -14,11 +14,18 @@
 using VirtBuffer = uint8_t*;
 using VirtBuflen = size_t;
 
-typedef struct {
+typedef struct VirtToken {
   uint16_t write_flag;
   VirtBuffer buffer;
   VirtBuflen buflen;
-} VirtToken;
+
+  VirtToken(
+    uint16_t wl, 
+    VirtBuffer bf, 
+    VirtBuflen bl
+  ) : write_flag(wl), buffer(bf), buflen(bl)
+  {}
+};
 
 using std::unique_ptr;
 using std::make_unique;
