@@ -3,7 +3,7 @@
 #define VIRTIO_CONSOLE_HPP
 
 #include <string>
-#include <vector>
+#include <stdint.h>
 
 #include <delegate>
 #include <hw/con_device.hpp>
@@ -27,6 +27,7 @@ typedef struct __attribute__((packed)) {
 } virtio_console_config;
 
 class VirtioCon : public Virtio, public hw::CON_device {
+
 public:
   /** Constructor and VirtioCon driver factory */
   VirtioCon(hw::PCI_Device &d);
@@ -37,14 +38,18 @@ public:
   /** Overriden device base functions */
   std::string device_name() const override;
 
-  /** Method for sending data on port */
-  /** Method for receiving data on port */
-private:
-  /** Recv handler */
-  delegate<void()> recv_handler;
+  /** Method for blocking sending */
+  void send(Bytebuf buf) {}
 
-  /** Xmit handler */
-  delegate<void()> xmit_handler;
+  /** Method for blocking receiving */
+  Bytebuf recv() {}
+
+private:
+  Bytebuf received_bytes;  
+
+  /** Receive event handler */
+  /** Receive event delegate */
+  delegate<void()> recv_event;
 
  /* The device will contain */
   Virtqueue _tx, _rx;

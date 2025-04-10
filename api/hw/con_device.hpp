@@ -2,8 +2,13 @@
 #ifndef CON_DEVICE_HPP
 #define CON_DEVICE_HPP
 
+#include <stdint.h>
 #include <string>
+#include <vector>
+
 #include "device.hpp"
+
+using Bytebuf = std::vector<uint8_t>;
 
 namespace hw {
   class CON_device : public Device {
