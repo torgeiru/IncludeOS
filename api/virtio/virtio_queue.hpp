@@ -22,20 +22,19 @@ typedef struct VirtToken {
     uint16_t wl, 
     VirtBuffer bf, 
     VirtBuflen bl
-  ) : write_flag(wl), buffer(bf), buflen(bl)
-  {}
+  ) : write_flag(wl), buffer(bf), buflen(bl) {}
 };
 
-using std::unique_ptr;
 using std::make_unique;
 using std::vector;
 using VirtTokens = vector<VirtToken>;
-using Descriptors = unique_ptr<vector<uint16_t>>;
+using Descriptors = vector<uint16_t>;
 
 /* Note: The Queue Size value does not have to be a power of 2. */
 #define VQUEUE_MAX_SIZE  32768
 #define VQUEUE_SIZE      4096
 
+/* Used */
 #define DESC_BUF_SIZE    4096
 
 #define DESC_TBL_ALIGN   16
@@ -100,7 +99,7 @@ public:
 
   /* Interface for virtqueue*/
   void enqueue(VirtTokens& tokens);
-  void dequeue();
+  VirtTokens dequeue();
   inline uint16_t descs_left() { return 0; }
 
 private:
@@ -112,10 +111,28 @@ private:
   volatile uint16_t *_avail_notify;
 };
 
-class XmitQueue: public Virtqueue {};
-class RecvQueue: public Virtqueue {};
+class XmitQueue: public Virtqueue {
+public:
+  XmitQueue();
+  void enqueue_tokens(VirtTokens& tokens);
+  void enqueue(VirtTokens& tokens);
+  VirtTokens dequeue();
+
+private:
+};
+
+
+class RecvQueue: public Virtqueue {
+public:
+  RecvQueue();
+private:
+};
 
 /* For buffer chains with readable and writeable parts */
-class HybrQueue: public Virtqueue {};
+class HybrQueue: public Virtqueue {
+public:
+  HybrQueue();
+private:
+};
 
 #endif

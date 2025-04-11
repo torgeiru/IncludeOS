@@ -107,6 +107,7 @@ void Virtio::_find_cap_cfgs() {
 
       switch(cfg_type) {
         case VIRTIO_PCI_CAP_SHARED_MEMORY_CFG:
+          /* Just VirtioFS debugging hehe. */
           INFO("Virtio", "Found shared capability!");
           break;
         case VIRTIO_PCI_CAP_COMMON_CFG:

@@ -1,6 +1,9 @@
 #include <info>
 #include <virtio/virtio_queue.hpp>
 
+/*
+  Lowest virtqueue abstraction level
+ */
 Virtqueue::Virtqueue(Virtio& virtio_dev, int vqueue_id):
 _virtio_dev(virtio_dev),
 _VQUEUE_ID(vqueue_id)
@@ -16,7 +19,20 @@ _VQUEUE_ID(vqueue_id)
 }
 
 #define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
-// #define MIN(x, y) (x > y ? y : x)
+#define MIN(x, y) (x > y ? y : x)
 
 void Virtqueue::enqueue(VirtTokens& tokens) {}
 void Virtqueue::dequeue() {}
+
+/*
+  Transmit queue implementation (used in VirtionNet and VirtioCon)
+ */
+/* When received automatic cleanup */
+
+/*
+  Recv queue implementation (used in VirtioNet and VirtioCon)
+ */
+
+/*
+  Hybrid queue implementation (used in VirtioFS)
+ */
