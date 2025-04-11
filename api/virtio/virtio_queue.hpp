@@ -114,6 +114,8 @@ private:
 
 class XmitQueue: public Virtqueue {};
 class RecvQueue: public Virtqueue {};
+
+/* For buffer chains with readable and writeable parts */
 class HybrQueue: public Virtqueue {};
 
 #endif

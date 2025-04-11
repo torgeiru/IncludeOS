@@ -22,6 +22,13 @@ _rx(*this, 1)
   /* Setting up sending delegate */
   _send_tokens = {&_tx, &Virtqueue::enqueue};
 
+  /*
+  0
+    receiveq(port0) 
+  1
+    transmitq(port0) 
+  */
+
   /* Hooking up stuff with interrupts */
 
   os::panic("Testing virtio layer...");
@@ -40,12 +47,12 @@ int VirtioCon::id() const noexcept {
 
 #define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
 
+/*
 void VirtioCon::send(std::string& message) {
   if (_tx.descs_left() == 0) return;
 
   size_t mlen = message.length() + 1;
 
-  /* Creating and copying virtio message buffer */
   uint8_t *c_message = reinterpret_cast<uint8_t*>(malloc((mlen)));
   Expects(c_message != NULL);
   memcpy(c_message, message.data(), mlen);
@@ -60,7 +67,7 @@ void VirtioCon::send(std::string& message) {
   );
 
   _send_tokens(tokens);
-}
+}*/
 
 std::string VirtioCon::device_name() const {
   return "VirtioCon" + std::to_string(_id);

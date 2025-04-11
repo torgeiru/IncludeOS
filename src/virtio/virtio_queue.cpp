@@ -19,3 +19,4 @@ _VQUEUE_ID(vqueue_id)
 // #define MIN(x, y) (x > y ? y : x)
 
 void Virtqueue::enqueue(VirtTokens& tokens) {}
+void Virtqueue::dequeue() {}
