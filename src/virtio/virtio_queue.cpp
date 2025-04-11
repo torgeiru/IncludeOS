@@ -1,3 +1,5 @@
+#include <span>
+
 #include <virtio/virtio_queue.hpp>
 
 /*
@@ -26,6 +28,7 @@ VirtTokens Virtqueue::dequeue() {}
 /*
   Transmit queue implementation (used in VirtionNet and VirtioCon)
  */
+void XmitQueue::enqueue(std::span<uint8_t> buffer) {}
 void XmitQueue::enqueue_tokens(VirtTokens& tokens) {}
 VirtTokens XmitQueue::dequeue() {}
 

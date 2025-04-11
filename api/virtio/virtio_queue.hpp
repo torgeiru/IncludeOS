@@ -10,13 +10,9 @@
 #include <vector>
 #include <span>
 
-using VirtBuffer = uint8_t*;
-using VirtBuflen = size_t;
-
 typedef struct VirtToken {
   uint16_t write_flag;
-  VirtBuffer buffer;
-  VirtBuflen buflen;
+  std::span<uint8_t> buffer;
 
   VirtToken(
     uint16_t wl, 
@@ -114,8 +110,8 @@ private:
 class XmitQueue: public Virtqueue {
 public:
   XmitQueue();
+  void enqueue(std::span<uint8_t> buffer);
   void enqueue_tokens(VirtTokens& tokens);
-  void enqueue(VirtTokens& tokens);
   VirtTokens dequeue();
 
 private:
