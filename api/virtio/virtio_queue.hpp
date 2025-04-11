@@ -19,7 +19,7 @@ typedef struct VirtToken {
     uint8_t *bf, 
     size_t bl
   ) : flags(wl), buffer(bf, bl) {}
-};
+} VirtToken;
 
 using std::vector;
 using VirtTokens = vector<VirtToken>;

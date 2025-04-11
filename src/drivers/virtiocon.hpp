@@ -12,18 +12,11 @@
 #include <virtio/virtio.hpp>
 #include <virtio/virtio_queue.hpp>
 
-#define VIRTIO_CONSOLE_F_SIZE        (1ULL << 0)
+#define VIRTIO_CONSOLE_F_SIZE        (1ULL << 0) /* Not supporting this. Test device */
 #define VIRTIO_CONSOLE_F_MULTIPORT   (1ULL << 1) /* Not supporting this. Only as single port*/
 #define VIRTIO_CONSOLE_F_EMERG_WRITE (1ULL << 2) /* Can write to emergency bit */
 
 #define REQUIRED_VCON_FEATS VIRTIO_CONSOLE_F_EMERG_WRITE
-
-typedef struct __attribute__((packed)) {
-  uint16_t cols;         /* Columns */
-  uint16_t rows;         /* Rows */
-  uint32_t max_nr_ports; /* Maximum number of ports */
-  uint32_t emerg_wr;     /* Emergency port */
-} virtio_console_config;
 
 class VirtioCon : public Virtio, public hw::CON_device {
 public:
