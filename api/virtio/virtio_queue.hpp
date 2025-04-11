@@ -11,14 +11,14 @@
 #include <span>
 
 typedef struct VirtToken {
-  uint16_t write_flag;
+  uint16_t flags;
   std::span<uint8_t> buffer;
 
   VirtToken(
     uint16_t wl, 
-    VirtBuffer bf, 
-    VirtBuflen bl
-  ) : write_flag(wl), buffer(bf), buflen(bl) {}
+    uint8_t *bf, 
+    size_t bl
+  ) : flags(wl), buffer(bf, bl) {}
 };
 
 using std::make_unique;
@@ -76,15 +76,12 @@ typedef struct __attribute__((packed)) {
 #include <util/bitops.hpp>
 using util::bits::is_aligned;
 
-class BaseQueue {
+class SplitQueue {
 public:
   virtual void kick() = 0;
   virtual void enqueue() = 0;
   virtual void dequeue() = 0;
 };
-
-class SplitQueue: public BaseQueue {};
-class PackedQueue: public BaseQueue {};
 
 /*
   Start of Virtio queue implementation
@@ -96,7 +93,7 @@ public:
   /* Interface for virtqueue*/
   void enqueue(VirtTokens& tokens);
   VirtTokens dequeue();
-  inline uint16_t descs_left() { return 0; }
+  inline uint16_t desc_space() { return 0; }
 
 private:
   inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
@@ -110,23 +107,16 @@ private:
 class XmitQueue: public Virtqueue {
 public:
   XmitQueue();
-  void enqueue(std::span<uint8_t> buffer);
   void enqueue_tokens(VirtTokens& tokens);
   VirtTokens dequeue();
 
 private:
 };
+/* Needs to register cleanup routine */
 
 class RecvQueue: public Virtqueue {
 public:
   RecvQueue();
-private:
-};
-
-/* For buffer chains with readable and writeable parts */
-class HybrQueue: public Virtqueue {
-public:
-  HybrQueue();
 private:
 };
 

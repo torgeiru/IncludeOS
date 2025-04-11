@@ -1,5 +1,6 @@
 #include "virtiocon.hpp"
 
+#include <span>
 #include <memory>
 #include <vector>
 #include <stdlib.h>
@@ -16,23 +17,7 @@ _tx(*this, 1)
 {
   static int id_count;
   _id = id_count++;
-
-  INFO("VirtioCon", "Initializing Virtio Console");
-
-  /* Setting up sending delegate */
-  _send_tokens = {&_tx, &Virtqueue::enqueue};
-
-  /*
-  0
-    receiveq(port0) 
-  1
-    transmitq(port0) 
-  */
-
-  /* Hooking up stuff with interrupts */
-
-  os::panic("Testing virtio layer...");
-
+  
   INFO("VirtioCon", "Console device initialization successfully!");
   set_driver_ok_bit();
 }
@@ -47,27 +32,25 @@ int VirtioCon::id() const noexcept {
 
 #define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
 
-/*
 void VirtioCon::send(std::string& message) {
-  if (_tx.descs_left() == 0) return;
+  if (_tx.desc_space() == 0) return;
 
-  size_t mlen = message.length() + 1;
-
-  uint8_t *c_message = reinterpret_cast<uint8_t*>(malloc((mlen)));
+  /* Deep copy message */
+  size_t message_len = message.length() + 1;
+  uint8_t *c_message = reinterpret_cast<uint8_t*>(malloc(message_len));
   Expects(c_message != NULL);
   memcpy(c_message, message.data(), mlen);
 
+  /* Send copied message over Virtio */
   VirtTokens tokens;
   tokens.reserve(1);
+  tokens.emplace_back(0, c_message, message_len);
+  bool msg_not_dropped = _tx.enqueue(tokens);
 
-  tokens.emplace_back(
-    0,
-    c_message,
-    mlen
-  );
-
-  _send_tokens(tokens);
-}*/
+  if (msg_is_dropped == false) {
+    free(c_message);
+  }
+}
 
 std::string VirtioCon::device_name() const {
   return "VirtioCon" + std::to_string(_id);

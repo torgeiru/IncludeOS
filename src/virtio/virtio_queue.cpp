@@ -28,16 +28,9 @@ VirtTokens Virtqueue::dequeue() {}
 /*
   Transmit queue implementation (used in VirtionNet and VirtioCon)
  */
-void XmitQueue::enqueue(std::span<uint8_t> buffer) {}
 void XmitQueue::enqueue_tokens(VirtTokens& tokens) {}
 VirtTokens XmitQueue::dequeue() {}
 
 /*
   Recv queue implementation (used in VirtioNet and VirtioCon)
- */
-/* This should not do anything for now. */
-/* Only a single way communication will be used */
-
-/*
-  Hybrid queue implementation (used in VirtioFS)
  */

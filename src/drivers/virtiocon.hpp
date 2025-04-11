@@ -34,11 +34,10 @@ public:
   std::string device_name() const override;
 
   /** Method for sending data over port. Blocking operation */
-  // void send(std::string& message);
+  void send(std::string& message);
 
+  /** No receive for now hehe */
 private:
-  delegate<void(VirtTokens& tokens)> _send_tokens;
-
   /* The device will contain */
   XmitQueue _tx;
   RecvQueue _rx;

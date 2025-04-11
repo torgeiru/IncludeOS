@@ -211,4 +211,6 @@ void Virtio::_virtio_panic(bool condition) {
 void Virtio::set_driver_ok_bit() {
   INFO("Virtio", "Setting driver ok bit");
   _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER_OK;
+
+  /* Check for OK? */
 }
