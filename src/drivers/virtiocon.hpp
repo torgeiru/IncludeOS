@@ -27,25 +27,21 @@ typedef struct __attribute__((packed)) {
 
 class VirtioCon : public Virtio, public hw::CON_device {
 public:
-  using handle_func = delegate<std::span<uint8_t>>;
-
   /** Constructor and VirtioCon driver factory */
   VirtioCon(hw::PCI_Device &d);
   static std::unique_ptr<hw::CON_device> new_instance(hw::PCI_Device& d);
 
+  /** Methods for grabbing device information */
   int id() const noexcept override;
   std::string device_name() const override;
 
-  /** Method for sending data over port. Blocking operation */
+  /** Methods controlling IO operation */
   void send(std::string& message);
-
-  void set_recv_handle(handle_func handle);
+  void set_recv_handle(RecvQueue::handle_func func);
 private:
-  /* The device will contain */
+  int _id;
   XmitQueue _tx;
   RecvQueue _rx;
-  
-  int _id;
 };
 
 #endif

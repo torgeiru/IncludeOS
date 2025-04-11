@@ -21,7 +21,6 @@ typedef struct VirtToken {
   ) : flags(wl), buffer(bf, bl) {}
 };
 
-using std::make_unique;
 using std::vector;
 using VirtTokens = vector<VirtToken>;
 using Descriptors = vector<uint16_t>;
@@ -86,13 +85,15 @@ public:
 /*
   Start of Virtio queue implementation
 */
-class Virtqueue {
+class VirtQueue {
 public:
-  Virtqueue(Virtio& virtio_dev, int vqueue_id);
+  VirtQueue(Virtio& virtio_dev, int vqueue_id);
 
-  /* Interface for virtqueue*/
-  // void enqueue(VirtTokens& tokens);
-  // VirtTokens dequeue();
+  /* Interface for VirtQueue */
+  void enqueue(VirtTokens& tokens);
+  VirtTokens dequeue();
+  
+  /** Grabbing VirtQueue state */
   inline uint16_t free_desc_space() { return 0; }
   inline uint16_t desc_space_cap() { return 0; }
 
@@ -105,17 +106,19 @@ private:
   // volatile uint16_t *_avail_notify;
 };
 
-class XmitQueue: public Virtqueue {
+class XmitQueue: public VirtQueue {
 public:
   XmitQueue(Virtio& virtio_dev, int vqueue_id);
   bool enqueue(VirtTokens& tokens);
 };
-/* Needs to register cleanup routine */
 
-class RecvQueue: public Virtqueue {
+class RecvQueue: public VirtQueue {
 public:
+  /* Handler structure for receiving buffers */
+  using handle_func = delegate<std::span<uint8_t>>;
+
   RecvQueue(Virtio& virtio_dev, int vqueue_id);
-  // VirtTokens dequeue();
+  void set_recv_func(handle_func func);
 };
 
 #endif
