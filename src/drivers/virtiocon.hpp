@@ -2,6 +2,7 @@
 #ifndef VIRTIO_CONSOLE_HPP
 #define VIRTIO_CONSOLE_HPP
 
+#include <span>
 #include <string>
 #include <stdint.h>
 
@@ -26,6 +27,8 @@ typedef struct __attribute__((packed)) {
 
 class VirtioCon : public Virtio, public hw::CON_device {
 public:
+  using handle_func = delegate<std::span<uint8_t>>;
+
   /** Constructor and VirtioCon driver factory */
   VirtioCon(hw::PCI_Device &d);
   static std::unique_ptr<hw::CON_device> new_instance(hw::PCI_Device& d);
@@ -36,7 +39,7 @@ public:
   /** Method for sending data over port. Blocking operation */
   void send(std::string& message);
 
-  /** No receive for now hehe */
+  void set_recv_handle(handle_func handle);
 private:
   /* The device will contain */
   XmitQueue _tx;
