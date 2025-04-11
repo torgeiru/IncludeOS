@@ -1,4 +1,3 @@
-#include <info>
 #include <virtio/virtio_queue.hpp>
 
 /*
@@ -22,16 +21,19 @@ _VQUEUE_ID(vqueue_id)
 #define MIN(x, y) (x > y ? y : x)
 
 void Virtqueue::enqueue(VirtTokens& tokens) {}
-void Virtqueue::dequeue() {}
+VirtTokens Virtqueue::dequeue() {}
 
 /*
   Transmit queue implementation (used in VirtionNet and VirtioCon)
  */
-/* When received automatic cleanup */
+void XmitQueue::enqueue_tokens(VirtTokens& tokens) {}
+VirtTokens XmitQueue::dequeue() {}
 
 /*
   Recv queue implementation (used in VirtioNet and VirtioCon)
  */
+/* This should not do anything for now. */
+/* Only a single way communication will be used */
 
 /*
   Hybrid queue implementation (used in VirtioFS)

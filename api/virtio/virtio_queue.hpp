@@ -7,8 +7,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
-
 #include <vector>
+#include <span>
 
 using VirtBuffer = uint8_t*;
 using VirtBuflen = size_t;
@@ -120,7 +120,6 @@ public:
 
 private:
 };
-
 
 class RecvQueue: public Virtqueue {
 public:
