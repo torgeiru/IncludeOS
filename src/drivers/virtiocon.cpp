@@ -19,6 +19,9 @@ _tx(*this, 1)
   _id = id_count++;
   
   INFO("VirtioCon", "Console device initialization successfully!");
+
+  os::panic("Virtio testing...");
+
   set_driver_ok_bit();
 }
 
@@ -33,13 +36,13 @@ int VirtioCon::id() const noexcept {
 #define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
 
 void VirtioCon::send(std::string& message) {
-  if (_tx.desc_space() == 0) return;
+  if (_tx.free_desc_space() == 0) return;
 
   /* Deep copy message */
   size_t message_len = message.length() + 1;
   uint8_t *c_message = reinterpret_cast<uint8_t*>(malloc(message_len));
   Expects(c_message != NULL);
-  memcpy(c_message, message.data(), mlen);
+  memcpy(c_message, message.data(), message_len);
 
   /* Send copied message over Virtio */
   VirtTokens tokens;
@@ -47,7 +50,7 @@ void VirtioCon::send(std::string& message) {
   tokens.emplace_back(0, c_message, message_len);
   bool msg_not_dropped = _tx.enqueue(tokens);
 
-  if (msg_is_dropped == false) {
+  if (msg_not_dropped == false) {
     free(c_message);
   }
 }

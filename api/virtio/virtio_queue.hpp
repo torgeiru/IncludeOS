@@ -91,33 +91,31 @@ public:
   Virtqueue(Virtio& virtio_dev, int vqueue_id);
 
   /* Interface for virtqueue*/
-  void enqueue(VirtTokens& tokens);
-  VirtTokens dequeue();
-  inline uint16_t desc_space() { return 0; }
+  // void enqueue(VirtTokens& tokens);
+  // VirtTokens dequeue();
+  inline uint16_t free_desc_space() { return 0; }
+  inline uint16_t desc_space_cap() { return 0; }
 
 private:
-  inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
+  // inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
 
   Virtio& _virtio_dev;
   int _VQUEUE_ID;
 
-  volatile uint16_t *_avail_notify;
+  // volatile uint16_t *_avail_notify;
 };
 
 class XmitQueue: public Virtqueue {
 public:
-  XmitQueue();
-  void enqueue_tokens(VirtTokens& tokens);
-  VirtTokens dequeue();
-
-private:
+  XmitQueue(Virtio& virtio_dev, int vqueue_id);
+  bool enqueue(VirtTokens& tokens);
 };
 /* Needs to register cleanup routine */
 
 class RecvQueue: public Virtqueue {
 public:
-  RecvQueue();
-private:
+  RecvQueue(Virtio& virtio_dev, int vqueue_id);
+  // VirtTokens dequeue();
 };
 
 #endif
