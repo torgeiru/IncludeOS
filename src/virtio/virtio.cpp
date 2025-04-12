@@ -151,27 +151,20 @@ bool Virtio::_negotiate_features() {
   uint32_t nego_feats_hi = required_feats_hi;
 
   /* Negotiated (extras) features turned off by default */
-  _event_idx = false;
-  _indirect = false; // TODO: Add support for indirect descriptors
-  _in_order = false; // TODO: Add support for in order
-
-  /* Checking support for event_idx */
-  if (dev_features_lo & VIRTIO_F_EVENT_IDX_LO) {
-    nego_feats_lo |= VIRTIO_F_EVENT_IDX_LO;
-    _event_idx = true;
-  }
+  _in_order = false;
+  _indirect = false;
 
   /* Checking support for indirect descriptors */
-  // if (dev_features_lo & VIRTIO_F_INDIRECT_DESC_LO) {
-  //   nego_feats_lo |= VIRTIO_F_INDIRECT_DESC_LO;
-  //   _indirect = true;
-  // }
+  if (dev_features_lo & VIRTIO_F_INDIRECT_DESC_LO) {
+    nego_feats_lo |= VIRTIO_F_INDIRECT_DESC_LO;
+    _indirect = true;
+  }
 
   /* Checking support for in_order */
-  // if (dev_features_hi & VIRTIO_F_IN_ORDER_HI) {
-  //   nego_feats_hi |= VIRTIO_F_IN_ORDER_HI;
-  //   _in_order = true;
-  // }
+  if (dev_features_hi & VIRTIO_F_IN_ORDER_HI) {
+    nego_feats_hi |= VIRTIO_F_IN_ORDER_HI;
+    _in_order = true;
+  }
 
   /* Checking if negotiated features are available */
   uint32_t supported_feats_lo = dev_features_lo & nego_feats_lo;
@@ -212,5 +205,5 @@ void Virtio::set_driver_ok_bit() {
   INFO("Virtio", "Setting driver ok bit");
   _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER_OK;
 
-  /* Check for OK? */
+  /* TODO: Check for OK? */
 }

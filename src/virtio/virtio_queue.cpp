@@ -1,5 +1,6 @@
 #include <span>
 #include <stdlib.h>
+#include <memory>
 
 #include <info>
 #include <kernel/events.hpp>
@@ -56,7 +57,8 @@ VirtTokens UnorderedQueue::dequeue();
   Transmit queue implementation (used in VirtionNet and VirtioCon)
  */
 XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id) {
-
+  /* Deciding whether to make ordered or unordered virtqueue */
+  /* Setting up delegates */
 }
 
 bool XmitQueue::enqueue(VirtTokens& tokens) { 

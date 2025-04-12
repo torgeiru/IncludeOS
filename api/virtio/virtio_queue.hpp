@@ -7,6 +7,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <memory>
 #include <vector>
 #include <span>
 
@@ -86,12 +87,12 @@ public:
   /* Interface for VirtQueue */
   virtual void enqueue(VirtTokens& tokens) = 0;
   virtual VirtTokens dequeue() = 0;
-  virtual inline uint16_t free_desc_space() = 0;
-  virtual inline uint16_t desc_space_cap() = 0;
+  virtual uint16_t free_desc_space() const = 0;
+  virtual uint16_t desc_space_cap() const = 0;
 
   /** Methods for handling supression */
-  inline void supress() { *_supress_field = 1; }
-  inline void unsupress() { *_supress_field = 0; }
+  inline void suppress() { *_supress_field = 1; }
+  inline void unsuppress() { *_supress_field = 0; }
 
 private:
   inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
@@ -109,8 +110,8 @@ public:
 
   void enqueue(VirtTokens& tokens);
   VirtTokens dequeue();
-  inline uint16_t free_desc_space() override { return 0; }
-  inline uint16_t desc_space_cap() override { return 0; }
+  uint16_t free_desc_space() const override { return 0; }
+  uint16_t desc_space_cap() const override { return 0; }
 };
 
 class UnorderedQueue: public VirtQueue {
@@ -119,14 +120,21 @@ public:
 
   void enqueue(VirtTokens& tokens);
   VirtTokens dequeue();
-  inline uint16_t free_desc_space() override { return 0; }
-  inline uint16_t desc_space_cap() override { return 0; }
+  uint16_t free_desc_space() const override { return 0; }
+  uint16_t desc_space_cap() const override { return 0; }
 };
 
 class XmitQueue {
 public:
   XmitQueue(Virtio& virtio_dev, int vqueue_id);
   bool enqueue(VirtTokens& tokens);
+
+private:
+  std::unique<VirtQueue> _vq;
+  delegate<void(VirtTokens &tokens)> _enqueue;
+  delegate<VirtTokens()> _dequeue;
+  delegate<uint16_t()> _free_desc_space;
+  delegate<uint16_t()> _desc_space_cap;
 };
 
 #endif

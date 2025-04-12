@@ -112,16 +112,16 @@ public:
   inline volatile virtio_pci_common_cfg& common_cfg() { return *_common_cfg; }
 
   /** Queue notification information */
-  inline uint32_t notify_off_multiplier() { return _notify_off_multiplier; }
-  inline uint16_t *notify_region() { return _notify_region; }
+  inline uint32_t notify_off_multiplier() const { return _notify_off_multiplier; }
+  inline uint16_t *notify_region() const { return _notify_region; }
 
   /** Grabbing the number of available msix vectors for device */
-  inline uint16_t msix_vector_count() { return _msix_vector_count; }
+  inline uint16_t msix_vector_count() const { return _msix_vector_count; }
   
   /** Negotiated features */
-  inline bool event_idx() { return _event_idx; }
-  inline bool in_order() { return _in_order; }
-  inline bool indirect() { return _indirect; }
+  inline bool event_idx() const { return _event_idx; }
+  inline bool in_order() const { return _in_order; }
+  inline bool indirect() const { return _indirect; }
 
 private:
   /** Finds the common configuration address */
@@ -153,7 +153,7 @@ private:
   uint16_t _msix_vector_count;
 
   /* Negotiated features */
-  bool _event_idx, _in_order, _indirect;
+  bool _in_order, _indirect;
 
   /* Configuration structures */
   volatile virtio_pci_common_cfg *_common_cfg;
