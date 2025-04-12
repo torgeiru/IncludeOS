@@ -83,6 +83,8 @@ class SplitQueue {
 public:
   virtual void enqueue() = 0;
   virtual void dequeue() = 0;
+  virtual void supress() = 0;
+  virtual void unsupress() = 0;
 };
 
 class InorderQueue {};
@@ -133,7 +135,7 @@ public:
   Final Virtio queue layer of the implementation.
   Methods for tokens:
     1. Regular tokens (not indirect)
-    2. Indirect tokens
+    2. Indirect tokens (will be implemented later when testing for larger files)
  */
 
 #endif
