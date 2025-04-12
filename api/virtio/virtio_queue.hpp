@@ -74,27 +74,6 @@ typedef struct __attribute__((packed)) {
 #include <util/bitops.hpp>
 using util::bits::is_aligned;
 
-/*
-  Lowest layer of the Virtio queue implementation
-  Handles enqueue and dequeue logic
-  Handles suppression
- */
-class SplitQueue {
-public:
-  virtual void enqueue() = 0;
-  virtual void dequeue() = 0;
-  virtual void supress() = 0;
-  virtual void unsupress() = 0;
-};
-
-class InorderQueue {};
-class UnorderedQueue {};
-
-/* 
-  Next layer of the Virtio queue implementation.
-  Handles and sets IRQ handlers.
- */
-
 class VirtQueue {
 public:
   VirtQueue(Virtio& virtio_dev, int vqueue_id);
@@ -103,6 +82,10 @@ public:
   void enqueue(VirtTokens& tokens);
   VirtTokens dequeue();
   
+  /** Methods for handling supression */
+  inline void supress() {}
+  inline void unsupress() {}
+
   /** Grabbing VirtQueue state */
   inline uint16_t free_desc_space() { return 0; }
   inline uint16_t desc_space_cap() { return 0; }
@@ -116,23 +99,28 @@ private:
   volatile uint16_t *_avail_notify;
 };
 
-class XmitQueue: public VirtQueue {
+class InorderQueue: public Virtqueue {
+  InorderQueue(bool polling_queue);
+};
+
+
+class UnorderedQueue: public Virtqueue {
+  UnorderedQueue(bool polling_queue);
+};
+
+class XmitQueue {
 public:
   XmitQueue(Virtio& virtio_dev, int vqueue_id);
   bool enqueue(VirtTokens& tokens);
 };
 
 /* Handler structure for receiving buffers using RecvQueue*/
-class RecvQueue: public VirtQueue {
+class RecvQueue {
 public:
-  using handle_func = delegate<void(std::span<uint8_t>)>;
-
   RecvQueue(Virtio& virtio_dev, int vqueue_id);
-  void set_recv_func(handle_func func);
 };
 
 /* 
-  Final Virtio queue layer of the implementation.
   Methods for tokens:
     1. Regular tokens (not indirect)
     2. Indirect tokens (will be implemented later when testing for larger files)

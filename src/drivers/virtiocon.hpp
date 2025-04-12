@@ -30,7 +30,6 @@ public:
 
   /** Methods controlling IO operation */
   void send(std::string& message);
-  void set_recv_handle(RecvQueue::handle_func func);
 private:
   int _id;
   XmitQueue _tx;

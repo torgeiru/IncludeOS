@@ -55,10 +55,6 @@ void VirtioCon::send(std::string& message) {
   }
 }
 
-void VirtioCon::set_recv_handle(RecvQueue::handle_func func) {
-  _rx.set_recv_func(func);
-}
-
 std::string VirtioCon::device_name() const {
   return "VirtioCon" + std::to_string(_id);
 }

@@ -5,6 +5,25 @@
 #include <kernel/events.hpp>
 #include <virtio/virtio_queue.hpp>
 
+/*
+4.1.5.1.3 Virtqueue Configuration
+As a device can have zero or more virtqueues for bulk data transport8, the driver needs to configure them as part of the device-specific configuration.
+
+The driver typically does this as follows, for each virtqueue a device has:
+
+1.
+    Write the virtqueue index to queue_select. 
+2.
+    Read the virtqueue size from queue_size. This controls how big the virtqueue is (see 2.6 Virtqueues). If this field is 0, the virtqueue does not exist. 
+3.
+    Optionally, select a smaller virtqueue size and write it to queue_size. 
+4.
+    Allocate and zero Descriptor Table, Available and Used rings for the virtqueue in contiguous physical memory. 
+5.
+    Optionally, if MSI-X capability is present and enabled on the device, select a vector to use to request interrupts triggered by virtqueue events. Write the MSI-X Table entry number corresponding to this vector into queue_msix_vector. Read queue_msix_vector: on success, previously written value is returned; on failure, NO_VECTOR value is returned.
+
+*/
+
 VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id)
 : _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id)
 {
@@ -37,9 +56,8 @@ bool XmitQueue::enqueue(VirtTokens& tokens) { return false; }
   Recv queue implementation (used in VirtioNet and VirtioCon)
  */
 RecvQueue::RecvQueue(Virtio& virtio_dev, int vqueue_id) {}
-void RecvQueue::set_recv_func(handle_func func) {}
 
 /* 
   For buffer chains with readable and writeable parts (VirtioFS uses this)
  */
-class HybrQueue: public Virtqueue {};
+class HybrQueue {};
