@@ -25,6 +25,8 @@ using std::vector;
 using VirtTokens = vector<VirtToken>;
 using Descriptors = vector<uint16_t>;
 
+#define VIRTIO_MSI_NO_VECTOR 0xffff
+
 /* Note: The Queue Size value does not have to be a power of 2. */
 #define VQUEUE_MAX_SIZE  32768
 #define VQUEUE_SIZE      4096
@@ -112,10 +114,10 @@ public:
   bool enqueue(VirtTokens& tokens);
 };
 
+/* Handler structure for receiving buffers using RecvQueue*/
 class RecvQueue: public VirtQueue {
 public:
-  /* Handler structure for receiving buffers */
-  using handle_func = delegate<std::span<uint8_t>>;
+  using handle_func = delegate<void(std::span<uint8_t>)>;
 
   RecvQueue(Virtio& virtio_dev, int vqueue_id);
   void set_recv_func(handle_func func);

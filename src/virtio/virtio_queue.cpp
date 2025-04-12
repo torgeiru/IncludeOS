@@ -40,4 +40,4 @@ bool XmitQueue::enqueue(VirtTokens& tokens) { return false; }
 RecvQueue::RecvQueue(Virtio& virtio_dev, int vqueue_id) 
 : VirtQueue(virtio_dev, vqueue_id) {}
 
-void RecvQueue::set_recv_func(handle_func func);
+void RecvQueue::set_recv_func(handle_func func) {}
