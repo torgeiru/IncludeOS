@@ -74,21 +74,24 @@ typedef struct __attribute__((packed)) {
 #include <util/bitops.hpp>
 using util::bits::is_aligned;
 
+/*
+  Structure containing logic for initializing a virtqueue
+  and (un)supressing interrupts and information about
+  available descriptors and capacity.
+ */
 class VirtQueue {
 public:
   VirtQueue(Virtio& virtio_dev, int vqueue_id);
 
   /* Interface for VirtQueue */
-  void enqueue(VirtTokens& tokens);
-  VirtTokens dequeue();
-  
-  /** Methods for handling supression */
-  inline void supress() {}
-  inline void unsupress() {}
+  virtual void enqueue(VirtTokens& tokens) = 0;
+  virtual VirtTokens dequeue() = 0;
+  virtual inline uint16_t free_desc_space() = 0;
+  virtual inline uint16_t desc_space_cap() = 0;
 
-  /** Grabbing VirtQueue state */
-  inline uint16_t free_desc_space() { return 0; }
-  inline uint16_t desc_space_cap() { return 0; }
+  /** Methods for handling supression */
+  inline void supress() { *_supress_field = 1; }
+  inline void unsupress() { *_supress_field = 0; }
 
 private:
   inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
@@ -96,16 +99,28 @@ private:
   Virtio& _virtio_dev;
   int _VQUEUE_ID;
 
+  uint16_t *_supress_field;
   volatile uint16_t *_avail_notify;
 };
 
-class InorderQueue: public Virtqueue {
+class InorderQueue: public VirtQueue {
+public:
   InorderQueue(bool polling_queue);
+
+  void enqueue(VirtTokens& tokens);
+  VirtTokens dequeue();
+  inline uint16_t free_desc_space() override { return 0; }
+  inline uint16_t desc_space_cap() override { return 0; }
 };
 
-
-class UnorderedQueue: public Virtqueue {
+class UnorderedQueue: public VirtQueue {
+public:
   UnorderedQueue(bool polling_queue);
+
+  void enqueue(VirtTokens& tokens);
+  VirtTokens dequeue();
+  inline uint16_t free_desc_space() override { return 0; }
+  inline uint16_t desc_space_cap() override { return 0; }
 };
 
 class XmitQueue {
@@ -113,17 +128,5 @@ public:
   XmitQueue(Virtio& virtio_dev, int vqueue_id);
   bool enqueue(VirtTokens& tokens);
 };
-
-/* Handler structure for receiving buffers using RecvQueue*/
-class RecvQueue {
-public:
-  RecvQueue(Virtio& virtio_dev, int vqueue_id);
-};
-
-/* 
-  Methods for tokens:
-    1. Regular tokens (not indirect)
-    2. Indirect tokens (will be implemented later when testing for larger files)
- */
 
 #endif

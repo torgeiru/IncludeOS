@@ -43,21 +43,22 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id)
 #define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
 #define MIN(x, y) (x > y ? y : x)
 
-void VirtQueue::enqueue(VirtTokens& tokens) {}
-VirtTokens VirtQueue::dequeue() {}
+void enqueue(VirtTokens& tokens);
+VirtTokens dequeue();
+
+void InorderQueue::enqueue(VirtTokens& tokens);
+VirtTokens InorderQueue::dequeue();
+
+void UnorderedQueue::enqueue(VirtTokens& tokens);
+VirtTokens UnorderedQueue::dequeue();
 
 /*
   Transmit queue implementation (used in VirtionNet and VirtioCon)
  */
-XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id) {}
-bool XmitQueue::enqueue(VirtTokens& tokens) { return false; }
+XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id) {
 
-/*
-  Recv queue implementation (used in VirtioNet and VirtioCon)
- */
-RecvQueue::RecvQueue(Virtio& virtio_dev, int vqueue_id) {}
+}
 
-/* 
-  For buffer chains with readable and writeable parts (VirtioFS uses this)
- */
-class HybrQueue {};
+bool XmitQueue::enqueue(VirtTokens& tokens) { 
+  return false;
+}
