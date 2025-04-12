@@ -31,9 +31,7 @@ using Descriptors = vector<uint16_t>;
 #define VQUEUE_MAX_SIZE  32768
 #define VQUEUE_SIZE      4096
 
-/* Used */
-#define DESC_BUF_SIZE    4096
-
+/* Split queue alignment requirements */
 #define DESC_TBL_ALIGN   16
 #define AVAIL_RING_ALIGN 2
 #define USED_RING_ALIGN  4
@@ -73,20 +71,28 @@ typedef struct __attribute__((packed)) {
   uint16_t avail_event;              /* Only if VIRTIO_F_EVENT_IDX is supported by device */
 } virtq_used;
 
-#include <expects>
 #include <util/bitops.hpp>
 using util::bits::is_aligned;
 
+/*
+  Lowest layer of the Virtio queue implementation
+  Handles enqueue and dequeue logic
+  Handles suppression
+ */
 class SplitQueue {
 public:
-  virtual void kick() = 0;
   virtual void enqueue() = 0;
   virtual void dequeue() = 0;
 };
 
-/*
-  Start of Virtio queue implementation
-*/
+class InorderQueue {};
+class UnorderedQueue {};
+
+/* 
+  Next layer of the Virtio queue implementation.
+  Handles and sets IRQ handlers.
+ */
+
 class VirtQueue {
 public:
   VirtQueue(Virtio& virtio_dev, int vqueue_id);
@@ -100,12 +106,12 @@ public:
   inline uint16_t desc_space_cap() { return 0; }
 
 private:
-  // inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
+  inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
 
   Virtio& _virtio_dev;
   int _VQUEUE_ID;
 
-  // volatile uint16_t *_avail_notify;
+  volatile uint16_t *_avail_notify;
 };
 
 class XmitQueue: public VirtQueue {
@@ -122,5 +128,12 @@ public:
   RecvQueue(Virtio& virtio_dev, int vqueue_id);
   void set_recv_func(handle_func func);
 };
+
+/* 
+  Final Virtio queue layer of the implementation.
+  Methods for tokens:
+    1. Regular tokens (not indirect)
+    2. Indirect tokens
+ */
 
 #endif
