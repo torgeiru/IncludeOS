@@ -11,8 +11,7 @@
 #include <expects>
 #include <info>
 
-VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS), 
-_rx(*this, 0),
+VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS),
 _tx(*this, 1)
 {
   static int id_count;

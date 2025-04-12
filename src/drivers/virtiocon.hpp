@@ -33,7 +33,6 @@ public:
 private:
   int _id;
   XmitQueue _tx;
-  RecvQueue _rx;
 };
 
 #endif
