@@ -42,30 +42,30 @@ typedef struct __attribute__((packed)) {
 
 typedef struct __attribute__((packed)) { 
   /* About the whole device. */ 
-  uint32_t device_feature_select;      /* read-write */ 
-  uint32_t device_feature;             /* read-only for driver */ 
-  uint32_t driver_feature_select;      /* read-write */ 
-  uint32_t driver_feature;             /* read-write */ 
-  uint16_t config_msix_vector;         /* read-write */ 
-  uint16_t num_queues;                 /* read-only for driver */ 
-  uint8_t device_status;               /* read-write */ 
-  uint8_t config_generation;           /* read-only for driver */ 
+  volatile uint32_t device_feature_select;      /* read-write */ 
+  volatile uint32_t device_feature;             /* read-only for driver */ 
+  volatile uint32_t driver_feature_select;      /* read-write */ 
+  volatile uint32_t driver_feature;             /* read-write */ 
+  volatile uint16_t config_msix_vector;         /* read-write */ 
+  volatile uint16_t num_queues;                 /* read-only for driver */ 
+  volatile uint8_t device_status;               /* read-write */ 
+  volatile uint8_t config_generation;           /* read-only for driver */ 
  
   /* About a specific virtqueue. */ 
-  uint16_t queue_select;              /* read-write */ 
-  uint16_t queue_size;                /* read-write */ 
-  uint16_t queue_msix_vector;         /* read-write */ 
-  uint16_t queue_enable;              /* read-write */ 
-  uint16_t queue_notify_off;          /* read-only for driver */ 
-  uint64_t queue_desc;                /* read-write */ 
-  uint64_t queue_driver;              /* read-write */ 
-  uint64_t queue_device;              /* read-write */ 
-  uint16_t queue_notif_config_data;   /* read-only for driver */ 
-  uint16_t queue_reset;               /* read-write */ 
+  volatile uint16_t queue_select;              /* read-write */ 
+  volatile uint16_t queue_size;                /* read-write */ 
+  volatile uint16_t queue_msix_vector;         /* read-write */ 
+  volatile uint16_t queue_enable;              /* read-write */ 
+  volatile uint16_t queue_notify_off;          /* read-only for driver */ 
+  volatile uint64_t queue_desc;                /* read-write */ 
+  volatile uint64_t queue_driver;              /* read-write */ 
+  volatile uint64_t queue_device;              /* read-write */ 
+  volatile uint16_t queue_notif_config_data;   /* read-only for driver */ 
+  volatile uint16_t queue_reset;               /* read-write */ 
  
   /* About the administration virtqueue. */ 
-  uint16_t admin_queue_index;         /* read-only for driver */ 
-  uint16_t admin_queue_num;           /* read-only for driver */ 
+  volatile uint16_t admin_queue_index;         /* read-only for driver */ 
+  volatile uint16_t admin_queue_num;           /* read-only for driver */ 
 } virtio_pci_common_cfg;
 
 /* Types of configurations */ 
@@ -80,12 +80,12 @@ typedef struct __attribute__((packed)) {
 /* All feats these must be supported by device */
 #define VIRTIO_F_VERSION_1      (1ULL << 32)
 
-/* TODO: Enabled if exists */
+/* Features to use if available */
 #define VIRTIO_F_INDIRECT_DESC_LO (1ULL << 28)
-#define VIRTIO_F_EVENT_IDX_LO     (1ULL << 29)
 #define VIRTIO_F_IN_ORDER_HI      (1ULL << 3)
 
 /* Other features that will not be supported */
+#define VIRTIO_F_EVENT_IDX_LO     (1ULL << 29)
 #define VIRTIO_F_RING_PACKED_HI   (1ULL << 2)
 #define VIRTIO_F_RING_RESET_HI    (1ULL << 8)
 

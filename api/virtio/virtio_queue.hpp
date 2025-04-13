@@ -38,59 +38,69 @@ using Descriptors = vector<uint16_t>;
 #define AVAIL_RING_ALIGN 2
 #define USED_RING_ALIGN  4
 
-/* Descriptor flags */
+/* Descriptor table stuff */
 #define VIRTQ_DESC_F_NEXT     1
 #define VIRTQ_DESC_F_WRITE    2
 #define VIRTQ_DESC_F_INDIRECT 4
 
 typedef struct __attribute__((packed)) {
-  uint64_t addr;  /* Address (guest-physical) */
-  uint32_t len;   /* Length */
-  uint16_t flags; /* The flags as indicated above */
-  uint16_t next;  /* Next field if flags & NEXT */
+  volatile uint64_t addr;  /* Address (guest-physical) */
+  volatile uint32_t len;   /* Length */
+  volatile uint16_t flags; /* The flags as indicated above */
+  volatile uint16_t next;  /* Next field if flags & NEXT */
 } virtq_desc;
+
+#define DESC_TBL_SIZE(x) (x * sizeof(virtq_desc))
 
 /* Available ring stuff */
 #define VIRTQ_AVAIL_F_NO_INTERRUPT 1
+#define VIRTQ_AVAIL_F_INTERRUPT    0
+
 typedef struct __attribute__((packed)) {
-  uint16_t flags;             /* Flags for the avail ring */
-  uint16_t idx;               /* Next index modulo queue size to insert */
-  uint16_t ring[VQUEUE_SIZE]; /* Ring of descriptors */
-  uint16_t used_event;        /* Only if VIRTIO_F_EVENT_IDX is supported by device. */
+  volatile uint16_t flags;    /* Flags for the avail ring */
+  volatile uint16_t idx;      /* Next index modulo queue size to insert */
+  volatile uint16_t ring[];            /* Ring of descriptors */
 } virtq_avail;
+
+#define AVAIL_RING_SIZE(x) (sizeof(virtq_avail) + x * sizeof(uint16_t))
 
 /* Used ring stuff */
 #define VIRTQ_USED_F_NO_NOTIFY 1
+#define VIRTQ_USED_F_NOTIFY    0
+
 typedef struct __attribute__((packed)) {
-  uint32_t id;  /* Index of start of used descriptor chain. */
-  uint32_t len; /* Bytes written into the device writable potion of the buffer chain */
+  volatile uint32_t id;  /* Index of start of used descriptor chain. */
+  volatile uint32_t len; /* Bytes written into the device writable potion of the buffer chain */
 } virtq_used_elem;
 
 typedef struct __attribute__((packed)) {
-  uint16_t flags;                    /* Flags for the used ring */
+  volatile uint16_t flags;                    /* Flags for the used ring */
   volatile uint16_t idx;             /* Flags  */
-  virtq_used_elem ring[VQUEUE_SIZE]; /* Ring of descriptors */
-  uint16_t avail_event;              /* Only if VIRTIO_F_EVENT_IDX is supported by device */
+  volatile virtq_used_elem ring[];            /* Ring of descriptors */
 } virtq_used;
+
+#define USED_RING_SIZE(x) (sizeof(virtq_used) + x * sizeof(virtq_used_elem))
 
 class VirtQueue {
 public:
-  VirtQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue);
+  VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
 
   /* Interface for VirtQueue */
   virtual void enqueue(VirtTokens& tokens) = 0;
   virtual VirtTokens dequeue() = 0;
   virtual uint16_t free_desc_space() const = 0;
-  virtual uint16_t desc_space_cap() const = 0;
 
   /** Methods for handling supression */
-  inline void suppress() { _avail_ring->flags = 1; }
-  inline void unsuppress() { _avail_ring->flags = 0; }
+  inline void suppress() { _avail_ring->flags = VIRTQ_AVAIL_F_NO_INTERRUPT; }
+  inline void unsuppress() { _avail_ring->flags = VIRTQ_AVAIL_F_INTERRUPT; }
 
 protected:
-  virtq_desc *_desc_table;
-  virtq_avail *_avail_ring;
-  virtq_used *_used_ring;
+  volatile virtq_desc *_desc_table;
+  volatile virtq_avail *_avail_ring;
+  volatile virtq_used *_used_ring;
+  
+  uint16_t _QUEUE_SIZE;
+  uint16_t _last_used;
 
 private:
   inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
@@ -103,26 +113,24 @@ private:
 
 class InorderQueue: public VirtQueue {
 public:
-  InorderQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue);
+  InorderQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
 
   void enqueue(VirtTokens& tokens);
   VirtTokens dequeue();
   uint16_t free_desc_space() const override { return 0; }
-  uint16_t desc_space_cap() const override { return 0; }
 private:
 
 };
 
 class UnorderedQueue: public VirtQueue {
 public:
-  UnorderedQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue);
+  UnorderedQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
 
   void enqueue(VirtTokens& tokens);
   VirtTokens dequeue();
-  uint16_t free_desc_space() const override { return 0; }
-  uint16_t desc_space_cap() const override { return 0; }
+  uint16_t free_desc_space() const override { return _free_list.size(); }
 private:
-
+  vector<uint16_t> _free_list;
 };
 
 class XmitQueue {

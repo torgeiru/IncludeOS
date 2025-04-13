@@ -14,16 +14,16 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats, uint16_t req_ms
 
   /* MSI is the only supported interrupt mechanism */
   _pcidev.parse_capabilities();
-  bool supports_msix = _pcidev.msix_cap() >= req_msix_count;
+  bool supports_msix = _pcidev.msix_cap() > 0;
   CHECK(supports_msix, "Device supports MSIX vectors");
   _virtio_panic(supports_msix);
 
-  /* MSI vector count must be greater than zero */
+  /* Driver requires req_msix_count # of vectors */
   _pcidev.init_msix();
   _msix_vector_count = _pcidev.get_msix_vectors();
-  bool greater_than_zero = _msix_vector_count > 0;
-  CHECK(greater_than_zero, "Sufficient msix vector count");
-  _virtio_panic(greater_than_zero);
+  bool sufficient_msix_count = _msix_vector_count >= req_msix_count;
+  CHECK(sufficient_msix_count, "Sufficient msix vector count (%d)", _msix_vector_count);
+  _virtio_panic(sufficient_msix_count);
 
   /*
     Match vendor ID and Device ID : §4.1.2.2
@@ -106,10 +106,6 @@ void Virtio::_find_cap_cfgs() {
       uint64_t cfg_addr = bar_region + bar_offset;
 
       switch(cfg_type) {
-        case VIRTIO_PCI_CAP_SHARED_MEMORY_CFG:
-          /* Just VirtioFS debugging hehe. */
-          INFO("Virtio", "Found shared capability!");
-          break;
         case VIRTIO_PCI_CAP_COMMON_CFG:
           _common_cfg = reinterpret_cast<volatile virtio_pci_common_cfg*>(cfg_addr);
           break;
@@ -204,4 +200,6 @@ void Virtio::_virtio_panic(bool condition) {
 void Virtio::set_driver_ok_bit() {
   INFO("Virtio", "Setting driver ok bit");
   _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER_OK;
+
+  /* Check if OK here? */
 }
