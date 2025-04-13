@@ -11,9 +11,11 @@
 #include <vector>
 #include <span>
 
+using VirtBuffer = std::span<uint8_t>;
+
 typedef struct VirtToken {
   uint16_t flags;
-  std::span<uint8_t> buffer;
+  VirtBuffer buffer;
 
   VirtToken(
     uint16_t wl, 
@@ -72,17 +74,14 @@ typedef struct __attribute__((packed)) {
   uint16_t avail_event;              /* Only if VIRTIO_F_EVENT_IDX is supported by device */
 } virtq_used;
 
-#include <util/bitops.hpp>
-using util::bits::is_aligned;
-
 /*
-  Structure containing logic for initializing a virtqueue
+  Structure containing logic for initializing a virtqueue (only split sadly)
   and (un)supressing interrupts and information about
   available descriptors and capacity.
  */
 class VirtQueue {
 public:
-  VirtQueue(Virtio& virtio_dev, int vqueue_id);
+  VirtQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue);
 
   /* Interface for VirtQueue */
   virtual void enqueue(VirtTokens& tokens) = 0;
@@ -122,19 +121,21 @@ public:
   VirtTokens dequeue();
   uint16_t free_desc_space() const override { return 0; }
   uint16_t desc_space_cap() const override { return 0; }
+private:
+
 };
 
 class XmitQueue {
 public:
   XmitQueue(Virtio& virtio_dev, int vqueue_id);
   bool enqueue(VirtTokens& tokens);
+  delegate<uint16_t()> free_desc_space;
+  delegate<uint16_t()> desc_space_cap;
 
 private:
-  std::unique<VirtQueue> _vq;
+  // std::unique<VirtQueue> _vq;
   delegate<void(VirtTokens &tokens)> _enqueue;
   delegate<VirtTokens()> _dequeue;
-  delegate<uint16_t()> _free_desc_space;
-  delegate<uint16_t()> _desc_space_cap;
 };
 
 #endif

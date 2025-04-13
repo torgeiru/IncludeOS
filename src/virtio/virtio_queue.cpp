@@ -5,6 +5,9 @@
 #include <info>
 #include <kernel/events.hpp>
 #include <virtio/virtio_queue.hpp>
+#include <util/bitops.hpp>
+
+using util::bits::is_aligned;
 
 /*
 4.1.5.1.3 Virtqueue Configuration
@@ -25,7 +28,7 @@ The driver typically does this as follows, for each virtqueue a device has:
 
 */
 
-VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id)
+VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue)
 : _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id)
 {
   auto& cfg = _virtio_dev.common_cfg();
@@ -47,18 +50,23 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id)
 void enqueue(VirtTokens& tokens);
 VirtTokens dequeue();
 
-void InorderQueue::enqueue(VirtTokens& tokens);
-VirtTokens InorderQueue::dequeue();
+void InorderQueue::enqueue(VirtTokens& tokens) {}
+VirtTokens InorderQueue::dequeue() {
+  VirtTokens tokens;
+  return tokens;
+}
 
-void UnorderedQueue::enqueue(VirtTokens& tokens);
-VirtTokens UnorderedQueue::dequeue();
+void UnorderedQueue::enqueue(VirtTokens& tokens) {}
+VirtTokens UnorderedQueue::dequeue() {
+  VirtTokens tokens;
+  return tokens;
+}
 
 /*
-  Transmit queue implementation (used in VirtionNet and VirtioCon)
+  Transmit queue implementation
  */
 XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id) {
-  /* Deciding whether to make ordered or unordered virtqueue */
-  /* Setting up delegates */
+
 }
 
 bool XmitQueue::enqueue(VirtTokens& tokens) { 

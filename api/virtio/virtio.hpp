@@ -119,7 +119,6 @@ public:
   inline uint16_t msix_vector_count() const { return _msix_vector_count; }
   
   /** Negotiated features */
-  inline bool event_idx() const { return _event_idx; }
   inline bool in_order() const { return _in_order; }
   inline bool indirect() const { return _indirect; }
 

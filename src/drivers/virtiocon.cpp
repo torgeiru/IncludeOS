@@ -19,6 +19,8 @@ _tx(*this, 1)
   
   INFO("VirtioCon", "Console device initialization successfully!");
 
+  os::panic("Testing the Virtio layer!");
+
   set_driver_ok_bit();
 }
 
