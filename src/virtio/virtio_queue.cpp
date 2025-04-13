@@ -9,6 +9,9 @@
 
 using util::bits::is_aligned;
 
+#define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
+#define MIN(x, y) (x > y ? y : x)
+
 /*
 4.1.5.1.3 Virtqueue Configuration
 As a device can have zero or more virtqueues for bulk data transport8, the driver needs to configure them as part of the device-specific configuration.
@@ -31,6 +34,12 @@ The driver typically does this as follows, for each virtqueue a device has:
 VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue)
 : _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id)
 {
+  if (polling_queue) {
+    INFO("VirtQueue", "Creating a polling queue!");
+  } else {
+    INFO("VirtQueue", "Creating an interrupt queue!");
+  }
+
   auto& cfg = _virtio_dev.common_cfg();
 
   /* Setting up device notify field */
@@ -42,21 +51,34 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue)
 
   /* Reading queue size for common cfg space */
   uint16_t queue_size = cfg.queue_size;
+
+  /* Queue initialization is now complete! */
+  cfg.queue_enable = 1;
 }
 
-#define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
-#define MIN(x, y) (x > y ? y : x)
-
 void enqueue(VirtTokens& tokens);
-VirtTokens dequeue();
+
+VirtTokens dequeue() {}
+
+/* Inorder virtqueue */
+InorderQueue::InorderQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue)
+: VirtQueue(virtio_dev, vqueue_id, polling_queue)
+{}
 
 void InorderQueue::enqueue(VirtTokens& tokens) {}
+
 VirtTokens InorderQueue::dequeue() {
   VirtTokens tokens;
   return tokens;
 }
 
+/* Unordered virtqueue */
+UnorderedQueue::UnorderedQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue)
+: VirtQueue(virtio_dev, vqueue_id, polling_queue)
+{}
+
 void UnorderedQueue::enqueue(VirtTokens& tokens) {}
+
 VirtTokens UnorderedQueue::dequeue() {
   VirtTokens tokens;
   return tokens;
@@ -66,7 +88,14 @@ VirtTokens UnorderedQueue::dequeue() {
   Transmit queue implementation
  */
 XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id) {
+  /* Creating specific virtqueue type */
+  if (virtio_dev.in_order()) {
+    _vq = std::make_unique<InorderQueue>(virtio_dev, vqueue_id, false);
+  } else {
+    _vq = std::make_unique<UnorderedQueue>(virtio_dev, vqueue_id, false);
+  }
 
+  /* Initializing delegates */
 }
 
 bool XmitQueue::enqueue(VirtTokens& tokens) { 

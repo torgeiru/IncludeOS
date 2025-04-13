@@ -74,11 +74,6 @@ typedef struct __attribute__((packed)) {
   uint16_t avail_event;              /* Only if VIRTIO_F_EVENT_IDX is supported by device */
 } virtq_used;
 
-/*
-  Structure containing logic for initializing a virtqueue (only split sadly)
-  and (un)supressing interrupts and information about
-  available descriptors and capacity.
- */
 class VirtQueue {
 public:
   VirtQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue);
@@ -105,7 +100,7 @@ private:
 
 class InorderQueue: public VirtQueue {
 public:
-  InorderQueue(bool polling_queue);
+  InorderQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue);
 
   void enqueue(VirtTokens& tokens);
   VirtTokens dequeue();
@@ -115,7 +110,7 @@ public:
 
 class UnorderedQueue: public VirtQueue {
 public:
-  UnorderedQueue(bool polling_queue);
+  UnorderedQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue);
 
   void enqueue(VirtTokens& tokens);
   VirtTokens dequeue();
@@ -133,7 +128,7 @@ public:
   delegate<uint16_t()> desc_space_cap;
 
 private:
-  // std::unique<VirtQueue> _vq;
+  std::unique_ptr<VirtQueue> _vq;
   delegate<void(VirtTokens &tokens)> _enqueue;
   delegate<VirtTokens()> _dequeue;
 };
