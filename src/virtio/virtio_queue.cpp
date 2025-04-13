@@ -43,12 +43,15 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue)
   /* Setting up split virtqueue parts */
   _desc_table = (virtq_desc*) aligned_alloc(DESC_TBL_ALIGN, sizeof(virtq_desc) * VQUEUE_SIZE);
   Expects((_desc_table != NULL) && is_aligned<DESC_TBL_ALIGN>(_desc_table));
+  cfg.queue_desc = reinterpret_cast<uint64_t>(_desc_table);
 
   _avail_ring = (virtq_avail*) aligned_alloc(AVAIL_RING_ALIGN, sizeof(virtq_avail));
   Expects((_avail_ring != NULL) && is_aligned<AVAIL_RING_ALIGN>(_avail_ring));
+  cfg.queue_driver = reinterpret_cast<uint64_t>(_avail_ring);
 
   _used_ring  = (virtq_used*) aligned_alloc(USED_RING_ALIGN, sizeof(virtq_used));
   Expects((_used_ring != NULL) && is_aligned<USED_RING_ALIGN>(_used_ring));
+  cfg.queue_driver = reinterpret_cast<uint64_t>(_used_ring);
 
   /* Initialize split virtqueue parts */
   _avail_ring->idx = 0;
@@ -58,7 +61,7 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue)
   _used_ring->idx = 0;
   _used_ring->flags = 0;
   _used_ring->avail_event = 0;
-  
+
   /* Queue initialization is now complete! */
   cfg.queue_enable = 1;
 }

@@ -32,7 +32,6 @@ using Descriptors = vector<uint16_t>;
 
 /* Note: The Queue Size value does not have to be a power of 2. */
 #define VQUEUE_MAX_SIZE  32768
-#define VQUEUE_SIZE      4096
 
 /* Split queue alignment requirements */
 #define DESC_TBL_ALIGN   16
@@ -42,7 +41,7 @@ using Descriptors = vector<uint16_t>;
 /* Descriptor flags */
 #define VIRTQ_DESC_F_NEXT     1
 #define VIRTQ_DESC_F_WRITE    2
-#define VIRTQ_DESC_F_INDIRECT 4 // Unused in my Virtio implementation.
+#define VIRTQ_DESC_F_INDIRECT 4
 
 typedef struct __attribute__((packed)) {
   uint64_t addr;  /* Address (guest-physical) */
@@ -85,8 +84,8 @@ public:
   virtual uint16_t desc_space_cap() const = 0;
 
   /** Methods for handling supression */
-  inline void suppress() { *_supress_field = 1; }
-  inline void unsuppress() { *_supress_field = 0; }
+  inline void suppress() { _avail_ring->flags = 1; }
+  inline void unsuppress() { _avail_ring->flags = 0; }
 
 protected:
   virtq_desc *_desc_table;
@@ -99,7 +98,6 @@ private:
   Virtio& _virtio_dev;
   int _VQUEUE_ID;
 
-  uint16_t *_supress_field;
   volatile uint16_t *_avail_notify;
 };
 
