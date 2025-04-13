@@ -88,6 +88,11 @@ public:
   inline void suppress() { *_supress_field = 1; }
   inline void unsuppress() { *_supress_field = 0; }
 
+protected:
+  virtq_desc *_desc_table;
+  virtq_avail *_avail_ring;
+  virtq_used *_used_ring;
+
 private:
   inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
 
