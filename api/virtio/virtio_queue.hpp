@@ -16,12 +16,14 @@ using VirtBuffer = std::span<uint8_t>;
 typedef struct VirtToken {
   uint16_t flags;
   VirtBuffer buffer;
-
+  uint8_t *next;
+  
   VirtToken(
     uint16_t wl, 
     uint8_t *bf, 
-    size_t bl
-  ) : flags(wl), buffer(bf, bl) {}
+    size_t bl,
+    uint8_t* n
+  ) : flags(wl), buffer(bf, bl), next(n) {}
 } VirtToken;
 
 using std::vector;
@@ -95,20 +97,19 @@ public:
   inline void unsuppress() { _avail_ring->flags = VIRTQ_AVAIL_F_INTERRUPT; }
 
 protected:
+  inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
+
   volatile virtq_desc *_desc_table;
   volatile virtq_avail *_avail_ring;
   volatile virtq_used *_used_ring;
   
+  volatile uint16_t *_avail_notify;
   uint16_t _QUEUE_SIZE;
   uint16_t _last_used;
 
 private:
-  inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
-
   Virtio& _virtio_dev;
   int _VQUEUE_ID;
-
-  volatile uint16_t *_avail_notify;
 };
 
 class InorderQueue: public VirtQueue {

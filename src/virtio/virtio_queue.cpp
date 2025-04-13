@@ -10,12 +10,11 @@
 
 using util::bits::is_aligned;
 
-// #define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
-// #define MIN(x, y) (x > y ? y : x)
-
 VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 : _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id), _last_used(0)
 {
+  INFO("VirtQueue", "Initializing queue with id %d", _VQUEUE_ID);
+
   /* Selecting specific virtqueue */
   auto& cfg = _virtio_dev.common_cfg();
   cfg.queue_select = _VQUEUE_ID;
@@ -45,21 +44,18 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   size_t desc_table_size = DESC_TBL_SIZE(queue_size);
   _desc_table = reinterpret_cast<volatile virtq_desc*>(aligned_alloc(DESC_TBL_ALIGN, desc_table_size));
   Expects((_desc_table != NULL) && is_aligned<DESC_TBL_ALIGN>(reinterpret_cast<uintptr_t>(_desc_table)));
-  // TODO ADD MEMSET
   INFO("VirtQueue", "Descriptor table placed at 0x%lx with size %d", _desc_table, desc_table_size);
   cfg.queue_desc = reinterpret_cast<uint64_t>(_desc_table);
 
   size_t avail_ring_size = AVAIL_RING_SIZE(queue_size);
   _avail_ring = reinterpret_cast<volatile virtq_avail*>(aligned_alloc(AVAIL_RING_ALIGN, avail_ring_size));
   Expects((_avail_ring != NULL) && is_aligned<AVAIL_RING_ALIGN>(reinterpret_cast<uintptr_t>(_avail_ring)));
-  // TODO ADD MEMSET
   INFO("VirtQueue", "Available ring placed at 0x%lx with size %d", _avail_ring, avail_ring_size);
   cfg.queue_driver = reinterpret_cast<uint64_t>(_avail_ring);
 
   size_t used_ring_size = USED_RING_SIZE(queue_size);
   _used_ring  = reinterpret_cast<volatile virtq_used*>(aligned_alloc(USED_RING_ALIGN, used_ring_size));
   Expects((_used_ring != NULL) && is_aligned<USED_RING_ALIGN>(reinterpret_cast<uintptr_t>(_used_ring)));
-  // TODO ADD MEMSET
   INFO("VirtQueue", "Used ring placed at 0x%lx with size %d", _used_ring, used_ring_size);
   cfg.queue_driver = reinterpret_cast<uint64_t>(_used_ring);
 
@@ -100,7 +96,40 @@ UnorderedQueue::UnorderedQueue(Virtio& virtio_dev, int vqueue_id, bool use_polli
   INFO("UnorderedQueue", "free list has the size of %d", free_desc_space());
 }
 
-void UnorderedQueue::enqueue(VirtTokens& tokens) {}
+void UnorderedQueue::enqueue(VirtTokens& tokens) {
+  size_t token_count = tokens.size();
+  if (token_count > free_desc_space()) return;
+
+  uint16_t desc_start;
+
+  /* Chaining the descriptors */
+  for (VirtToken& token: tokens) {
+    uint16_t free_desc = _free_list.back();
+    volatile virtq_desc *cur_desc = &_desc_table[free_desc];
+
+    cur_desc->addr = token.buffer.data();
+    cur_desc->len = token.buffer.size();
+    cur_desc->flags = token.flags;
+    cur_desc->next = reinterpret_cast<uint64_t>(token.next);
+
+    _free_list.pop_back();
+  }
+
+  /* Inserting into the available ring */
+  uint16_t insert_index = _avail_ring->idx & (_QUEUE_SIZE - 1);
+  _avail_ring->ring[insert_index]
+
+  /* Memory fence before incrementing idx according to §2.7.13 (Virtio 1.3) */
+  __arch_hw_barrier();
+  _avail_ring->idx++;
+
+  /* Memory fence before checking for notification suppression according to ^ */
+  __arch_hw_barrier();
+
+  if (_used_ring->flags == VIRTQ_USED_F_NOTIFY) {
+    _notify_device();
+  }
+}
 
 VirtTokens UnorderedQueue::dequeue() {
   VirtTokens tokens;

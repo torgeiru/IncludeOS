@@ -46,7 +46,7 @@ void VirtioCon::send(std::string& message) {
   /* Send copied message over Virtio */
   VirtTokens tokens;
   tokens.reserve(1);
-  tokens.emplace_back(0, c_message, message_len);
+  tokens.emplace_back(0, c_message, message_len, NULL);
   bool msg_not_dropped = _tx.enqueue(tokens);
 
   if (msg_not_dropped == false) {
