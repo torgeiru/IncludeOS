@@ -2,7 +2,6 @@
 #ifndef VIRTIO_VIRTIO_HPP
 #define VIRTIO_VIRTIO_HPP
 
-#include <smp_utils>
 #include <hw/pci_device.hpp>
 #include <vector>
 #include <stdint.h>
@@ -102,13 +101,12 @@ typedef struct __attribute__((packed)) {
 */
 class Virtio {
 public:
-  Virtio(hw::PCI_Device& pci, uint64_t dev_specific_feats);
+  Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats, uint16_t req_msix_count);
 
   /** Setting driver ok bit within device status */
   void set_driver_ok_bit();
 
   /** Modifying the common configuration */
-  inline Spinlock& common_cfg_lock() { return _common_cfg_lock; }
   inline volatile virtio_pci_common_cfg& common_cfg() { return *_common_cfg; }
 
   /** Queue notification information */
@@ -148,7 +146,6 @@ private:
   inline bool _version_supported(uint16_t i) { return i == 1; }
 
   hw::PCI_Device& _pcidev;
-  Spinlock _common_cfg_lock;
   uint16_t _msix_vector_count;
 
   /* Negotiated features */

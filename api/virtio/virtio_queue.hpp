@@ -106,6 +106,8 @@ public:
   VirtTokens dequeue();
   uint16_t free_desc_space() const override { return 0; }
   uint16_t desc_space_cap() const override { return 0; }
+private:
+
 };
 
 class UnorderedQueue: public VirtQueue {

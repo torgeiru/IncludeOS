@@ -5,7 +5,7 @@
 #include <hw/pci_manager.hpp>
 #include <info>
 
-VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS) {
+VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 111) {
   static int id_count = 0;
   _id = id_count++;
 

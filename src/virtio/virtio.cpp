@@ -5,7 +5,7 @@
 #include <hw/pci.hpp>
 #include <kernel/events.hpp>
 
-Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
+Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats, uint16_t req_msix_count) :
   _pcidev(dev),
   _required_feats(VIRTIO_F_VERSION_1 | dev_specific_feats),
   _virtio_device_id(dev.product_id())
@@ -14,7 +14,7 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
 
   /* MSI is the only supported interrupt mechanism */
   _pcidev.parse_capabilities();
-  bool supports_msix = _pcidev.msix_cap() > 0 ;
+  bool supports_msix = _pcidev.msix_cap() >= req_msix_count;
   CHECK(supports_msix, "Device supports MSIX vectors");
   _virtio_panic(supports_msix);
 
@@ -22,7 +22,7 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats) :
   _pcidev.init_msix();
   _msix_vector_count = _pcidev.get_msix_vectors();
   bool greater_than_zero = _msix_vector_count > 0;
-  CHECK(greater_than_zero, "MSIX vector count greater than zero");
+  CHECK(greater_than_zero, "Sufficient msix vector count");
   _virtio_panic(greater_than_zero);
 
   /*
