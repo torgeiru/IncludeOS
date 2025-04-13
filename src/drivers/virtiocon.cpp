@@ -16,7 +16,7 @@ _tx(*this, 1)
 {
   static int id_count;
   _id = id_count++;
-  
+
   INFO("VirtioCon", "Console device initialization successfully!");
 
   os::panic("Testing the Virtio layer!");

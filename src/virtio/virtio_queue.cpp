@@ -34,23 +34,30 @@ The driver typically does this as follows, for each virtqueue a device has:
 VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool polling_queue)
 : _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id)
 {
-  if (polling_queue) {
-    INFO("VirtQueue", "Creating a polling queue!");
-  } else {
-    INFO("VirtQueue", "Creating an interrupt queue!");
-  }
-
+  /* Selecting specific virtqueue */
   auto& cfg = _virtio_dev.common_cfg();
-
-  /* Setting up device notify field */
   cfg.queue_select = _VQUEUE_ID;
-  
-  /* Calculating notify address */
-  _avail_notify = _virtio_dev.notify_region() + 
-    cfg.queue_notify_off * _virtio_dev.notify_off_multiplier();
 
   /* Reading queue size for common cfg space */
   uint16_t queue_size = cfg.queue_size;
+
+  if (polling_queue) {
+    /* Disabling interrupts  */
+    cfg.
+  } else {
+    /* Calculating notify address */
+    _avail_notify = _virtio_dev.notify_region() + 
+      cfg.queue_notify_off * _virtio_dev.notify_off_multiplier(); 
+
+    /* Setting up interrupts */
+  }
+
+  /* No config notification interrupts! */
+  cfg.config_msix_vector = VIRTIO_MSI_NO_VECTOR;
+
+  /* Setting up split virtqueue parts */
+
+  /* Setting up other split virtqueue state */
 
   /* Queue initialization is now complete! */
   cfg.queue_enable = 1;
@@ -96,8 +103,4 @@ XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id) {
   }
 
   /* Initializing delegates */
-}
-
-bool XmitQueue::enqueue(VirtTokens& tokens) { 
-  return false;
 }

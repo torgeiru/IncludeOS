@@ -123,14 +123,13 @@ private:
 class XmitQueue {
 public:
   XmitQueue(Virtio& virtio_dev, int vqueue_id);
-  bool enqueue(VirtTokens& tokens);
+  delegate<bool(VirtTokens &tokens)> enqueue;
+  delegate<VirtTokens()> dequeue;
   delegate<uint16_t()> free_desc_space;
   delegate<uint16_t()> desc_space_cap;
 
 private:
   std::unique_ptr<VirtQueue> _vq;
-  delegate<void(VirtTokens &tokens)> _enqueue;
-  delegate<VirtTokens()> _dequeue;
 };
 
 #endif
