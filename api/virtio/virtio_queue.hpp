@@ -136,7 +136,7 @@ private:
 
 class XmitQueue {
 public:
-  XmitQueue(Virtio& virtio_dev, int vqueue_id);
+  XmitQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
   delegate<bool(VirtTokens &tokens)> enqueue;
   delegate<VirtTokens()> dequeue;
   delegate<uint16_t()> free_desc_space;

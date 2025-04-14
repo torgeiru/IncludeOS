@@ -12,7 +12,7 @@
 #include <info>
 
 VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS, 2),
-_tx(*this, 1)
+_tx(*this, 1, true)
 {
   static int id_count;
   _id = id_count++;

@@ -250,8 +250,8 @@ VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
       static_cast<size_t>(cur_desc.len)
     );
 
-    /* Exit loop if last descriptor */
-    if (cur_desc.flags & VIRTQ_DESC_F_NEXT) {
+    /* Break loop if last descriptor */
+    if ((cur_desc.flags & VIRTQ_DESC_F_NEXT) == 0) {
       break;
     }
 
@@ -266,8 +266,7 @@ VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
 /*
   Transmit queue implementation
  */
-XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id) {
-  bool use_polling = true;
+XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling) {
 
   /* Creating specific virtqueue type */
   if (virtio_dev.in_order()) {
