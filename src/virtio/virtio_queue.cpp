@@ -145,9 +145,17 @@ void UnorderedQueue::enqueue(VirtTokens& tokens) {
 }
 
 VirtTokens UnorderedQueue::dequeue() {
+  /* Cannot call thisd function without an unprocessed used entry */
+  Expects(_last_used_idx != _used_ring->idx);
+  
   VirtTokens tokens;
   tokens.reserve(10);
 
+  /* Grabbing first used entry */
+  volatile virtq_used_elem *used_elem = &_used_ring->ring[_last_used_idx & (_QUEUE_SIZE - 1)];
+
+  /* Incrementing last used idx */
+  _last_used_idx++;
   return tokens;
 }
 
