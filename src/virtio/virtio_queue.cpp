@@ -37,7 +37,7 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
     Expects(cfg.queue_msix_vector == _VQUEUE_ID);
   }
 
-  /* No config notification interrupts! */
+  /* No config notification interrupts ever! */
   cfg.config_msix_vector = VIRTIO_MSI_NO_VECTOR;
 
   /* Allocating and initializing split virtqueue parts */
@@ -65,19 +65,94 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 
 /* Inorder virtqueue */
 InorderQueue::InorderQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
-: VirtQueue(virtio_dev, vqueue_id, use_polling)
+: VirtQueue(virtio_dev, vqueue_id, use_polling), _next_free(0), _free_descs(_QUEUE_SIZE)
 {
   INFO("InorderQueue", "Created an inorder queue!");
-
   INFO("UnorderedQueue", "free list has the size of %d", free_desc_space());
 }
 
 void InorderQueue::enqueue(VirtTokens& tokens) {
-  
+  /* Checking for necessary available free descriptors */
+  size_t token_count = tokens.size();
+  if (token_count > _free_descs) return;
+
+  /* Decrementing number of available descriptors */
+  _free_descs -= token_count;
+
+  /* Inserting descriptor into the available ring */
+  uint16_t insert_index = _avail_ring->idx & (_QUEUE_SIZE - 1);
+  _avail_ring->ring[insert_index] = _next_free;
+
+  /* Chaining the descriptors */
+  for (VirtToken& token: tokens) {
+    volatile virtq_desc& cur_desc = _desc_table[_next_free];
+
+    /* Setting up current descriptor */
+    cur_desc.addr = token.buffer.data();
+    cur_desc.len = token.buffer.size();
+    cur_desc.flags = token.flags;
+
+    /* Linking next descriptor if there is any or setting next to 0 */
+    _next_free = (_next_free + 1) & (_QUEUE_SIZE - 1);
+
+    if (tokens.flags & VIRTQ_DESC_F_NEXT) {
+      cur_desc.next = _next_free;
+    } else {
+      cur_desc.next = 0;
+    }
+  }
+
+  /* Memory fence before incrementing idx according to §2.7.13 (Virtio 1.3) */
+  __arch_hw_barrier();
+  _avail_ring->idx++;
+
+  /* Memory fence before checking for notification suppression according to ^ */
+  __arch_hw_barrier();
+  if (_used_ring->flags == VIRTQ_USED_F_NOTIFY) {
+    _notify_device();
+  }
 }
 
 VirtTokens InorderQueue::dequeue(uint32_t &device_written_len) {
+  /* Cannot call this function without an unprocessed used entry */
+  Expects(_last_used_idx != _used_ring->idx);
+  
+  /* Reserving some capacity to reduce data copies */
   VirtTokens tokens;
+  tokens.reserve(10);
+
+  /* Grabbing first used entry */
+  volatile virtq_used_elem& used_elem = _used_ring->ring[_last_used_idx & (_QUEUE_SIZE - 1)];
+
+  /* Write device written length into the descriptor chain */
+  device_written_len = used_elem.len;
+
+  /* Dequeue the buffers */
+  uint32_t cur_desc_index = used_elem.id;
+  while(1) {
+    /* Free descriptor entry */
+    _free_descs++;
+
+    /* Grabbing current descriptor entry */
+    volatile virtq_desc& cur_desc = _desc_table[cur_desc_index];
+
+    /* Add token to vector */
+    tokens.emplace_back(
+      cur_desc.flags, 
+      reinterpret_cast<uint8_t*>(cur_desc.addr),
+      static_cast<size_t>(cur_desc.len)
+    );
+
+    /* Exit loop if last descriptor */
+    if (cur_desc.flags & VIRTQ_DESC_F_NEXT) {
+      break;
+    }
+
+    cur_desc_index = cur_desc.next;
+  }
+
+  /* Incrementing last used idx and return tokens */
+  _last_used_idx++;
   return tokens;
 }
 
@@ -113,13 +188,17 @@ void UnorderedQueue::enqueue(VirtTokens& tokens) {
     cur_desc->addr = token.buffer.data();
     cur_desc->len = token.buffer.size();
     cur_desc->flags = token.flags;
-    cur_desc->next = reinterpret_cast<uint64_t>(token.next);
 
     /* Linking previous descriptor or store start descriptor */
     if (prev_desc) {
       prev_desc->next = free_desc;
     } else {
       start_desc = free_desc;
+    }
+
+    /* Setting next to 0 for last descriptor */
+    if ((token.flags & VIRTQ_DESC_F_NEXT) == 0) {
+      cur_desc->next = 0;
     }
 
     _free_list.pop_back();
@@ -136,7 +215,6 @@ void UnorderedQueue::enqueue(VirtTokens& tokens) {
 
   /* Memory fence before checking for notification suppression according to ^ */
   __arch_hw_barrier();
-
   if (_used_ring->flags == VIRTQ_USED_F_NOTIFY) {
     _notify_device();
   }
@@ -146,6 +224,7 @@ VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
   /* Cannot call this function without an unprocessed used entry */
   Expects(_last_used_idx != _used_ring->idx);
   
+  /* Reserving some capacity to reduce data copies */
   VirtTokens tokens;
   tokens.reserve(10);
 
@@ -157,12 +236,14 @@ VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
 
   /* Dequeue the buffers */
   uint32_t cur_desc_index = used_elem.id;
-
   while(1) {
+    /* Free descriptor entry */
+    _free_list.push_back(cur_desc_index);
+
     /* Grabbing current descriptor entry */
     volatile virtq_desc& cur_desc = _desc_table[cur_desc_index];
 
-    /* Add token to token vector */
+    /* Add token to vector */
     tokens.emplace_back(
       cur_desc.flags, 
       reinterpret_cast<uint8_t*>(cur_desc.addr),
@@ -194,12 +275,4 @@ XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id) {
   } else {
     _vq = std::make_unique<UnorderedQueue>(virtio_dev, vqueue_id, use_polling);
   }
-
-  /* Setting up interrupts */
-  if (not use_polling) {
-    /* Subscribe to interrupt */
-    /* Setting up MSIX vector */
-  }
-
-  /* Initializing delegates */
 }

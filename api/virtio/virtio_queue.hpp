@@ -57,9 +57,9 @@ typedef struct __attribute__((packed)) {
 #define VIRTQ_AVAIL_F_INTERRUPT    0
 
 typedef struct __attribute__((packed)) {
-  volatile uint16_t flags;    /* Flags for the avail ring */
-  volatile uint16_t idx;      /* Next index modulo queue size to insert */
-  volatile uint16_t ring[];   /* Ring of descriptors */
+  volatile uint16_t flags;  /* Flags for the avail ring */
+  volatile uint16_t idx;    /* Next index modulo queue size to insert */
+  volatile uint16_t ring[]; /* Ring of descriptors */
 } virtq_avail;
 
 #define AVAIL_RING_SIZE(x) (sizeof(virtq_avail) + x * sizeof(uint16_t))
@@ -85,7 +85,7 @@ class VirtQueue {
 public:
   VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
 
-  /* Interface for VirtQueue */
+  /** Interface methods for virtqueues */
   virtual void enqueue(VirtTokens& tokens) = 0;
   virtual VirtTokens dequeue(uint32_t &device_written_len) = 0;
   virtual uint16_t free_desc_space() const = 0;
@@ -117,9 +117,10 @@ public:
 
   void enqueue(VirtTokens& tokens);
   VirtTokens dequeue(uint32_t &device_written_len);
-  uint16_t free_desc_space() const override { return 0; }
+  uint16_t free_desc_space() const override { return _free_descs; }
 private:
-
+  uint16_t _free_descs;
+  uint16_t _next_free;
 };
 
 class UnorderedQueue: public VirtQueue {
