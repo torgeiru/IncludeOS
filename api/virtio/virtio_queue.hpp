@@ -16,14 +16,12 @@ using VirtBuffer = std::span<uint8_t>;
 typedef struct VirtToken {
   uint16_t flags;
   VirtBuffer buffer;
-  uint8_t *next;
   
   VirtToken(
     uint16_t wl, 
     uint8_t *bf, 
-    size_t bl,
-    uint8_t* n
-  ) : flags(wl), buffer(bf, bl), next(n) {}
+    size_t bl
+  ) : flags(wl), buffer(bf, bl) {}
 } VirtToken;
 
 using std::vector;
@@ -32,7 +30,7 @@ using Descriptors = vector<uint16_t>;
 
 #define VIRTIO_MSI_NO_VECTOR 0xffff
 
-/* Note: The Queue Size value does not have to be a power of 2. */
+/* Note: The Queue Size value is a power of 2 */
 #define VQUEUE_MAX_SIZE  32768
 
 /* Split queue alignment requirements */
@@ -91,6 +89,7 @@ public:
   virtual void enqueue(VirtTokens& tokens) = 0;
   virtual VirtTokens dequeue() = 0;
   virtual uint16_t free_desc_space() const = 0;
+  inline bool processed_used() const { return _last_used_idx == _used_ring->idx; };
 
   /** Methods for handling supression */
   inline void suppress() { _avail_ring->flags = VIRTQ_AVAIL_F_NO_INTERRUPT; }
@@ -105,7 +104,7 @@ protected:
   
   volatile uint16_t *_avail_notify;
   uint16_t _QUEUE_SIZE;
-  uint16_t _last_used;
+  uint16_t _last_used_idx;
 
 private:
   Virtio& _virtio_dev;
@@ -127,12 +126,15 @@ class UnorderedQueue: public VirtQueue {
 public:
   UnorderedQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
 
-  void enqueue(VirtTokens& tokens);
-  VirtTokens dequeue();
+  void enqueue(VirtTokens& tokens) override;
+  VirtTokens dequeue() override;
   uint16_t free_desc_space() const override { return _free_list.size(); }
 private:
   vector<uint16_t> _free_list;
 };
+
+/* Can use transmit queue for polling VirtioFS */
+/* Use a factory or some other construct to reduce the needed # of classes */
 
 class XmitQueue {
 public:

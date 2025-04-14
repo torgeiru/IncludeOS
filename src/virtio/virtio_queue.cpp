@@ -11,7 +11,7 @@
 using util::bits::is_aligned;
 
 VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
-: _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id), _last_used(0)
+: _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id), _last_used_idx(0)
 {
   INFO("VirtQueue", "Initializing queue with id %d", _VQUEUE_ID);
 
