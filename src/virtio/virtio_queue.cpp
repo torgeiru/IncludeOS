@@ -63,6 +63,15 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   cfg.queue_enable = 1;
 }
 
+VirtQueue::~VirtQueue() {
+  /* Freeing resources */
+  free(const_cast<virtq_desc*>(_desc_table));
+  free(const_cast<virtq_avail*>(_avail_ring));
+  free(const_cast<virtq_used*>(_used_ring));
+
+  /* TODO: Gracefully terminating interrupts */
+}
+
 /* Inorder virtqueue */
 InorderQueue::InorderQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 : VirtQueue(virtio_dev, vqueue_id, use_polling), _next_free(0), _free_descs(_QUEUE_SIZE)
@@ -116,7 +125,10 @@ void InorderQueue::enqueue(VirtTokens& tokens) {
 VirtTokens InorderQueue::dequeue(uint32_t &device_written_len) {
   /* Cannot call this function without an unprocessed used entry */
   Expects(_last_used_idx != _used_ring->idx);
-  
+
+  /* Creating a variable for keeping track of advance (for handling skipped buffers) */
+  uint16_t used_advance = 0;
+
   /* Reserving some capacity to reduce data copies */
   VirtTokens tokens;
   tokens.reserve(10);
@@ -130,9 +142,6 @@ VirtTokens InorderQueue::dequeue(uint32_t &device_written_len) {
   /* Dequeue the buffers */
   uint32_t cur_desc_index = used_elem.id;
   while(1) {
-    /* Free descriptor entry */
-    _free_descs++;
-
     /* Grabbing current descriptor entry */
     volatile virtq_desc& cur_desc = _desc_table[cur_desc_index];
 
@@ -149,10 +158,24 @@ VirtTokens InorderQueue::dequeue(uint32_t &device_written_len) {
     }
 
     cur_desc_index = cur_desc.next;
+    used_advance++;
   }
 
-  /* Incrementing last used idx and return tokens */
-  _last_used_idx++;
+  /* Cleanup skipped buffers */
+  uint16_t cleanup_id = _last_used_idx & (_QUEUE_SIZE - 1);
+  while (cleanup_id != used_elem.id) {
+    volatile virtq_desc& cur_desc = _desc_table[cleanup_id];
+    uint64_t buf = cur_desc.addr;
+    free(reinterpret_cast<void*>(buf));    
+
+    used_advance++;
+    cleanup_id = (cleanup_idx + 1) & (_QUEUE_SIZE - 1;
+  }
+
+  /* Free descriptors and updating last seen */
+  _free_descs += used_advance;
+  _last_used_idx += used_advance;
+
   return tokens;
 }
 
@@ -267,7 +290,6 @@ VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
   Transmit queue implementation
  */
 XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling) {
-
   /* Creating specific virtqueue type */
   if (virtio_dev.in_order()) {
     _vq = std::make_unique<InorderQueue>(virtio_dev, vqueue_id, use_polling);

@@ -84,6 +84,7 @@ typedef struct __attribute__((packed)) {
 class VirtQueue {
 public:
   VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
+  ~VirtQueue();
 
   /** Interface methods for virtqueues */
   virtual void enqueue(VirtTokens& tokens) = 0;
@@ -100,7 +101,7 @@ protected:
 
   volatile virtq_desc *_desc_table;
   volatile virtq_avail *_avail_ring;
-  volatile virtq_used *_used_ring;
+  volatile  *_used_ring;
   
   volatile uint16_t *_avail_notify;
   uint16_t _QUEUE_SIZE;
