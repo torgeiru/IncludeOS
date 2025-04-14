@@ -59,7 +59,7 @@ typedef struct __attribute__((packed)) {
 typedef struct __attribute__((packed)) {
   volatile uint16_t flags;    /* Flags for the avail ring */
   volatile uint16_t idx;      /* Next index modulo queue size to insert */
-  volatile uint16_t ring[];            /* Ring of descriptors */
+  volatile uint16_t ring[];   /* Ring of descriptors */
 } virtq_avail;
 
 #define AVAIL_RING_SIZE(x) (sizeof(virtq_avail) + x * sizeof(uint16_t))
@@ -89,7 +89,7 @@ public:
   virtual void enqueue(VirtTokens& tokens) = 0;
   virtual VirtTokens dequeue() = 0;
   virtual uint16_t free_desc_space() const = 0;
-  inline bool processed_used() const { return _last_used_idx == _used_ring->idx; };
+  inline bool has_processed_used() const { return _last_used_idx == _used_ring->idx; };
 
   /** Methods for handling supression */
   inline void suppress() { _avail_ring->flags = VIRTQ_AVAIL_F_NO_INTERRUPT; }
@@ -132,9 +132,6 @@ public:
 private:
   vector<uint16_t> _free_list;
 };
-
-/* Can use transmit queue for polling VirtioFS */
-/* Use a factory or some other construct to reduce the needed # of classes */
 
 class XmitQueue {
 public:

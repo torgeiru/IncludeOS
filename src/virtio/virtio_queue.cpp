@@ -72,6 +72,8 @@ InorderQueue::InorderQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 : VirtQueue(virtio_dev, vqueue_id, use_polling)
 {
   INFO("InorderQueue", "Created an inorder queue!");
+
+  INFO("UnorderedQueue", "free list has the size of %d", free_desc_space());
 }
 
 void InorderQueue::enqueue(VirtTokens& tokens) {}
@@ -97,27 +99,38 @@ UnorderedQueue::UnorderedQueue(Virtio& virtio_dev, int vqueue_id, bool use_polli
 }
 
 void UnorderedQueue::enqueue(VirtTokens& tokens) {
+  /* Checking for necessary available free descriptors */
   size_t token_count = tokens.size();
-  if (token_count > free_desc_space()) return;
-
-  uint16_t desc_start;
+  if (token_count > _free_list.size()) return;
 
   /* Chaining the descriptors */
+  volatile virtq_desc *prev_desc = NULL;
+  uint16_t start_desc;
+
   for (VirtToken& token: tokens) {
     uint16_t free_desc = _free_list.back();
     volatile virtq_desc *cur_desc = &_desc_table[free_desc];
 
+    /* Setting up current descriptor */
     cur_desc->addr = token.buffer.data();
     cur_desc->len = token.buffer.size();
     cur_desc->flags = token.flags;
     cur_desc->next = reinterpret_cast<uint64_t>(token.next);
 
+    /* Linking previous descriptor or store start descriptor */
+    if (prev_desc) {
+      prev_desc->next = free_desc;
+    } else {
+      start_desc = free_desc;
+    }
+
     _free_list.pop_back();
+    prev_desc = cur_desc;
   }
 
   /* Inserting into the available ring */
   uint16_t insert_index = _avail_ring->idx & (_QUEUE_SIZE - 1);
-  _avail_ring->ring[insert_index]
+  _avail_ring->ring[insert_index] = start_desc;
 
   /* Memory fence before incrementing idx according to §2.7.13 (Virtio 1.3) */
   __arch_hw_barrier();
@@ -133,6 +146,8 @@ void UnorderedQueue::enqueue(VirtTokens& tokens) {
 
 VirtTokens UnorderedQueue::dequeue() {
   VirtTokens tokens;
+  tokens.reserve(10);
+
   return tokens;
 }
 

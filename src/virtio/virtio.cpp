@@ -12,18 +12,25 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats, uint16_t req_ms
 {
   INFO("Virtio","Attaching to  PCI addr 0x%x",dev.pci_addr());
 
-  /* MSI is the only supported interrupt mechanism */
-  _pcidev.parse_capabilities();
-  bool supports_msix = _pcidev.msix_cap() > 0;
-  CHECK(supports_msix, "Device supports MSIX vectors");
-  _virtio_panic(supports_msix);
+  /* Checks if virtqueues use interrupts or polling */
+  if (req_msix_count > 0) {
+    INFO("Virtio", "Virtqueues are interrupt-driven!");
 
-  /* Driver requires req_msix_count # of vectors */
-  _pcidev.init_msix();
-  _msix_vector_count = _pcidev.get_msix_vectors();
-  bool sufficient_msix_count = _msix_vector_count >= req_msix_count;
-  CHECK(sufficient_msix_count, "Sufficient msix vector count (%d)", _msix_vector_count);
-  _virtio_panic(sufficient_msix_count);
+    /* MSI is the only supported interrupt mechanism */
+    _pcidev.parse_capabilities();
+    bool supports_msix = _pcidev.msix_cap() > 0;
+    CHECK(supports_msix, "Device supports MSIX vectors");
+    _virtio_panic(supports_msix);
+
+    /* Driver requires req_msix_count # of vectors */
+    _pcidev.init_msix();
+    _msix_vector_count = _pcidev.get_msix_vectors();
+    bool sufficient_msix_count = _msix_vector_count >= req_msix_count;
+    CHECK(sufficient_msix_count, "Sufficient msix vector count (%d)", _msix_vector_count);
+    _virtio_panic(sufficient_msix_count);
+  } else {
+    INFO("Virtio", "Virtqueues are polled");
+  }
 
   /*
     Match vendor ID and Device ID : §4.1.2.2
