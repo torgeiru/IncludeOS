@@ -63,10 +63,6 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   cfg.queue_enable = 1;
 }
 
-void enqueue(VirtTokens& tokens);
-
-VirtTokens dequeue() {}
-
 /* Inorder virtqueue */
 InorderQueue::InorderQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 : VirtQueue(virtio_dev, vqueue_id, use_polling)
@@ -76,9 +72,11 @@ InorderQueue::InorderQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   INFO("UnorderedQueue", "free list has the size of %d", free_desc_space());
 }
 
-void InorderQueue::enqueue(VirtTokens& tokens) {}
+void InorderQueue::enqueue(VirtTokens& tokens) {
+  
+}
 
-VirtTokens InorderQueue::dequeue() {
+VirtTokens InorderQueue::dequeue(uint32_t &device_written_len) {
   VirtTokens tokens;
   return tokens;
 }
@@ -144,17 +142,42 @@ void UnorderedQueue::enqueue(VirtTokens& tokens) {
   }
 }
 
-VirtTokens UnorderedQueue::dequeue() {
-  /* Cannot call thisd function without an unprocessed used entry */
+VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
+  /* Cannot call this function without an unprocessed used entry */
   Expects(_last_used_idx != _used_ring->idx);
   
   VirtTokens tokens;
   tokens.reserve(10);
 
   /* Grabbing first used entry */
-  volatile virtq_used_elem *used_elem = &_used_ring->ring[_last_used_idx & (_QUEUE_SIZE - 1)];
+  volatile virtq_used_elem& used_elem = _used_ring->ring[_last_used_idx & (_QUEUE_SIZE - 1)];
 
-  /* Incrementing last used idx */
+  /* Write device written length into the descriptor chain */
+  device_written_len = used_elem.len;
+
+  /* Dequeue the buffers */
+  uint32_t cur_desc_index = used_elem.id;
+
+  while(1) {
+    /* Grabbing current descriptor entry */
+    volatile virtq_desc& cur_desc = _desc_table[cur_desc_index];
+
+    /* Add token to token vector */
+    tokens.emplace_back(
+      cur_desc.flags, 
+      reinterpret_cast<uint8_t*>(cur_desc.addr),
+      static_cast<size_t>(cur_desc.len)
+    );
+
+    /* Exit loop if last descriptor */
+    if (cur_desc.flags & VIRTQ_DESC_F_NEXT) {
+      break;
+    }
+
+    cur_desc_index = cur_desc.next;
+  }
+
+  /* Incrementing last used idx and return tokens */
   _last_used_idx++;
   return tokens;
 }

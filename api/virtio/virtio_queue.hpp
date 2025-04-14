@@ -18,10 +18,10 @@ typedef struct VirtToken {
   VirtBuffer buffer;
   
   VirtToken(
-    uint16_t wl, 
-    uint8_t *bf, 
-    size_t bl
-  ) : flags(wl), buffer(bf, bl) {}
+    uint16_t flag, 
+    uint8_t *buff, 
+    size_t bufl
+  ) : flags(flag), buffer(buff, bufl) {}
 } VirtToken;
 
 using std::vector;
@@ -87,7 +87,7 @@ public:
 
   /* Interface for VirtQueue */
   virtual void enqueue(VirtTokens& tokens) = 0;
-  virtual VirtTokens dequeue() = 0;
+  virtual VirtTokens dequeue(uint32_t &device_written_len) = 0;
   virtual uint16_t free_desc_space() const = 0;
   inline bool has_processed_used() const { return _last_used_idx == _used_ring->idx; };
 
@@ -116,7 +116,7 @@ public:
   InorderQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
 
   void enqueue(VirtTokens& tokens);
-  VirtTokens dequeue();
+  VirtTokens dequeue(uint32_t &device_written_len);
   uint16_t free_desc_space() const override { return 0; }
 private:
 
@@ -127,7 +127,7 @@ public:
   UnorderedQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
 
   void enqueue(VirtTokens& tokens) override;
-  VirtTokens dequeue() override;
+  VirtTokens dequeue(uint32_t &device_written_len) override;
   uint16_t free_desc_space() const override { return _free_list.size(); }
 private:
   vector<uint16_t> _free_list;
