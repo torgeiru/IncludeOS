@@ -120,7 +120,7 @@ void Virtio::_find_cap_cfgs() {
           _specific_cfg = cfg_addr;
           break;
         case VIRTIO_PCI_CAP_NOTIFY_CFG:
-          _notify_region = reinterpret_cast<uint16_t*>(cfg_addr);
+          _notify_region = reinterpret_cast<uint8_t*>(cfg_addr);
           _notify_off_multiplier = _pcidev.read32(offset + VIRTIO_PCI_NOTIFY_CAP_MUL);
           break;
       }

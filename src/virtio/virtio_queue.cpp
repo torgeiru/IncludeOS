@@ -24,13 +24,9 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   _QUEUE_SIZE = queue_size;
 
   /* Calculating notify address */
-  _avail_notify = _virtio_dev.notify_region() + 
-    cfg.queue_notify_off * _virtio_dev.notify_off_multiplier(); 
+  _avail_notify = reinterpret_cast<uint16_t*>(_virtio_dev.notify_region() + (cfg.queue_notify_off * _virtio_dev.notify_off_multiplier())); 
 
-  INFO("VirtQueue", "General notify region is 0x%lx", _virtio_dev.notify_region());
-  INFO("VirtQueue", "Notify multiplier is %d", _virtio_dev.notify_off_multiplier());
-  INFO("VirtQueue", "Virtio queue ID is %d", _VQUEUE_ID);
-  INFO("VirtQueue", "The device notify region is 0x%lx", _avail_notify);
+  INFO("VirtQueue", "Available buffer notify region is 0x%lx", _avail_notify);
 
   /* Deciding whether to use polling or interrupts  */
   if (use_polling) {
@@ -246,9 +242,9 @@ void UnorderedQueue::enqueue(VirtTokens& tokens) {
 
   /* Memory fence before checking for notification suppression according to ^ */
   __arch_hw_barrier();
-  if (_used_ring->flags == VIRTQ_USED_F_NOTIFY) {
+  // if (_used_ring->flags == VIRTQ_USED_F_NOTIFY) {
     _notify_device();
-  }
+  // }
 }
 
 VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {

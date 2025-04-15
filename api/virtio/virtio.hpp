@@ -111,7 +111,7 @@ public:
 
   /** Queue notification information */
   inline uint32_t notify_off_multiplier() const { return _notify_off_multiplier; }
-  inline uint16_t *notify_region() const { return _notify_region; }
+  inline uint8_t *notify_region() const { return _notify_region; }
 
   /** Grabbing the number of available msix vectors for device */
   inline uint16_t msix_vector_count() const { return _msix_vector_count; }
@@ -157,7 +157,7 @@ private:
 
   /* Offsets and offset multipliers */
   uint32_t _notify_off_multiplier;
-  uint16_t *_notify_region;
+  uint8_t *_notify_region;
 
   /* Indicate if virtio device ID is legacy or standard */
   bool _LEGACY_ID = 0;
