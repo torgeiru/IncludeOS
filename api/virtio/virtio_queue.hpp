@@ -90,7 +90,8 @@ public:
   virtual void enqueue(VirtTokens& tokens) = 0;
   virtual VirtTokens dequeue(uint32_t &device_written_len) = 0;
   virtual uint16_t free_desc_space() const = 0;
-  inline bool has_processed_used() const { return _last_used_idx == _used_ring->idx; };
+  inline uint16_t desc_space_cap() const { return _QUEUE_SIZE; }
+  bool has_processed_used() const { return _last_used_idx == _used_ring->idx; };
 
   /** Methods for handling supression */
   inline void suppress() { _avail_ring->flags = VIRTQ_AVAIL_F_NO_INTERRUPT; }
@@ -138,10 +139,14 @@ private:
 class XmitQueue {
 public:
   XmitQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
-  delegate<bool(VirtTokens &tokens)> enqueue;
+
+  /* API */
+  inline bool has_processed_used() const { return _vq->has_processed_used(); }
+  inline uint16_t desc_space_cap() const { return _vq->desc_space_cap(); }
+
+  delegate<void(VirtTokens &tokens)> enqueue;
   delegate<VirtTokens()> dequeue;
   delegate<uint16_t()> free_desc_space;
-  delegate<uint16_t()> desc_space_cap;
 
 private:
   std::unique_ptr<VirtQueue> _vq;

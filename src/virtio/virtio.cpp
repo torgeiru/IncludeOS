@@ -199,9 +199,9 @@ bool Virtio::_negotiate_features() {
 
 void Virtio::_virtio_panic(bool condition) {
   if (not condition) {
-    os::panic("Virtio device failed");
-
     _common_cfg->device_status |= VIRTIO_CONFIG_S_FAILED;
+
+    os::panic("Virtio device failed!");
   }
 }
 
@@ -209,5 +209,8 @@ void Virtio::set_driver_ok_bit() {
   INFO("Virtio", "Setting driver ok bit");
   _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER_OK;
 
-  /* Check if OK here? */
+  /* Checking if device is still OK */
+  if ((_common_cfg->device_status & VIRTIO_CONFIG_S_NEEDS_RESET)) {
+    os::panic("Failure! Virtio device given up on guest");
+  }
 }

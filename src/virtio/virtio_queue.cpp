@@ -83,7 +83,7 @@ InorderQueue::InorderQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 void InorderQueue::enqueue(VirtTokens& tokens) {
   /* Checking for necessary available free descriptors */
   size_t token_count = tokens.size();
-  if (token_count > _free_descs) return;
+  if (token_count > _free_descs) returnvirttokens;
 
   /* Decrementing number of available descriptors */
   _free_descs -= token_count;
@@ -292,16 +292,33 @@ VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
 XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling) {
   /* Creating specific virtqueue type */
   if (virtio_dev.in_order()) {
+    Expects(false);
     _vq = std::make_unique<InorderQueue>(virtio_dev, vqueue_id, use_polling);
+
+    /* Setting up delegates for in order queue */
+    enqueue = {_vq.get(), &InorderQueue::enqueue};
+    dequeue = {_vq.get(), &InorderQueue::dequeue};
+    free_desc_space = {_vq.get(), &InorderQueue::free_desc_space};
   } else {
     _vq = std::make_unique<UnorderedQueue>(virtio_dev, vqueue_id, use_polling);
+
+    /* Setting up delegates for unordered queue */
+    enqueue = {_vq.get(), &UnorderedQueue::enqueue};
+    dequeue = {_vq.get(), &UnorderedQueue::dequeue};
+    free_desc_space = {_vq.get(), &UnorderedQueue::free_desc_space};
   }
 
   if (not use_polling) {
+    Expects(false);
+    INFO("XmitQueue", "Creating a interrupt queue!");
     /* Subscribe to an interrupt vector */
     /* Set handler */
     /* Hook MSI with this interrupt vector */
+  } else {
+    INFO("XmitQueue", "Creating a polling queue!");
   }
-
-  /* Setting up delegates */
 }
+
+/*
+  Recv queue implementation
+*/
