@@ -30,7 +30,7 @@ int VirtioCon::id() const noexcept {
   return _id;
 }
 
-#define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
+// #define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
 
 void VirtioCon::send(std::string& message) {
   if (_tx.free_desc_space() == 0) return;

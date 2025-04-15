@@ -27,7 +27,10 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   _avail_notify = _virtio_dev.notify_region() + 
     cfg.queue_notify_off * _virtio_dev.notify_off_multiplier(); 
 
-
+  INFO("VirtQueue", "General notify region is 0x%lx", _virtio_dev.notify_region());
+  INFO("VirtQueue", "Notify multiplier is %d", _virtio_dev.notify_off_multiplier());
+  INFO("VirtQueue", "Virtio queue ID is %d", _VQUEUE_ID);
+  INFO("VirtQueue", "The device notify region is 0x%lx", _avail_notify);
 
   /* Deciding whether to use polling or interrupts  */
   if (use_polling) {
@@ -297,14 +300,12 @@ VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
 XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling) {
   /* Creating specific virtqueue type */
   if (virtio_dev.in_order()) {
-    Expects(false);
     _vq = std::make_unique<InorderQueue>(virtio_dev, vqueue_id, use_polling);
   } else {
     _vq = std::make_unique<UnorderedQueue>(virtio_dev, vqueue_id, use_polling);
   }
 
   if (not use_polling) {
-    Expects(false);
     INFO("XmitQueue", "Creating a interrupt queue!");
     /* Subscribe to an interrupt vector */
     /* Set handler */
@@ -313,7 +314,3 @@ XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling) {
     INFO("XmitQueue", "Creating a polling queue!");
   }
 }
-
-/*
-  Recv queue implementation
-*/
