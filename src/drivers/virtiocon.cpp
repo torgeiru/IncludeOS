@@ -19,8 +19,6 @@ _tx(*this, 1, true)
 
   INFO("VirtioCon", "Console device initialization successfully!");
 
-  os::panic("Testing the Virtio layer!");
-
   set_driver_ok_bit();
 }
 
@@ -51,7 +49,8 @@ void VirtioCon::send(std::string& message) {
 
   /* Cleaning up the tokens buffer */
   while(_tx.has_processed_used());
-  VirtTokens in_tokens = _tx.dequeue();
+  uint32_t device_written_len;
+  VirtTokens in_tokens = _tx.dequeue(device_written_len);
   for (VirtToken& token: in_tokens) {
     free(reinterpret_cast<void*>(token.buffer.data()));
   }

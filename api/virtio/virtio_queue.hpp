@@ -144,9 +144,10 @@ public:
   inline bool has_processed_used() const { return _vq->has_processed_used(); }
   inline uint16_t desc_space_cap() const { return _vq->desc_space_cap(); }
 
-  delegate<void(VirtTokens&)> enqueue;
-  delegate<VirtTokens()> dequeue;
-  delegate<uint16_t()> free_desc_space;
+  /* Todo switch from polymorphic to delegates somehow */
+  inline void enqueue(VirtTokens& tokens) { _vq->enqueue(tokens); }
+  inline VirtTokens dequeue(uint32_t& device_written_len) { return _vq->dequeue(device_written_len); }
+  inline uint16_t free_desc_space() const { return _vq->free_desc_space(); }
 
 private:
   std::unique_ptr<VirtQueue> _vq;

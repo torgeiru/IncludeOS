@@ -23,14 +23,16 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   uint16_t queue_size = cfg.queue_size;
   _QUEUE_SIZE = queue_size;
 
+  /* Calculating notify address */
+  _avail_notify = _virtio_dev.notify_region() + 
+    cfg.queue_notify_off * _virtio_dev.notify_off_multiplier(); 
+
+
+
   /* Deciding whether to use polling or interrupts  */
   if (use_polling) {
     cfg.queue_msix_vector = VIRTIO_MSI_NO_VECTOR;
   } else {
-    /* Calculating notify address */
-    _avail_notify = _virtio_dev.notify_region() + 
-      cfg.queue_notify_off * _virtio_dev.notify_off_multiplier(); 
-
     /* Setting up interrupts */
     cfg.queue_msix_vector = _VQUEUE_ID;
 
@@ -44,20 +46,23 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   size_t desc_table_size = DESC_TBL_SIZE(queue_size);
   _desc_table = reinterpret_cast<volatile virtq_desc*>(aligned_alloc(DESC_TBL_ALIGN, desc_table_size));
   Expects((_desc_table != NULL) && is_aligned<DESC_TBL_ALIGN>(reinterpret_cast<uintptr_t>(_desc_table)));
-  INFO("VirtQueue", "Descriptor table placed at 0x%lx with size %d", _desc_table, desc_table_size);
+  memset(const_cast<virtq_desc*>(_desc_table), 0, desc_table_size);
+  // INFO("VirtQueue", "Descriptor table placed at 0x%lx with size %d", _desc_table, desc_table_size);
   cfg.queue_desc = reinterpret_cast<uint64_t>(_desc_table);
 
   size_t avail_ring_size = AVAIL_RING_SIZE(queue_size);
   _avail_ring = reinterpret_cast<volatile virtq_avail*>(aligned_alloc(AVAIL_RING_ALIGN, avail_ring_size));
   Expects((_avail_ring != NULL) && is_aligned<AVAIL_RING_ALIGN>(reinterpret_cast<uintptr_t>(_avail_ring)));
-  INFO("VirtQueue", "Available ring placed at 0x%lx with size %d", _avail_ring, avail_ring_size);
+  memset(const_cast<virtq_avail*>(_avail_ring), 0, avail_ring_size);
+  // INFO("VirtQueue", "Available ring placed at 0x%lx with size %d", _avail_ring, avail_ring_size);
   cfg.queue_driver = reinterpret_cast<uint64_t>(_avail_ring);
 
   size_t used_ring_size = USED_RING_SIZE(queue_size);
   _used_ring  = reinterpret_cast<volatile virtq_used*>(aligned_alloc(USED_RING_ALIGN, used_ring_size));
   Expects((_used_ring != NULL) && is_aligned<USED_RING_ALIGN>(reinterpret_cast<uintptr_t>(_used_ring)));
-  INFO("VirtQueue", "Used ring placed at 0x%lx with size %d", _used_ring, used_ring_size);
-  cfg.queue_driver = reinterpret_cast<uint64_t>(_used_ring);
+  memset(const_cast<virtq_used*>(_used_ring), 0, used_ring_size);
+  // INFO("VirtQueue", "Used ring placed at 0x%lx with size %d", _used_ring, used_ring_size);
+  cfg.queue_device = reinterpret_cast<uint64_t>(_used_ring);
 
   /* Queue initialization is now complete! */
   cfg.queue_enable = 1;
@@ -294,18 +299,8 @@ XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling) {
   if (virtio_dev.in_order()) {
     Expects(false);
     _vq = std::make_unique<InorderQueue>(virtio_dev, vqueue_id, use_polling);
-
-    /* Setting up delegates for in order queue */
-    enqueue = delegate<void(VirtTokens&)>(_vq.get(), &InorderQueue::enqueue);
-    dequeue = delegate<VirtTokens()>(_vq.get(), &InorderQueue::dequeue);
-    free_desc_space = delegate<uint16_t()>(_vq.get(), &InorderQueue::free_desc_space);
   } else {
     _vq = std::make_unique<UnorderedQueue>(virtio_dev, vqueue_id, use_polling);
-
-    /* Setting up delegates for unordered queue */
-    enqueue = delegate<void(VirtTokens&)>(_vq.get(), &UnorderedQueue::enqueue);
-    dequeue = delegate<VirtTokens()>(_vq.get(), &UnorderedQueue::dequeue);
-    free_desc_space = delegate<uint16_t()>(_vq.get(), &UnorderedQueue::free_desc_space);
   }
 
   if (not use_polling) {

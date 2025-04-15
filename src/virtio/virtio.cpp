@@ -158,11 +158,10 @@ bool Virtio::_negotiate_features() {
   _indirect = false;
 
   /* Checking support for indirect descriptors */
-  // TODO for later
-  // if (dev_features_lo & VIRTIO_F_INDIRECT_DESC_LO) {
-  //   nego_feats_lo |= VIRTIO_F_INDIRECT_DESC_LO;
-  //   _indirect = true;
-  // }
+  if (dev_features_lo & VIRTIO_F_INDIRECT_DESC_LO) {
+    nego_feats_lo |= VIRTIO_F_INDIRECT_DESC_LO;
+    _indirect = true;
+  }
 
   /* Checking support for in_order */
   if (dev_features_hi & VIRTIO_F_IN_ORDER_HI) {
