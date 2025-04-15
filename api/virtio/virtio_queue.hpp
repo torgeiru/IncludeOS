@@ -101,7 +101,7 @@ protected:
 
   volatile virtq_desc *_desc_table;
   volatile virtq_avail *_avail_ring;
-  volatile  *_used_ring;
+  volatile virtq_used *_used_ring;
   
   volatile uint16_t *_avail_notify;
   uint16_t _QUEUE_SIZE;

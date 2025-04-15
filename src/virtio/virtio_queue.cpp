@@ -69,7 +69,7 @@ VirtQueue::~VirtQueue() {
   free(const_cast<virtq_avail*>(_avail_ring));
   free(const_cast<virtq_used*>(_used_ring));
 
-  /* TODO: Gracefully terminating interrupts */
+  /* TODO: Gracefully terminating interrupts if there are any */
 }
 
 /* Inorder virtqueue */
@@ -97,14 +97,14 @@ void InorderQueue::enqueue(VirtTokens& tokens) {
     volatile virtq_desc& cur_desc = _desc_table[_next_free];
 
     /* Setting up current descriptor */
-    cur_desc.addr = token.buffer.data();
+    cur_desc.addr = reinterpret_cast<uint64_t>(token.buffer.data());
     cur_desc.len = token.buffer.size();
     cur_desc.flags = token.flags;
 
     /* Linking next descriptor if there is any or setting next to 0 */
     _next_free = (_next_free + 1) & (_QUEUE_SIZE - 1);
 
-    if (tokens.flags & VIRTQ_DESC_F_NEXT) {
+    if (token.flags & VIRTQ_DESC_F_NEXT) {
       cur_desc.next = _next_free;
     } else {
       cur_desc.next = 0;
@@ -169,7 +169,7 @@ VirtTokens InorderQueue::dequeue(uint32_t &device_written_len) {
     free(reinterpret_cast<void*>(buf));    
 
     used_advance++;
-    cleanup_id = (cleanup_idx + 1) & (_QUEUE_SIZE - 1;
+    cleanup_id = (cleanup_id + 1) & (_QUEUE_SIZE - 1);
   }
 
   /* Free descriptors and updating last seen */
@@ -208,7 +208,7 @@ void UnorderedQueue::enqueue(VirtTokens& tokens) {
     volatile virtq_desc *cur_desc = &_desc_table[free_desc];
 
     /* Setting up current descriptor */
-    cur_desc->addr = token.buffer.data();
+    cur_desc->addr = reinterpret_cast<uint64_t>(token.buffer.data());
     cur_desc->len = token.buffer.size();
     cur_desc->flags = token.flags;
 
@@ -296,4 +296,12 @@ XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling) {
   } else {
     _vq = std::make_unique<UnorderedQueue>(virtio_dev, vqueue_id, use_polling);
   }
+
+  if (not use_polling) {
+    /* Subscribe to an interrupt vector */
+    /* Set handler */
+    /* Hook MSI with this interrupt vector */
+  }
+
+  /* Setting up delegates */
 }
