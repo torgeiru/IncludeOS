@@ -144,7 +144,7 @@ public:
   inline bool has_processed_used() const { return _vq->has_processed_used(); }
   inline uint16_t desc_space_cap() const { return _vq->desc_space_cap(); }
 
-  delegate<void(VirtTokens &tokens)> enqueue;
+  delegate<void(VirtTokens&)> enqueue;
   delegate<VirtTokens()> dequeue;
   delegate<uint16_t()> free_desc_space;
 
@@ -152,4 +152,6 @@ private:
   std::unique_ptr<VirtQueue> _vq;
 };
 
+// class RecvQueue {};
+// class HybrQueue {};
 #endif

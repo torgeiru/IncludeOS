@@ -83,7 +83,7 @@ InorderQueue::InorderQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 void InorderQueue::enqueue(VirtTokens& tokens) {
   /* Checking for necessary available free descriptors */
   size_t token_count = tokens.size();
-  if (token_count > _free_descs) returnvirttokens;
+  if (token_count > _free_descs) return;
 
   /* Decrementing number of available descriptors */
   _free_descs -= token_count;
@@ -296,16 +296,16 @@ XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling) {
     _vq = std::make_unique<InorderQueue>(virtio_dev, vqueue_id, use_polling);
 
     /* Setting up delegates for in order queue */
-    enqueue = {_vq.get(), &InorderQueue::enqueue};
-    dequeue = {_vq.get(), &InorderQueue::dequeue};
-    free_desc_space = {_vq.get(), &InorderQueue::free_desc_space};
+    enqueue = delegate<void(VirtTokens&)>(_vq.get(), &InorderQueue::enqueue);
+    dequeue = delegate<VirtTokens()>(_vq.get(), &InorderQueue::dequeue);
+    free_desc_space = delegate<uint16_t()>(_vq.get(), &InorderQueue::free_desc_space);
   } else {
     _vq = std::make_unique<UnorderedQueue>(virtio_dev, vqueue_id, use_polling);
 
     /* Setting up delegates for unordered queue */
-    enqueue = {_vq.get(), &UnorderedQueue::enqueue};
-    dequeue = {_vq.get(), &UnorderedQueue::dequeue};
-    free_desc_space = {_vq.get(), &UnorderedQueue::free_desc_space};
+    enqueue = delegate<void(VirtTokens&)>(_vq.get(), &UnorderedQueue::enqueue);
+    dequeue = delegate<VirtTokens()>(_vq.get(), &UnorderedQueue::dequeue);
+    free_desc_space = delegate<uint16_t()>(_vq.get(), &UnorderedQueue::free_desc_space);
   }
 
   if (not use_polling) {
