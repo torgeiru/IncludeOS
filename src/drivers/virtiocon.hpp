@@ -29,7 +29,7 @@ public:
   std::string device_name() const override;
 
   /** Methods controlling IO operation */
-  void send(std::string& message);
+  void send(std::string& message) override;
 private:
   int _id;
   XmitQueue _tx;
