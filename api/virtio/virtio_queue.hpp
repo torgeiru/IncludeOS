@@ -153,6 +153,23 @@ private:
   std::unique_ptr<VirtQueue> _vq;
 };
 
-// class RecvQueue {};
+class RecvQueue {
+public:
+  RecvQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
+
+  /* API */
+  inline bool has_processed_used() const { return _vq->has_processed_used(); }
+  inline uint16_t desc_space_cap() const { return _vq->desc_space_cap(); }
+  inline void enqueue(VirtTokens& tokens) { _vq->enqueue(tokens); }
+  inline VirtTokens dequeue(uint32_t& device_written_len) { return _vq->dequeue(device_written_len); }
+
+  void recv() override;
+
+private:
+  std::unique_ptr<VirtQueue> _vq;
+};
+
+
+
 // class HybrQueue {};
 #endif

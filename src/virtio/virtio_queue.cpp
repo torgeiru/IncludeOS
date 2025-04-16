@@ -13,8 +13,6 @@ using util::bits::is_aligned;
 VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 : _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id), _last_used_idx(0)
 {
-  INFO("VirtQueue", "Initializing queue with id %d", _VQUEUE_ID);
-
   /* Selecting specific virtqueue */
   auto& cfg = _virtio_dev.common_cfg();
   cfg.queue_select = _VQUEUE_ID;
@@ -25,8 +23,6 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 
   /* Calculating notify address */
   _avail_notify = reinterpret_cast<uint16_t*>(_virtio_dev.notify_region() + (cfg.queue_notify_off * _virtio_dev.notify_off_multiplier())); 
-
-  INFO("VirtQueue", "Available buffer notify region is 0x%lx", _avail_notify);
 
   /* Deciding whether to use polling or interrupts  */
   if (use_polling) {
@@ -46,21 +42,18 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   _desc_table = reinterpret_cast<volatile virtq_desc*>(aligned_alloc(DESC_TBL_ALIGN, desc_table_size));
   Expects((_desc_table != NULL) && is_aligned<DESC_TBL_ALIGN>(reinterpret_cast<uintptr_t>(_desc_table)));
   memset(const_cast<virtq_desc*>(_desc_table), 0, desc_table_size);
-  // INFO("VirtQueue", "Descriptor table placed at 0x%lx with size %d", _desc_table, desc_table_size);
   cfg.queue_desc = reinterpret_cast<uint64_t>(_desc_table);
 
   size_t avail_ring_size = AVAIL_RING_SIZE(queue_size);
   _avail_ring = reinterpret_cast<volatile virtq_avail*>(aligned_alloc(AVAIL_RING_ALIGN, avail_ring_size));
   Expects((_avail_ring != NULL) && is_aligned<AVAIL_RING_ALIGN>(reinterpret_cast<uintptr_t>(_avail_ring)));
   memset(const_cast<virtq_avail*>(_avail_ring), 0, avail_ring_size);
-  // INFO("VirtQueue", "Available ring placed at 0x%lx with size %d", _avail_ring, avail_ring_size);
   cfg.queue_driver = reinterpret_cast<uint64_t>(_avail_ring);
 
   size_t used_ring_size = USED_RING_SIZE(queue_size);
   _used_ring  = reinterpret_cast<volatile virtq_used*>(aligned_alloc(USED_RING_ALIGN, used_ring_size));
   Expects((_used_ring != NULL) && is_aligned<USED_RING_ALIGN>(reinterpret_cast<uintptr_t>(_used_ring)));
   memset(const_cast<virtq_used*>(_used_ring), 0, used_ring_size);
-  // INFO("VirtQueue", "Used ring placed at 0x%lx with size %d", _used_ring, used_ring_size);
   cfg.queue_device = reinterpret_cast<uint64_t>(_used_ring);
 
   /* Queue initialization is now complete! */
@@ -72,17 +65,12 @@ VirtQueue::~VirtQueue() {
   free(const_cast<virtq_desc*>(_desc_table));
   free(const_cast<virtq_avail*>(_avail_ring));
   free(const_cast<virtq_used*>(_used_ring));
-
-  /* TODO: Gracefully terminating interrupts if there are any */
 }
 
 /* Inorder virtqueue */
 InorderQueue::InorderQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 : VirtQueue(virtio_dev, vqueue_id, use_polling), _next_free(0), _free_descs(_QUEUE_SIZE)
-{
-  INFO("InorderQueue", "Created an inorder queue!");
-  INFO("UnorderedQueue", "free list has the size of %d", free_desc_space());
-}
+{}
 
 void InorderQueue::enqueue(VirtTokens& tokens) {
   /* Checking for necessary available free descriptors */
@@ -153,7 +141,7 @@ VirtTokens InorderQueue::dequeue(uint32_t &device_written_len) {
     tokens.emplace_back(
       cur_desc.flags, 
       reinterpret_cast<uint8_t*>(cur_desc.addr),
-      static_cast<size_t>(cur_desc.len)
+      cur_desc.len
     );
 
     /* Exit loop if last descriptor */
@@ -187,15 +175,11 @@ VirtTokens InorderQueue::dequeue(uint32_t &device_written_len) {
 UnorderedQueue::UnorderedQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 : VirtQueue(virtio_dev, vqueue_id, use_polling)
 {
-  INFO("UnorderedQueue", "Created an unordered queue!");
-
   /* Initializing free list */
   _free_list.reserve(_QUEUE_SIZE);
   for (uint16_t i = 0; i < _QUEUE_SIZE; ++i) {
     _free_list.push_back(i);
   }
-
-  INFO("UnorderedQueue", "free list has the size of %d", free_desc_space());
 }
 
 void UnorderedQueue::enqueue(VirtTokens& tokens) {
@@ -242,9 +226,9 @@ void UnorderedQueue::enqueue(VirtTokens& tokens) {
 
   /* Memory fence before checking for notification suppression according to ^ */
   __arch_hw_barrier();
-  // if (_used_ring->flags == VIRTQ_USED_F_NOTIFY) {
+  if (_used_ring->flags == VIRTQ_USED_F_NOTIFY) {
     _notify_device();
-  // }
+  }
 }
 
 VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
@@ -274,7 +258,7 @@ VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
     tokens.emplace_back(
       cur_desc.flags, 
       reinterpret_cast<uint8_t*>(cur_desc.addr),
-      static_cast<size_t>(cur_desc.len)
+      cur_desc.len
     );
 
     /* Break loop if last descriptor */
@@ -300,13 +284,35 @@ XmitQueue::XmitQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling) {
   } else {
     _vq = std::make_unique<UnorderedQueue>(virtio_dev, vqueue_id, use_polling);
   }
+}
 
-  if (not use_polling) {
-    INFO("XmitQueue", "Creating a interrupt queue!");
-    /* Subscribe to an interrupt vector */
-    /* Set handler */
-    /* Hook MSI with this interrupt vector */
+/*
+  Receive queue implementation
+ */
+RecvQueue::RecvQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling) {
+  /* Creating specific virtqueue type */
+  if (virtio_dev.in_order()) {
+    _vq = std::make_unique<InorderQueue>(virtio_dev, vqueue_id, use_polling);
   } else {
-    INFO("XmitQueue", "Creating a polling queue!");
+    _vq = std::make_unique<UnorderedQueue>(virtio_dev, vqueue_id, use_polling);
   }
+
+  /* Creating a token and enqueue it */
+  VirtTokens tokens;
+  tokens.reserve(1);
+
+  uint8_t *buffer = reinterpret_cast<uint8_t*>(malloc(4096));
+  tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    buffer,
+    4096
+  );
+}
+
+void RecvQueue::recv() {
+  while(has_processed_used());
+  uint32_t device_written_len;
+  VirtTokens tokens = dequeue(device_written_len);
+  std::cout << "Received " << device_written_len << " bytes from the device\n";
+  enqueue(tokens);
 }

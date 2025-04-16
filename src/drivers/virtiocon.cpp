@@ -12,6 +12,7 @@
 #include <info>
 
 VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS, 2),
+_rx(*this, 0, true),
 _tx(*this, 1, true)
 {
   static int id_count;
@@ -51,6 +52,7 @@ void VirtioCon::send(std::string& message) {
   while(_tx.has_processed_used());
   uint32_t device_written_len;
   VirtTokens in_tokens = _tx.dequeue(device_written_len);
+
   for (VirtToken& token: in_tokens) {
     free(reinterpret_cast<void*>(token.buffer.data()));
   }
