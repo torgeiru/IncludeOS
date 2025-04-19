@@ -113,7 +113,6 @@ public:
   inline uint32_t notify_off_multiplier() const { return _notify_off_multiplier; }
   inline uint8_t *notify_region() const { return _notify_region; }
 
-  /** Grabbing the number of available msix vectors for device */
   inline uint16_t msix_vector_count() const { return _msix_vector_count; }
   
   /** Negotiated features */

@@ -6,17 +6,23 @@
 #include <stdlib.h>
 #include <string>
 
+#include <smp>
+#include <kernel/events.hpp>
 #include <hw/con_device.hpp>
 #include <hw/pci_manager.hpp>
 #include <expects>
 #include <info>
 
-VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS, 2),
-_rx(*this, 0, true),
+VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS, 0),
+_rx(*this, 0, false),
 _tx(*this, 1, true)
 {
   static int id_count;
   _id = id_count++;
+
+  /* Setting up msix vector */
+  auto event_num = Events::get().subscribe(nullptr);
+  Events::get().subscribe(event_num, {_rx, &RecvQueue::recv});
 
   INFO("VirtioCon", "Console device initialization successfully!");
 
@@ -30,8 +36,6 @@ std::unique_ptr<hw::CON_device> VirtioCon::new_instance(hw::PCI_Device& d) {
 int VirtioCon::id() const noexcept {
   return _id;
 }
-
-// #define ROUNDED_DIV(x, y) (x / y + (((x % y) == 0) ? 0 : 1))
 
 void VirtioCon::send(std::string& message) {
   if (_tx.free_desc_space() == 0) return;

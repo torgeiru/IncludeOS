@@ -12,10 +12,8 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats, uint16_t req_ms
 {
   INFO("Virtio","Attaching to  PCI addr 0x%x",dev.pci_addr());
 
-  /* Checks if virtqueues use interrupts or polling */
+  /* Initialize msix if interrupts are needed */
   if (req_msix_count > 0) {
-    INFO("Virtio", "Virtqueues are interrupt-driven!");
-
     /* MSI is the only supported interrupt mechanism */
     _pcidev.parse_capabilities();
     bool supports_msix = _pcidev.msix_cap() > 0;
@@ -28,8 +26,6 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats, uint16_t req_ms
     bool sufficient_msix_count = _msix_vector_count >= req_msix_count;
     CHECK(sufficient_msix_count, "Sufficient msix vector count (%d)", _msix_vector_count);
     _virtio_panic(sufficient_msix_count);
-  } else {
-    INFO("Virtio", "Virtqueues are polled");
   }
 
   /*

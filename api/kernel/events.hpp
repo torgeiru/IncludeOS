@@ -25,7 +25,7 @@
 #include <likely>
 
 #define IRQ_BASE    32
-//#define DEBUG_ALL_INTERRUPTS
+#define DEBUG_ALL_INTERRUPTS
 
 class alignas(SMP_ALIGN) Events {
 public:

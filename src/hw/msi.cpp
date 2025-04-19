@@ -3,11 +3,11 @@
 #include <hw/pci_device.hpp>
 #include <info>
 
-//#define VERBOSE_MSIX
+#define VERBOSE_MSIX
 #ifdef VERBOSE_MSIX
-#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#define PRINT(fmt, ...) INFO2(fmt, ##__VA_ARGS__)
 #else
-#define PRINT(fmt, ...) /* fmt */
+#define PRINT(fmt, ...)
 #endif
 
 #define MSIX_ENABLE    (1 << 15)
@@ -101,7 +101,7 @@ namespace hw
 
     if (dev.validate_bar(bar) == false)
     {
-      printf("PCI: Invalid BAR: %u\n", bar);
+      PRINT("PCI: Invalid BAR: %u\n", bar);
       return 0;
     }
     auto pcibar = dev.get_bar(bar);
@@ -143,9 +143,9 @@ namespace hw
     const size_t vector_cnt = (func & MSIX_TBL_SIZE) + 1;
 
     if (vector_cnt > 2048) {
-      printf("table addr: %p  pba addr: %p  vectors: %zu\n",
+      PRINT("table addr: %p  pba addr: %p  vectors: %zu\n",
               (void*) table_addr, (void*) pba_addr, vectors());
-      printf("Unreasonably many MSI-X vectors!");
+      PRINT("Unreasonably many MSI-X vectors!");
       return;
     }
     used_vectors.resize(vector_cnt);
@@ -180,7 +180,7 @@ namespace hw
   void msix_t::redirect_vector(uint16_t idx, uint8_t cpu, uint8_t intr)
   {
     assert(idx < vectors());
-    INFO2("MSI-X vector %u pointing to cpu %u intr %u", idx, cpu, intr);
+    PRINT("MSI-X vector %u pointing to cpu %u intr %u", idx, cpu, intr);
 
     mask_entry(idx);
     mm_write(get_entry(idx, ENT_MSG_ADDR), msix_addr_for_cpu(cpu));

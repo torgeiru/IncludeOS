@@ -13,25 +13,27 @@ using util::bits::is_aligned;
 VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 : _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id), _last_used_idx(0)
 {
+  INFO("VirtQueue", "Initializing with %d", vqueue_id);
+
   /* Selecting specific virtqueue */
   auto& cfg = _virtio_dev.common_cfg();
-  cfg.queue_select = _VQUEUE_ID;
+  cfg.queue_select = vqueue_id;
 
   /* Reading queue size for common cfg space */
   uint16_t queue_size = cfg.queue_size;
   _QUEUE_SIZE = queue_size;
 
   /* Calculating notify address */
-  _avail_notify = reinterpret_cast<uint16_t*>(_virtio_dev.notify_region() + (cfg.queue_notify_off * _virtio_dev.notify_off_multiplier())); 
+  _avail_notify = reinterpret_cast<uint16_t*>(_virtio_dev.notify_region() + (cfg.queue_notify_off * _virtio_dev.notify_off_multiplier()));
 
   /* Deciding whether to use polling or interrupts  */
   if (use_polling) {
     cfg.queue_msix_vector = VIRTIO_MSI_NO_VECTOR;
   } else {
     /* Setting up interrupts */
-    cfg.queue_msix_vector = _VQUEUE_ID;
+    cfg.queue_msix_vector = vqueue_id;
 
-    Expects(cfg.queue_msix_vector == _VQUEUE_ID);
+    Expects(cfg.queue_msix_vector == vqueue_id);
   }
 
   /* No config notification interrupts ever! */
@@ -139,7 +141,7 @@ VirtTokens InorderQueue::dequeue(uint32_t &device_written_len) {
 
     /* Add token to vector */
     tokens.emplace_back(
-      cur_desc.flags, 
+      cur_desc.flags,
       reinterpret_cast<uint8_t*>(cur_desc.addr),
       cur_desc.len
     );
@@ -158,7 +160,7 @@ VirtTokens InorderQueue::dequeue(uint32_t &device_written_len) {
   while (cleanup_id != used_elem.id) {
     volatile virtq_desc& cur_desc = _desc_table[cleanup_id];
     uint64_t buf = cur_desc.addr;
-    free(reinterpret_cast<void*>(buf));    
+    free(reinterpret_cast<void*>(buf));
 
     used_advance++;
     cleanup_id = (cleanup_id + 1) & (_QUEUE_SIZE - 1);
@@ -234,7 +236,9 @@ void UnorderedQueue::enqueue(VirtTokens& tokens) {
 VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
   /* Cannot call this function without an unprocessed used entry */
   Expects(_last_used_idx != _used_ring->idx);
-  
+
+  INFO("UnorderedQueue", "%d %d", _last_used_idx, _used_ring->idx);
+
   /* Reserving some capacity to reduce data copies */
   VirtTokens tokens;
   tokens.reserve(10);
@@ -256,7 +260,7 @@ VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
 
     /* Add token to vector */
     tokens.emplace_back(
-      cur_desc.flags, 
+      cur_desc.flags,
       reinterpret_cast<uint8_t*>(cur_desc.addr),
       cur_desc.len
     );
@@ -297,22 +301,35 @@ RecvQueue::RecvQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling) {
     _vq = std::make_unique<UnorderedQueue>(virtio_dev, vqueue_id, use_polling);
   }
 
-  /* Creating a token and enqueue it */
+  /* Creating a token chain */
   VirtTokens tokens;
   tokens.reserve(1);
 
-  uint8_t *buffer = reinterpret_cast<uint8_t*>(malloc(4096));
-  tokens.emplace_back(
-    VIRTQ_DESC_F_WRITE,
-    buffer,
-    4096
-  );
+  uint8_t *page_buf = reinterpret_cast<uint8_t*>(malloc(4096));
+  tokens.emplace_back(VIRTQ_DESC_F_WRITE, page_buf, 4096);
+
+  /* Enqueue token */
+  _vq->enqueue(tokens);
 }
 
 void RecvQueue::recv() {
-  while(has_processed_used());
-  uint32_t device_written_len;
-  VirtTokens tokens = dequeue(device_written_len);
-  std::cout << "Received " << device_written_len << " bytes from the device\n";
-  enqueue(tokens);
+  do {
+    _vq->suppress();
+
+    while(_vq->has_processed_used()) {
+
+      uint32_t device_written_len;
+      VirtTokens tokens = _vq->dequeue(device_written_len);
+      VirtToken& token = tokens[0];
+
+      uint8_t *byte_arr = token.buffer.data();
+      byte_arr[token.buffer.size() - 1] = 0;
+
+      INFO("RecvQueue", "%s %d", byte_arr, device_written_len);
+
+      _vq->enqueue(tokens);
+    }
+
+    _vq->unsuppress();
+  } while (_vq->has_processed_used());
 }

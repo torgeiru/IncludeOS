@@ -22,7 +22,6 @@ namespace hw {
   
     /** Methods for IO */
     virtual void send(std::string& message) = 0;
-    virtual void recv() = 0;
 
     /** Method used to deactivate device */
     void deactivate() override {}

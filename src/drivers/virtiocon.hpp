@@ -30,7 +30,6 @@ public:
 
   /** Methods controlling IO operation */
   void send(std::string& message) override;
-  void recv() override;
 private:
   int _id;
   RecvQueue _rx;
