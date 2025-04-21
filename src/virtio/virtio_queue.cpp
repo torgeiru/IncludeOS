@@ -13,8 +13,6 @@ using util::bits::is_aligned;
 VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 : _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id), _last_used_idx(0)
 {
-  INFO("VirtQueue", "Initializing with %d", vqueue_id);
-
   /* Selecting specific virtqueue */
   auto& cfg = _virtio_dev.common_cfg();
   cfg.queue_select = vqueue_id;
@@ -32,7 +30,6 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   } else {
     /* Setting up interrupts */
     cfg.queue_msix_vector = vqueue_id;
-
     Expects(cfg.queue_msix_vector == vqueue_id);
   }
 
@@ -237,8 +234,6 @@ VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
   /* Cannot call this function without an unprocessed used entry */
   Expects(_last_used_idx != _used_ring->idx);
 
-  INFO("UnorderedQueue", "%d %d", _last_used_idx, _used_ring->idx);
-
   /* Reserving some capacity to reduce data copies */
   VirtTokens tokens;
   tokens.reserve(10);
@@ -306,6 +301,7 @@ RecvQueue::RecvQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling) {
   tokens.reserve(1);
 
   uint8_t *page_buf = reinterpret_cast<uint8_t*>(malloc(4096));
+  memset(page_buf, 0, 4096);
   tokens.emplace_back(VIRTQ_DESC_F_WRITE, page_buf, 4096);
 
   /* Enqueue token */
@@ -316,7 +312,7 @@ void RecvQueue::recv() {
   do {
     _vq->suppress();
 
-    while(_vq->has_processed_used()) {
+    while(not _vq->has_processed_used()) {
 
       uint32_t device_written_len;
       VirtTokens tokens = _vq->dequeue(device_written_len);
@@ -325,11 +321,12 @@ void RecvQueue::recv() {
       uint8_t *byte_arr = token.buffer.data();
       byte_arr[token.buffer.size() - 1] = 0;
 
-      INFO("RecvQueue", "%s %d", byte_arr, device_written_len);
+      INFO("RecvQueue", "%s", byte_arr);
 
+      memset(token.buffer.data(), 0, token.buffer.size());
       _vq->enqueue(tokens);
     }
 
     _vq->unsuppress();
-  } while (_vq->has_processed_used());
+  } while (not _vq->has_processed_used());
 }

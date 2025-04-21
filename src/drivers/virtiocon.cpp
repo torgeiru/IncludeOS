@@ -13,7 +13,7 @@
 #include <expects>
 #include <info>
 
-VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS, 0),
+VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS, 1),
 _rx(*this, 0, false),
 _tx(*this, 1, true)
 {
@@ -23,6 +23,7 @@ _tx(*this, 1, true)
   /* Setting up msix vector */
   auto event_num = Events::get().subscribe(nullptr);
   Events::get().subscribe(event_num, {_rx, &RecvQueue::recv});
+  d.setup_msix_vector(0, IRQ_BASE + event_num);
 
   INFO("VirtioCon", "Console device initialization successfully!");
 

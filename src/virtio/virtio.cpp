@@ -14,10 +14,13 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats, uint16_t req_ms
 
   /* Initialize msix if interrupts are needed */
   if (req_msix_count > 0) {
-    /* MSI is the only supported interrupt mechanism */
+    /* Grabbing PCI resources */
+    _pcidev.probe_resources();
     _pcidev.parse_capabilities();
+
+    /* Checking for the availablity of MSIX capability */
     bool supports_msix = _pcidev.msix_cap() > 0;
-    CHECK(supports_msix, "Device supports MSIX vectors");
+    CHECK(supports_msix, "Device supports MSIX!");
     _virtio_panic(supports_msix);
 
     /* Driver requires req_msix_count # of vectors */
@@ -96,7 +99,7 @@ void Virtio::_find_cap_cfgs() {
       uint64_t bar_region = static_cast<uint64_t>(bar_value & ~0xf);
       uint64_t bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
 
-      /* Check if 64 bit bar  */
+      /* Check if 64 bit bar. TODO: Reuse existing code */
       if (cap_len > VIRTIO_PCI_NOT_CAP_LEN) {
         uint64_t bar_hi    = static_cast<uint64_t>(_pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2)));
         uint64_t baroff_hi = static_cast<uint64_t>(_pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64));

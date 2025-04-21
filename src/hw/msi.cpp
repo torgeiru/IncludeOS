@@ -1,9 +1,10 @@
 #include <hw/msi.hpp>
 
+#include <expects>
 #include <hw/pci_device.hpp>
 #include <info>
 
-#define VERBOSE_MSIX
+// #define VERBOSE_MSIX
 #ifdef VERBOSE_MSIX
 #define PRINT(fmt, ...) INFO2(fmt, ##__VA_ARGS__)
 #else
