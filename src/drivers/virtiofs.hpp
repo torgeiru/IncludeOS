@@ -14,6 +14,8 @@ class VirtioFS : public Virtio, public hw::VFS_device {
 public:
   /** Constructor and VirtioFS driver factory */
   VirtioFS(hw::PCI_Device& d);
+  ~VirtioFS();
+
   static std::unique_ptr<hw::VFS_device> new_instance(hw::PCI_Device& d);
 
   int id() const noexcept override;

@@ -84,7 +84,7 @@ typedef struct __attribute__((packed)) {
 class VirtQueue {
 public:
   VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
-  ~VirtQueue();
+  virtual ~VirtQueue();
 
   /** Interface methods for virtqueues */
   virtual void enqueue(VirtTokens& tokens) = 0;
@@ -117,8 +117,8 @@ class InorderQueue: public VirtQueue {
 public:
   InorderQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
 
-  void enqueue(VirtTokens& tokens);
-  VirtTokens dequeue(uint32_t &device_written_len);
+  void enqueue(VirtTokens& tokens) override;
+  VirtTokens dequeue(uint32_t &device_written_len) override;
   uint16_t free_desc_space() const override { return _free_descs; }
 private:
   uint16_t _free_descs;
@@ -161,7 +161,6 @@ private:
   std::unique_ptr<VirtQueue> _vq;
 };
 
+class HybrQueue {};
 
-
-// class HybrQueue {};
 #endif
