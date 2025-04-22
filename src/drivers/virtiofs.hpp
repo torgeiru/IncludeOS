@@ -6,9 +6,10 @@
 #include <hw/vfs_device.hpp>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
+#include <virtio/virtio_queue.hpp>
 
-// #define VIRTIO_FS_F_NOTIFICATION (1ULL << 0)
-#define REQUIRED_VFS_FEATS 0ULL
+#define VIRTIO_FS_F_NOTIFICATION (1ULL << 0)
+#define REQUIRED_VFS_FEATS (VIRTIO_FS_F_NOTIFICATION)
 
 class VirtioFS : public Virtio, public hw::VFS_device {
 public:
@@ -33,6 +34,9 @@ public:
   void rmdir() override;
 
 private:
+  /* VirtQueues */
+
+  /* Other information */
   int _id;
 };
 

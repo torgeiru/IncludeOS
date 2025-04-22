@@ -5,11 +5,14 @@
 #include <hw/pci_manager.hpp>
 #include <info>
 
-VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 111) {
+VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
   static int id_count = 0;
   _id = id_count++;
 
-  os::panic("Panicking for no reason!");
+  /* Checking for the existence of different kinds of queues */
+  auto& cfg = common_cfg();
+
+  INFO("VirtioFS", "Device initialization complete!");
 }
 
 /** Factory method used to create VirtioFS driver object */

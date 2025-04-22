@@ -13,8 +13,6 @@ using util::bits::is_aligned;
 VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
 : _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id), _last_used_idx(0)
 {
-  INFO("VirtQueue", "Setting up a virtqueue w id %d", vqueue_id);
-
   /* Selecting specific virtqueue */
   auto& cfg = _virtio_dev.common_cfg();
   cfg.queue_select = vqueue_id;

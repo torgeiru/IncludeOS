@@ -20,7 +20,7 @@ _tx(*this, 1, true)
   static int id_count;
   _id = id_count++;
 
-  /* Setting up msix vector */
+  /* Setting up interrupt logic when receiving messages! */
   auto event_num = Events::get().subscribe(nullptr);
   Events::get().subscribe(event_num, {_rx, &RecvQueue::recv});
   d.setup_msix_vector(0, IRQ_BASE + event_num);
