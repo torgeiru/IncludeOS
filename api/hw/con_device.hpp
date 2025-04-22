@@ -17,8 +17,9 @@ namespace hw {
     /** Method to get the name of the device */
     virtual std::string device_name() const override = 0;
   
-    /** Methods for IO */
+    /** Methods for blocking IO */
     virtual void send(std::string& message) = 0;
+    virtual std::string recv() = 0;
 
     /** Method used to deactivate device */
     void deactivate() override {}

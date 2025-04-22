@@ -100,72 +100,73 @@ typedef struct __attribute__((packed)) {
   Virtio control plane implementation 
 */
 class Virtio {
-public:
-  Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats, uint16_t req_msix_count);
-
-  /** Setting driver ok bit within device status */
-  void set_driver_ok_bit();
-
-  /** Modifying the common configuration */
-  inline volatile virtio_pci_common_cfg& common_cfg() { return *_common_cfg; }
-
-  /** Queue notification information */
-  inline uint32_t notify_off_multiplier() const { return _notify_off_multiplier; }
-  inline uint8_t *notify_region() const { return _notify_region; }
-
-  inline uint16_t msix_vector_count() const { return _msix_vector_count; }
+  public:
+    Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats, uint16_t req_msix_count);
+    
+    /** Setting driver ok bit within device status */
+    void set_driver_ok_bit();
+    
+    /** Modifying the device configuration */
+    inline volatile virtio_pci_common_cfg& common_cfg() { return *_common_cfg; }
+    inline uint64_t specific_cfg() { return _specific_cfg; }
+    
+    /** Queue notification information */
+    inline uint32_t notify_off_multiplier() const { return _notify_off_multiplier; }
+    inline uint8_t *notify_region() const { return _notify_region; }
+    
+    inline uint16_t msix_vector_count() const { return _msix_vector_count; }
+      
+    /** Negotiated features */
+    inline bool in_order() const { return _in_order; }
+    inline bool indirect() const { return _indirect; }
+    
+  private:
+    /** Finds the common configuration address */
+    void _find_cap_cfgs();
+    
+    /** Reset the virtio device - depends on find_cap_cfgs */
+    void _reset();
   
-  /** Negotiated features */
-  inline bool in_order() const { return _in_order; }
-  inline bool indirect() const { return _indirect; }
-
-private:
-  /** Finds the common configuration address */
-  void _find_cap_cfgs();
-
-  /** Reset the virtio device - depends on find_cap_cfgs */
-  void _reset();
-
-  /** Setting acknowledgement and driver status bits within device status */
-  void _set_ack_and_driver_bits();
-
-  /** Negotiate supported features with device */
-  bool _negotiate_features();
-
-  /** Panics if there is an assert error (condition is false).
-   *  Unikernel should not continue further because device is a dependency.
-   *  Write failed bit to device status.
-   */
-  void _virtio_panic(bool condition);
-
-  /** Indicate which Virtio version (PCI revision ID) is supported.
-   *  I am currently adding support for modern Virtio (1.3).
-   *  This implementation only drives non-transitional modern Virtio devices.
-   */
-  inline bool _version_supported(uint16_t i) { return i == 1; }
-
-  hw::PCI_Device& _pcidev;
-  uint16_t _msix_vector_count;
-
-  /* Negotiated features */
-  bool _in_order, _indirect;
-
-  /* Configuration structures */
-  volatile virtio_pci_common_cfg *_common_cfg;
-  volatile uint64_t _specific_cfg; // specific to the device
-
-  /* Offsets and offset multipliers */
-  uint32_t _notify_off_multiplier;
-  uint8_t *_notify_region;
-
-  /* Indicate if virtio device ID is legacy or standard */
-  bool _LEGACY_ID = 0;
-  bool _STD_ID = 0;
-
-  uint64_t _required_feats;
-
-  /* Other identifiers */
-  uint16_t _virtio_device_id = 0;
+    /** Setting acknowledgement and driver status bits within device status */
+    void _set_ack_and_driver_bits();
+    
+    /** Negotiate supported features with device */
+    bool _negotiate_features();
+    
+    /** Panics if there is an assert error (condition is false).
+     *  Unikernel should not continue further because device is a dependency.
+     *  Write failed bit to device status.
+     */
+    void _virtio_panic(bool condition);
+    
+    /** Indicate which Virtio version (PCI revision ID) is supported.
+     *  I am currently adding support for modern Virtio (1.3).
+     *  This implementation only drives non-transitional modern Virtio devices.
+     */
+    inline bool _version_supported(uint16_t i) { return i == 1; }
+    
+    hw::PCI_Device& _pcidev;
+    uint16_t _msix_vector_count;
+    
+    /* Negotiated features */
+    bool _in_order, _indirect;
+    
+    /* Configuration structures */
+    volatile virtio_pci_common_cfg *_common_cfg;
+    volatile uint64_t _specific_cfg; // specific to the device
+    
+    /* Offsets and offset multipliers */
+    uint32_t _notify_off_multiplier;
+    uint8_t *_notify_region;
+    
+    /* Indicate if virtio device ID is legacy or standard */
+    bool _LEGACY_ID = 0;
+    bool _STD_ID = 0;
+    
+    uint64_t _required_feats;
+    
+    /* Other identifiers */
+    uint16_t _virtio_device_id = 0;
 };
 
 #endif

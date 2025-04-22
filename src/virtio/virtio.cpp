@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <info>
 #include <hw/pci.hpp>
-#include <kernel/events.hpp>
 
 Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats, uint16_t req_msix_count) :
   _pcidev(dev),
@@ -11,7 +10,6 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats, uint16_t req_ms
   _virtio_device_id(dev.product_id())
 {
   INFO("Virtio","Attaching to  PCI addr 0x%x",dev.pci_addr());
-  INFO("Virtio", "Device required features are 0x%lx", dev_specific_feats);
 
   /* Initialize msix if interrupts are needed */
   if (req_msix_count > 0) {

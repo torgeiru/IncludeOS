@@ -8,9 +8,10 @@
 VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
   static int id_count = 0;
   _id = id_count++;
+  _cfg = reinterpret_cast<volatile virtio_fs_config*>(specific_cfg());
 
-  /* Checking for the existence of different kinds of queues */
-  auto& cfg = common_cfg();
+  /* Creating a request queue */
+  /* Initializing the FUSE subsystem */
 
   INFO("VirtioFS", "Device initialization complete!");
 }

@@ -5,8 +5,9 @@
 #include <span>
 #include <string>
 #include <stdint.h>
+#include <memory>
 
-#include <delegate>
+// #include <delegate>
 #include <hw/con_device.hpp>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
@@ -14,7 +15,7 @@
 
 #define VIRTIO_CONSOLE_F_SIZE        (1ULL << 0) /* Not supporting this. Test device */
 #define VIRTIO_CONSOLE_F_MULTIPORT   (1ULL << 1) /* Not supporting this. Only as single port*/
-#define VIRTIO_CONSOLE_F_EMERG_WRITE (1ULL << 2) /* Can write to emergency bit */
+#define VIRTIO_CONSOLE_F_EMERG_WRITE (1ULL << 2) /* Can write to emergency bit. Not using it tho. */
 
 #define REQUIRED_VCON_FEATS VIRTIO_CONSOLE_F_EMERG_WRITE
 
@@ -30,10 +31,11 @@ public:
 
   /** Methods controlling IO operation */
   void send(std::string& message) override;
+  std::string recv() override;
 private:
   int _id;
-  RecvQueue _rx;
-  XmitQueue _tx;
+  std::unique_ptr<VirtQueue> _rx;
+  std::unique_ptr<VirtQueue> _tx;
 };
 
 #endif

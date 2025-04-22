@@ -2,14 +2,21 @@
 #ifndef VIRTIO_FILESYSTEM_HPP
 #define VIRTIO_FILESYSTEM_HPP
 
+#include <stdint.h>
 #include <string>
+
 #include <hw/vfs_device.hpp>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
 #include <virtio/virtio_queue.hpp>
 
-#define VIRTIO_FS_F_NOTIFICATION (1ULL << 0)
-#define REQUIRED_VFS_FEATS (VIRTIO_FS_F_NOTIFICATION)
+#define REQUIRED_VFS_FEATS 0ULL
+
+typedef struct { 
+  volatile char tag[36]; 
+  volatile uint32_t num_request_queues; 
+  volatile uint32_t notify_buf_size; 
+} virtio_fs_config; 
 
 class VirtioFS : public Virtio, public hw::VFS_device {
 public:
@@ -34,9 +41,10 @@ public:
   void rmdir() override;
 
 private:
-  /* VirtQueues */
+  /*  */
 
-  /* Other information */
+  /* Other stuff */
+  volatile virtio_fs_config *_cfg;
   int _id;
 };
 
