@@ -8,7 +8,6 @@
 VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
   static int id_count = 0;
   _id = id_count++;
-  _cfg = reinterpret_cast<volatile virtio_fs_config*>(specific_cfg());
 
   if (in_order()) {
     INFO2("Queues are in order!");
@@ -22,10 +21,12 @@ VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
     INFO2("Indirect descriptors are not supported!");
   }
 
-  /* Creating a request queue and completing Virtio initialization */
+  os::panic("Failing VirtioFS for whatever reason");
+
+  /* Creating a polling request queue and completing Virtio initialization */
   _req = create_virtqueue(*this, 1, true);
   set_driver_ok_bit();
-  INFO("VirtioFS", "Virtio subsystem initialization complete!");
+  INFO("VirtioFS", "Continue initialization of FUSE subsystem");
 
   /* Sending a FUSE init request to finalize the initialization */
   INFO("VirtioFS", "FUSE subsystem is now initialized!");

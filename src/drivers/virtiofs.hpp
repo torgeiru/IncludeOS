@@ -10,6 +10,9 @@
 #include <virtio/virtio.hpp>
 #include <virtio/virtio_queue.hpp>
 
+#define FUSE_MAJOR_VERSION 7
+#define FUSE_MINOR_VERSION 27
+
 /* Request queue stuff */
 // struct virtio_fs_req { 
 //   // Device-readable part 
@@ -70,7 +73,7 @@
 //   uint32_t flags;         /* Since protocol v7.6 */
 // };
 
-/* Configuration stuff */
+/* Virtio configuration stuff */
 #define REQUIRED_VFS_FEATS 0ULL
 
 typedef struct { 
@@ -103,8 +106,6 @@ public:
 
 private:
   std::unique_ptr<VirtQueue> _req;
-
-  volatile virtio_fs_config *_cfg;
   int _id;
 };
 
