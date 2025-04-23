@@ -270,9 +270,7 @@ VirtTokens UnorderedQueue::dequeue(uint32_t &device_written_len) {
 
 std::unique_ptr<VirtQueue> create_virtqueue(Virtio& d, int vqueue_id, bool use_polling) {
   if (d.in_order()) {
-    INFO2("Creating a in order virtqueue!");
     return std::make_unique<InorderQueue>(d, vqueue_id, use_polling);
   }
-  INFO2("Creating an unordered virtqueue!");
   return std::make_unique<UnorderedQueue>(d, vqueue_id, use_polling);
 }

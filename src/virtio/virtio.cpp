@@ -98,7 +98,7 @@ void Virtio::_find_cap_cfgs() {
       uint64_t bar_region = static_cast<uint64_t>(bar_value & ~0xf);
       uint64_t bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
 
-      /* Check if 64 bit bar. TODO: Reuse existing code */
+      /* Check if 64 bit bar */
       if (cap_len > VIRTIO_PCI_NOT_CAP_LEN) {
         uint64_t bar_hi    = static_cast<uint64_t>(_pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2)));
         uint64_t baroff_hi = static_cast<uint64_t>(_pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64));

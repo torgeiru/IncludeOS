@@ -10,6 +10,67 @@
 #include <virtio/virtio.hpp>
 #include <virtio/virtio_queue.hpp>
 
+/* Request queue stuff */
+// struct virtio_fs_req { 
+//   // Device-readable part 
+//   struct fuse_in_header in; 
+//   u8 datain[]; 
+// 
+//   // Device-writable part 
+//   struct fuse_out_header out; 
+//   u8 dataout[]; 
+// };
+
+// struct virtio_fs_read_req { 
+//   // Device-readable part 
+//   struct fuse_in_header in; 
+//   union { 
+//           struct fuse_read_in readin; 
+//           u8 datain[sizeof(struct fuse_read_in)]; 
+//   }; 
+// 
+//   // Device-writable part 
+//   struct fuse_out_header out; 
+//   u8 dataout[out.len - sizeof(struct fuse_out_header)]; 
+// };
+
+// struct fuse_in_header {
+//   uint32_t len;       /* Total size of the data,
+//                          including this header */
+//   uint32_t opcode;    /* The kind of operation (see below) */
+//   uint64_t unique;    /* A unique identifier for this request */
+//   uint64_t nodeid;    /* ID of the filesystem object
+//                          being operated on */
+//   uint32_t uid;       /* UID of the requesting process */
+//   uint32_t gid;       /* GID of the requesting process */
+//   uint32_t pid;       /* PID of the requesting process */
+//   uint32_t padding;
+// };
+
+// struct fuse_out_header {
+//   uint32_t len;       /* Total size of data written to
+//                          the file descriptor */
+//   int32_t  error;     /* Any error that occurred (0 if none) */
+//   uint64_t unique;    /* The value from the
+//                          corresponding request */
+// };
+
+// struct fuse_out_header {
+//   uint32_t len;       /* Total size of data written to
+//                          the file descriptor */
+//   int32_t  error;     /* Any error that occurred (0 if none) */
+//   uint64_t unique;    /* The value from the
+//                          corresponding request */
+// };
+
+// struct fuse_init_in {
+//   uint32_t major;
+//   uint32_t minor;
+//   uint32_t max_readahead; /* Since protocol v7.6 */
+//   uint32_t flags;         /* Since protocol v7.6 */
+// };
+
+/* Configuration stuff */
 #define REQUIRED_VFS_FEATS 0ULL
 
 typedef struct { 
@@ -41,9 +102,8 @@ public:
   void rmdir() override;
 
 private:
-  /*  */
+  std::unique_ptr<VirtQueue> _req;
 
-  /* Other stuff */
   volatile virtio_fs_config *_cfg;
   int _id;
 };

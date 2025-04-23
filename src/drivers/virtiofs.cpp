@@ -10,10 +10,25 @@ VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
   _id = id_count++;
   _cfg = reinterpret_cast<volatile virtio_fs_config*>(specific_cfg());
 
-  /* Creating a request queue */
-  /* Initializing the FUSE subsystem */
+  if (in_order()) {
+    INFO2("Queues are in order!");
+  } else {
+    INFO2("Queues are unordered!");
+  }
 
-  INFO("VirtioFS", "Device initialization complete!");
+  if (indirect()) {
+    INFO2("Supports indirect descriptors!");
+  } else {
+    INFO2("Indirect descriptors are not supported!");
+  }
+
+  /* Creating a request queue and completing Virtio initialization */
+  _req = create_virtqueue(*this, 1, true);
+  set_driver_ok_bit();
+  INFO("VirtioFS", "Virtio subsystem initialization complete!");
+
+  /* Sending a FUSE init request to finalize the initialization */
+  INFO("VirtioFS", "FUSE subsystem is now initialized!");
 }
 
 /** Factory method used to create VirtioFS driver object */

@@ -49,16 +49,14 @@ void VirtioCon::send(std::string& message) {
   if (_tx->free_desc_space() == 0) return;
 
   /* Deep copy message */
-  size_t message_len = message.length() + 1;
-  uint8_t *c_message = reinterpret_cast<uint8_t*>(calloc(1, message_len));
+  uint8_t *c_message = reinterpret_cast<uint8_t*>(calloc(1, message.length() + 1));
   Expects(c_message != NULL);
-  memcpy(c_message, message.data(), message_len);
+  memcpy(c_message, message.data(), message.length());
 
   /* Send copied message over Virtio */
   VirtTokens out_tokens;
   out_tokens.reserve(1);
-  out_tokens.emplace_back(0, c_message, message_len);
-  
+  out_tokens.emplace_back(0, c_message, message.length() + 1);
   _tx->enqueue(out_tokens);
   _tx->kick();
 
@@ -82,7 +80,7 @@ std::string VirtioCon::recv() {
   token.buffer.data()[4095] = 0;
   std::string msg(reinterpret_cast<char*>(token.buffer.data()));
 
-  /* Null data, enqueue and kick */
+  /* Null data, enqueue token again and kick */
   memset(token.buffer.data(), 0, token.buffer.size());
   _rx->enqueue(tokens);
   _rx->kick();
