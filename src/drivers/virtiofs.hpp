@@ -14,6 +14,28 @@
 #define FUSE_MINOR_VERSION_MIN 27
 #define FUSE_MINOR_VERSION_MAX 38
 
+struct fuse_in_header {
+  uint32_t len;       /* Total size of the data, including this header */
+  uint32_t opcode;    /* The kind of operation (see below) */
+  uint64_t unique;    /* A unique identifier for this request */
+  uint64_t nodeid;    /* ID of the filesystem object being operated on */
+  uint32_t uid;       /* UID of the requesting process */
+  uint32_t gid;       /* GID of the requesting process */
+  uint32_t pid;       /* PID of the requesting process */
+  uint32_t padding;
+};
+
+struct fuse_out_header {
+  uint32_t len;       /* Total size of data written to the file descriptor */
+  int32_t  error;     /* Any error that occurred (0 if none) */
+  uint64_t unique;    /* The value from the corresponding request */
+};
+
+struct virtio_fs_init_req {};
+struct virtio_fs_open_req {};
+struct virtio_fs_read_req {};
+struct virtio_fs_close_req {};
+
 /* Request queue stuff */
 // struct virtio_fs_req { 
 //   // Device-readable part 
@@ -36,35 +58,6 @@
 //   // Device-writable part 
 //   struct fuse_out_header out; 
 //   u8 dataout[out.len - sizeof(struct fuse_out_header)]; 
-// };
-
-// struct fuse_in_header {
-//   uint32_t len;       /* Total size of the data,
-//                          including this header */
-//   uint32_t opcode;    /* The kind of operation (see below) */
-//   uint64_t unique;    /* A unique identifier for this request */
-//   uint64_t nodeid;    /* ID of the filesystem object
-//                          being operated on */
-//   uint32_t uid;       /* UID of the requesting process */
-//   uint32_t gid;       /* GID of the requesting process */
-//   uint32_t pid;       /* PID of the requesting process */
-//   uint32_t padding;
-// };
-
-// struct fuse_out_header {
-//   uint32_t len;       /* Total size of data written to
-//                          the file descriptor */
-//   int32_t  error;     /* Any error that occurred (0 if none) */
-//   uint64_t unique;    /* The value from the
-//                          corresponding request */
-// };
-
-// struct fuse_out_header {
-//   uint32_t len;       /* Total size of data written to
-//                          the file descriptor */
-//   int32_t  error;     /* Any error that occurred (0 if none) */
-//   uint64_t unique;    /* The value from the
-//                          corresponding request */
 // };
 
 // struct fuse_init_in {

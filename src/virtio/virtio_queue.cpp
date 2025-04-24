@@ -19,7 +19,9 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   /* Reading queue size for common cfg space */
   uint16_t queue_size = cfg.queue_size;
   _QUEUE_SIZE = queue_size;
-  
+  Expects(_QUEUE_SIZE != 0);
+  Expects((_QUEUE_SIZE & (_QUEUE_SIZE - 1)) == 0)
+
   /* Calculating notify address */
   _avail_notify = reinterpret_cast<uint16_t*>(_virtio_dev.notify_region() + (cfg.queue_notify_off * _virtio_dev.notify_off_multiplier()));
   
@@ -145,7 +147,7 @@ VirtTokens InorderQueue::dequeue(uint32_t &device_written_len) {
     );
   
     /* Exit loop if last descriptor */
-    if (cur_desc.flags & VIRTQ_DESC_F_NEXT) {
+    if ((cur_desc.flags & VIRTQ_DESC_F_NEXT) == 0) {
       break;
     }
   
