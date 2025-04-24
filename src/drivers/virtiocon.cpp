@@ -33,8 +33,8 @@ VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS, 0)
   tokens.emplace_back(VIRTQ_DESC_F_WRITE, buffer, 4096);
   _rx->enqueue(tokens);
 
-  INFO("VirtioCon", "Console device initialization successfully!");
   set_driver_ok_bit();
+  INFO("VirtioCon", "Console device initialization successfully!");
 }
 
 std::unique_ptr<hw::CON_device> VirtioCon::new_instance(hw::PCI_Device& d) {
@@ -77,7 +77,7 @@ std::string VirtioCon::recv() {
   uint32_t device_written_len;
   VirtTokens tokens = _rx->dequeue(device_written_len);
   VirtToken& token = tokens[0];
-  token.buffer.data()[4095] = 0;
+  token.buffer.data()[token.buffer.size() - 1] = 0;
   std::string msg(reinterpret_cast<char*>(token.buffer.data()));
 
   /* Null data, enqueue token again and kick */

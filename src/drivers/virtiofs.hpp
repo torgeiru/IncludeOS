@@ -11,7 +11,8 @@
 #include <virtio/virtio_queue.hpp>
 
 #define FUSE_MAJOR_VERSION 7
-#define FUSE_MINOR_VERSION 27
+#define FUSE_MINOR_VERSION_MIN 27
+#define FUSE_MINOR_VERSION_MAX 38
 
 /* Request queue stuff */
 // struct virtio_fs_req { 
@@ -71,6 +72,33 @@
 //   uint32_t minor;
 //   uint32_t max_readahead; /* Since protocol v7.6 */
 //   uint32_t flags;         /* Since protocol v7.6 */
+// };
+
+
+// struct fuse_init_in {
+// 	uint32_t	major;
+// 	uint32_t	minor;
+// 	uint32_t	max_readahead;
+// 	uint32_t	flags;
+// 	uint32_t	flags2;
+// 	uint32_t	unused[11];
+// };
+
+
+// struct fuse_init_out {
+// 	uint32_t	major;
+// 	uint32_t	minor;
+// 	uint32_t	max_readahead;
+// 	uint32_t	flags;
+// 	uint16_t	max_background;
+// 	uint16_t	congestion_threshold;
+// 	uint32_t	max_write;
+// 	uint32_t	time_gran;
+// 	uint16_t	max_pages;
+// 	uint16_t	map_alignment;
+// 	uint32_t	flags2;
+// 	uint32_t	max_stack_depth;
+// 	uint32_t	unused[6];
 // };
 
 /* Virtio configuration stuff */
