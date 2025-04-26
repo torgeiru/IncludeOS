@@ -9,31 +9,22 @@
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
 #include <virtio/virtio_queue.hpp>
+#include <fuse/fuse.hpp>
+
+#define FUSE_REQ_BUF_GRANULARITY 4096
 
 #define FUSE_MAJOR_VERSION 7
 #define FUSE_MINOR_VERSION_MIN 27
 #define FUSE_MINOR_VERSION_MAX 38
 
-struct fuse_in_header {
-  uint32_t len;       /* Total size of the data, including this header */
-  uint32_t opcode;    /* The kind of operation (see below) */
-  uint64_t unique;    /* A unique identifier for this request */
-  uint64_t nodeid;    /* ID of the filesystem object being operated on */
-  uint32_t uid;       /* UID of the requesting process */
-  uint32_t gid;       /* GID of the requesting process */
-  uint32_t pid;       /* PID of the requesting process */
-  uint32_t padding;
-};
-
-struct fuse_out_header {
-  uint32_t len;       /* Total size of data written to the file descriptor */
-  int32_t  error;     /* Any error that occurred (0 if none) */
-  uint64_t unique;    /* The value from the corresponding request */
-};
-
 struct virtio_fs_init_req {};
 struct virtio_fs_open_req {};
 struct virtio_fs_read_req {};
+struct virtio_fs_write_req {};
+struct virtio_fs_lseek_req {};
+struct virtio_fs_setupmapping_req {};
+struct virtio_fs_removemapping_req {};
+struct virtio_fs_sync_req {};
 struct virtio_fs_close_req {};
 
 /* Request queue stuff */
@@ -68,30 +59,17 @@ struct virtio_fs_close_req {};
 // };
 
 
-// struct fuse_init_in {
-// 	uint32_t	major;
-// 	uint32_t	minor;
-// 	uint32_t	max_readahead;
-// 	uint32_t	flags;
-// 	uint32_t	flags2;
-// 	uint32_t	unused[11];
-// };
-
-
 // struct fuse_init_out {
-// 	uint32_t	major;
-// 	uint32_t	minor;
-// 	uint32_t	max_readahead;
-// 	uint32_t	flags;
-// 	uint16_t	max_background;
-// 	uint16_t	congestion_threshold;
-// 	uint32_t	max_write;
-// 	uint32_t	time_gran;
-// 	uint16_t	max_pages;
-// 	uint16_t	map_alignment;
-// 	uint32_t	flags2;
-// 	uint32_t	max_stack_depth;
-// 	uint32_t	unused[6];
+//     uint32_t major;
+//     uint32_t minor;
+//     uint32_t max_readahead;   /* Since v7.6 */
+//     uint32_t flags;           /* Since v7.6; some flags bits
+//                                  were introduced later */
+//     uint16_t max_background;  /* Since v7.13 */
+//     uint16_t congestion_threshold;  /* Since v7.13 */
+//     uint32_t max_write;       /* Since v7.5 */
+//     uint32_t time_gran;       /* Since v7.6 */
+//     uint32_t unused[9];
 // };
 
 /* Virtio configuration stuff */

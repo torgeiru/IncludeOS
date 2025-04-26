@@ -20,7 +20,7 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   uint16_t queue_size = cfg.queue_size;
   _QUEUE_SIZE = queue_size;
   Expects(_QUEUE_SIZE != 0);
-  Expects((_QUEUE_SIZE & (_QUEUE_SIZE - 1)) == 0)
+  Expects((_QUEUE_SIZE & (_QUEUE_SIZE - 1)) == 0);
 
   /* Calculating notify address */
   _avail_notify = reinterpret_cast<uint16_t*>(_virtio_dev.notify_region() + (cfg.queue_notify_off * _virtio_dev.notify_off_multiplier()));
@@ -183,7 +183,8 @@ UnorderedQueue::UnorderedQueue(Virtio& virtio_dev, int vqueue_id, bool use_polli
     _free_list.push_back(i);
   }
 }
-  
+
+/* Todo: Save a copied version of tokens that gets returned later */
 void UnorderedQueue::enqueue(VirtTokens& tokens) {
   /* Checking for necessary available free descriptors */
   size_t token_count = tokens.size();

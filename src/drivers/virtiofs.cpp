@@ -21,8 +21,6 @@ VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
     INFO2("Indirect descriptors are not supported!");
   }
 
-  os::panic("Failing VirtioFS for whatever reason");
-
   /* Creating a polling request queue and completing Virtio initialization */
   _req = create_virtqueue(*this, 1, true);
   set_driver_ok_bit();
