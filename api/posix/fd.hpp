@@ -63,7 +63,7 @@ public:
   virtual int     shutdown(int) { return -1; }
 
   // file-related
-  virtual int   fchmod(turn -1; }
+  virtual int   fchmod(mode_t) { return -1; }
   virtual int   fchmodat(const char *, mode_t, int) { return -1; }
   virtual long  fstat(struct stat *) { return -1; }
   virtual int   fstatat(const char *, struct stat *, int) { return -1; }

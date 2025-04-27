@@ -105,7 +105,7 @@ enum fuse_opcode {
 #define FUSE_NO_EXPORT_SUPPORT	(1ULL << 38)
 #define FUSE_HAS_RESEND		(1ULL << 39)
 
-typedef struct {
+typedef struct fuse_in_header {
   uint32_t len;       /* Total size of the data, including this header */
   uint32_t opcode;    /* The kind of operation (see below) */
   uint64_t unique;    /* A unique identifier for this request */
@@ -116,32 +116,31 @@ typedef struct {
   uint32_t padding;
 } fuse_in_header;
 
-typedef struct {
+typedef struct fuse_out_header {
   uint32_t len;       /* Total size of data written to the file descriptor */
   int32_t  error;     /* Any error that occurred (0 if none) */
   uint64_t unique;    /* The value from the corresponding request */
 } fuse_out_header;
 
-struct fuse_init_in {
-	uint32_t	major;
-	uint32_t	minor;
-	uint32_t	max_readahead;
-	uint32_t	flags;
-	uint32_t	flags2;
-	uint32_t	unused[11];
-};
+typedef struct fuse_init_in {
+	uint32_t major;
+	uint32_t minor;
+	uint32_t max_readahead;
+	uint32_t flags;
+	uint32_t flags2;
+	uint32_t unused[11];
+} fuse_init_in;
 
-struct fuse_init_out {
+typedef struct fuse_init_out {
   uint32_t major;
   uint32_t minor;
-  uint32_t max_readahead;   /* Since v7.6 */
-  uint32_t flags;           /* Since v7.6; some flags bits
-                                 were introduced later */
-  uint16_t max_background;  /* Since v7.13 */
-  uint16_t congestion_threshold;  /* Since v7.13 */
-  uint32_t max_write;       /* Since v7.5 */
-  uint32_t time_gran;       /* Since v7.6 */
+  uint32_t max_readahead;        /* Since v7.6 */
+  uint32_t flags;                /* Since v7.6; some flags bits were introduced later */
+  uint16_t max_background;       /* Since v7.13 */
+  uint16_t congestion_threshold; /* Since v7.13 */
+  uint32_t max_write;            /* Since v7.5 */
+  uint32_t time_gran;            /* Since v7.6 */
   uint32_t unused[9];
-};
+} fuse_init_out;
 
 #endif // FILESYSTEM_IN_USERPSACE_HPP

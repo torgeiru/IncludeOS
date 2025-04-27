@@ -1,8 +1,7 @@
 #include "virtiofs.hpp"
 
-#include <string>
-#include <string.h>
 #include <sys/types.h>
+#include <string>
 
 #include <virtio/virtio_queue.hpp>
 #include <hw/vfs_device.hpp>
@@ -21,14 +20,14 @@ VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
   INFO("VirtioFS", "Continue initialization of FUSE subsystem");
 
   /* Sending a FUSE init request to finalize the initialization */
-  /* Investigate whether or not the stack is identity mapped*/
-  virtio_fs_init_req init_req;
-  virtio_fs_init_res init_res;
+  virtio_fs_init_req init_req {};
+  virtio_fs_init_res init_res {};
 
-  memset(&init_req, 0, sizeof(virtio_fs_init_req));
-  memset(&init_res, 0, sizeof(virtio_fs_init_res));
+  INFO("VirtioFS", "The init request is located at virtual address: 0x%lx", &init_req);
+  INFO("VirtioFS", "The init respons is located at virtual address: 0x%lx", &init_res);
 
   INFO("VirtioFS", "FUSE subsystem is now initialized!");
+  os::panic("Panicking for no good reason!");
 }
 
 /** Factory method used to create VirtioFS driver object */
@@ -45,17 +44,9 @@ std::string VirtioFS::device_name() const {
   return "VirtioFS" + std::to_string(_id);
 }
 
-int open(const char *pathname, int flags, mode_t mode) {
-
-}
-
-ssize_t read(int fd, void *buf, size_t count) {
-
-}
-
-int close(int fd) {
-
-}
+int VirtioFS::open(const char *pathname, int flags, mode_t mode) { return -1; }
+ssize_t VirtioFS::read(int fd, void *buf, size_t count) { return -1; }
+int VirtioFS::close(int fd) { return -1; }
 
 __attribute__((constructor))
 void autoreg_virtiofs() {

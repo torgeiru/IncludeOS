@@ -3,6 +3,7 @@
 #define VIRTIO_QUEUE_HPP
 
 #include <virtio/virtio.hpp>
+#include <info>
 
 #include <stddef.h>
 #include <stdint.h>
@@ -20,7 +21,14 @@ typedef struct VirtToken {
     uint16_t flag, 
     uint8_t *buff, 
     size_t bufl
-  ) : flags(flag), buffer(buff, bufl) {}
+  ) : flags(flag), buffer(buff, bufl) {
+    INFO2("Constructing a VirtToken!");
+  }
+
+  VirtToken(const VirtToken &token) : flags(token.flags), buffer(token.buffer.data(), token.buffer.size())
+  {
+    INFO2("Called copy constructor for VirtToken!");
+  }
 } VirtToken;
   
 using std::vector;

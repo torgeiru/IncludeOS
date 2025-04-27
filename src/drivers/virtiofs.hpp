@@ -2,9 +2,9 @@
 #ifndef VIRTIO_FILESYSTEM_HPP
 #define VIRTIO_FILESYSTEM_HPP
 
+#include <sys/types.h>
 #include <stdint.h>
 #include <string>
-#include <sys/types.h>
 
 #include <hw/vfs_device.hpp>
 #include <hw/pci_device.hpp>
@@ -17,6 +17,7 @@
 #define FUSE_MAJOR_VERSION 7
 #define FUSE_MINOR_VERSION_MIN 36
 #define FUSE_MINOR_VERSION_MAX 38 // VirtioFSD specifies this as max I believe
+// #define MAKE_VERSION
 
 /* Readable init part */
 typedef struct {
