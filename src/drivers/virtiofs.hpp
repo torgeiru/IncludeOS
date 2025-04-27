@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <sys/types.h>
 
 #include <hw/vfs_device.hpp>
 #include <hw/pci_device.hpp>
@@ -14,63 +15,20 @@
 #define FUSE_REQ_BUF_GRANULARITY 4096
 
 #define FUSE_MAJOR_VERSION 7
-#define FUSE_MINOR_VERSION_MIN 27
-#define FUSE_MINOR_VERSION_MAX 38
+#define FUSE_MINOR_VERSION_MIN 36
+#define FUSE_MINOR_VERSION_MAX 38 // VirtioFSD specifies this as max I believe
 
-struct virtio_fs_init_req {};
-struct virtio_fs_open_req {};
-struct virtio_fs_read_req {};
-struct virtio_fs_write_req {};
-struct virtio_fs_lseek_req {};
-struct virtio_fs_setupmapping_req {};
-struct virtio_fs_removemapping_req {};
-struct virtio_fs_sync_req {};
-struct virtio_fs_close_req {};
+/* Readable init part */
+typedef struct {
+  fuse_in_header in_header;
+  fuse_init_in init_in;
+} virtio_fs_init_req;
 
-/* Request queue stuff */
-// struct virtio_fs_req { 
-//   // Device-readable part 
-//   struct fuse_in_header in; 
-//   u8 datain[]; 
-// 
-//   // Device-writable part 
-//   struct fuse_out_header out; 
-//   u8 dataout[]; 
-// };
-
-// struct virtio_fs_read_req { 
-//   // Device-readable part 
-//   struct fuse_in_header in; 
-//   union { 
-//           struct fuse_read_in readin; 
-//           u8 datain[sizeof(struct fuse_read_in)]; 
-//   }; 
-// 
-//   // Device-writable part 
-//   struct fuse_out_header out; 
-//   u8 dataout[out.len - sizeof(struct fuse_out_header)]; 
-// };
-
-// struct fuse_init_in {
-//   uint32_t major;
-//   uint32_t minor;
-//   uint32_t max_readahead; /* Since protocol v7.6 */
-//   uint32_t flags;         /* Since protocol v7.6 */
-// };
-
-
-// struct fuse_init_out {
-//     uint32_t major;
-//     uint32_t minor;
-//     uint32_t max_readahead;   /* Since v7.6 */
-//     uint32_t flags;           /* Since v7.6; some flags bits
-//                                  were introduced later */
-//     uint16_t max_background;  /* Since v7.13 */
-//     uint16_t congestion_threshold;  /* Since v7.13 */
-//     uint32_t max_write;       /* Since v7.5 */
-//     uint32_t time_gran;       /* Since v7.6 */
-//     uint32_t unused[9];
-// };
+/* Writable init part */
+typedef struct {
+  fuse_out_header out_header;
+  fuse_init_out init_out; // out.len - sizeof(fuse_out_header)
+} virtio_fs_init_res;
 
 /* Virtio configuration stuff */
 #define REQUIRED_VFS_FEATS 0ULL
@@ -95,13 +53,9 @@ public:
   std::string device_name() const override;
 
   /** VFS operations overriden with mock functions for now */
-  void create_file() override;
-  void read() override;
-  void write() override;
-  void rename() override;
-  void delete_file() override;
-  void mkdir() override;
-  void rmdir() override;
+  int open(const char *pathname, int flags, mode_t mode) override;
+  ssize_t read(int fd, void *buf, size_t count) override;
+  int close(int fd) override;
 
 private:
   std::unique_ptr<VirtQueue> _req;

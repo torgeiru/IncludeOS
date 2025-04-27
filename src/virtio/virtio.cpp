@@ -31,7 +31,7 @@ Virtio::Virtio(hw::PCI_Device& dev, uint64_t dev_specific_feats, uint16_t req_ms
   }
 
   /*
-    Match vendor ID and Device ID : §4.1.2.2
+    Match vendor ID and Device ID in accordance with §4.1.2.2
   */
   bool vendor_is_virtio = (dev.vendor_id() == PCI::VENDOR_VIRTIO);
   CHECK(vendor_is_virtio, "Vendor ID is VIRTIO");

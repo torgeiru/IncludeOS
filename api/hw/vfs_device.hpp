@@ -2,6 +2,7 @@
 #ifndef VFS_DEVICE_HPP
 #define VFS_DEVICE_HPP
 
+#include <sys/types.h>
 #include <string>
 #include "device.hpp"
 
@@ -21,26 +22,14 @@ namespace hw {
     /** Method to get the device's identifier */
     virtual int id() const noexcept = 0;
 
-    /** Method for creating a file */
-    virtual void create_file() = 0;
+    /** Method for creating a file handle */
+    virtual int open(const char *pathname, int flags, mode_t mode) = 0;
 
-    /** Method for reading from VFS */
-    virtual void read() = 0;
+    /** Method for reading from a file handle */
+    virtual ssize_t read(int fd, void *buf, size_t count) = 0;
 
-    /** Method for writing to VFS */
-    virtual void write() = 0;
-
-    /** Method for renaming a file or directory */
-    virtual void rename() = 0;
-
-    /** Method for deleting a file */
-    virtual void delete_file() = 0;
-
-    /** Method for making a directory */
-    virtual void mkdir() = 0;
-
-    /** Method for deleting a directory */
-    virtual void rmdir() = 0;
+    /** Method for closing a file handle  */
+    virtual int close(int fd) = 0;
   };
 }
 

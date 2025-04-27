@@ -1,6 +1,10 @@
 #include "virtiofs.hpp"
 
 #include <string>
+#include <string.h>
+#include <sys/types.h>
+
+#include <virtio/virtio_queue.hpp>
 #include <hw/vfs_device.hpp>
 #include <hw/pci_manager.hpp>
 #include <info>
@@ -8,18 +12,8 @@
 VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
   static int id_count = 0;
   _id = id_count++;
-
-  if (in_order()) {
-    INFO2("Queues are in order!");
-  } else {
-    INFO2("Queues are unordered!");
-  }
-
-  if (indirect()) {
-    INFO2("Supports indirect descriptors!");
-  } else {
-    INFO2("Indirect descriptors are not supported!");
-  }
+  CHECK(not in_order(), "Not in order check");
+  Expects(not in_order());
 
   /* Creating a polling request queue and completing Virtio initialization */
   _req = create_virtqueue(*this, 1, true);
@@ -27,6 +21,13 @@ VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
   INFO("VirtioFS", "Continue initialization of FUSE subsystem");
 
   /* Sending a FUSE init request to finalize the initialization */
+  /* Investigate whether or not the stack is identity mapped*/
+  virtio_fs_init_req init_req;
+  virtio_fs_init_res init_res;
+
+  memset(&init_req, 0, sizeof(virtio_fs_init_req));
+  memset(&init_res, 0, sizeof(virtio_fs_init_res));
+
   INFO("VirtioFS", "FUSE subsystem is now initialized!");
 }
 
@@ -44,33 +45,16 @@ std::string VirtioFS::device_name() const {
   return "VirtioFS" + std::to_string(_id);
 }
 
-/** Just a bunch of mock functions for now... */
-void VirtioFS::create_file() {
-  INFO("VirtioFS", "Mock create file");
+int open(const char *pathname, int flags, mode_t mode) {
+
 }
 
-void VirtioFS::read() {
-  INFO("VirtioFS", "Mock read from file");
+ssize_t read(int fd, void *buf, size_t count) {
+
 }
 
-void VirtioFS::write() {
-  INFO("VirtioFS", "Mock write to file");
-}
+int close(int fd) {
 
-void VirtioFS::rename() {
-  INFO("VirtioFS", "Mock rename");
-}
-
-void VirtioFS::delete_file() {
-  INFO("VirtioFS", "Mock delete file");
-}
-
-void VirtioFS::mkdir() {
-  INFO("VirtioFS", "Mock mkdir");
-}
-
-void VirtioFS::rmdir() {
-  INFO("VirtioFS", "Mock rmdir");
 }
 
 __attribute__((constructor))
