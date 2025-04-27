@@ -1,9 +1,10 @@
 #include "virtiocon.hpp"
 
 #include <span>
+#include <algorithm>
 #include <memory>
 #include <vector>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string>
 
 #include <hw/con_device.hpp>
@@ -51,7 +52,7 @@ void VirtioCon::send(std::string& message) {
   /* Deep copy message */
   uint8_t *c_message = reinterpret_cast<uint8_t*>(calloc(1, message.length() + 1));
   Expects(c_message != NULL);
-  memcpy(c_message, message.data(), message.length());
+  std::memcpy(c_message, message.data(), message.length());
 
   /* Send copied message over Virtio */
   VirtTokens out_tokens;
@@ -71,17 +72,18 @@ void VirtioCon::send(std::string& message) {
 }
 
 std::string VirtioCon::recv() {
+  /*TODO: Make this less CPU intensive by slowing down the beyblade */
   while(_rx->has_processed_used());
-  
+
   /* Deep copy a string */
   uint32_t device_written_len;
   VirtTokens tokens = _rx->dequeue(device_written_len);
   VirtToken& token = tokens[0];
-  token.buffer.data()[token.buffer.size() - 1] = 0;
+  token.buffer.last(1).[0] = 0;
   std::string msg(reinterpret_cast<char*>(token.buffer.data()));
 
   /* Null data, enqueue token again and kick */
-  memset(token.buffer.data(), 0, token.buffer.size());
+  std::fill_n(token.buffer.data(), token.buffer.size(), 0);
   _rx->enqueue(tokens);
   _rx->kick();
 

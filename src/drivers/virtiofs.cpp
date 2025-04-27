@@ -20,11 +20,8 @@ VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
   INFO("VirtioFS", "Continue initialization of FUSE subsystem");
 
   /* Sending a FUSE init request to finalize the initialization */
-  virtio_fs_init_req init_req {};
-  virtio_fs_init_res init_res {};
-
-  INFO("VirtioFS", "The init request is located at virtual address: 0x%lx", &init_req);
-  INFO("VirtioFS", "The init respons is located at virtual address: 0x%lx", &init_res);
+  virtio_fs_init_req init_req();
+  virtio_fs_init_res init_res {}; // Zero initialize the response
 
   INFO("VirtioFS", "FUSE subsystem is now initialized!");
   os::panic("Panicking for no good reason!");

@@ -1,6 +1,8 @@
 #ifndef FILESYSTEM_IN_USERSPACE_HPP
 #define FILESYSTEM_IN_USERSPACE_HPP
 
+#include <algorithm>
+
 /* FUSE opcodes copied directly from libfuse */
 enum fuse_opcode {
 	FUSE_LOOKUP		= 1,
@@ -62,7 +64,7 @@ enum fuse_opcode {
 	FUSE_INIT_BSWAP_RESERVED	= 436207616,	/* FUSE_INIT << 24 */
 };
 
-/* Flags copied directly from libfuse */
+/* Main flags */
 #define FUSE_ASYNC_READ		(1 << 0)
 #define FUSE_POSIX_LOCKS	(1 << 1)
 #define FUSE_FILE_OPS		(1 << 2)
@@ -93,9 +95,10 @@ enum fuse_opcode {
 #define FUSE_SUBMOUNTS		(1 << 27)
 #define FUSE_HANDLE_KILLPRIV_V2	(1 << 28)
 #define FUSE_SETXATTR_EXT	(1 << 29)
-#define FUSE_INIT_EXT		(1 << 30)                                     // This is used for signalling the existence of extra flags in the flags2 field
+#define FUSE_INIT_EXT		(1 << 30)
 #define FUSE_INIT_RESERVED	(1 << 31)
-/* bits 32..63 get shifted down 32 bits into the flags2 field */
+
+/* Extra flags */
 #define FUSE_SECURITY_CTX	(1ULL << 32)
 #define FUSE_HAS_INODE_DAX	(1ULL << 33)
 #define FUSE_CREATE_SUPP_GROUP	(1ULL << 34)
@@ -114,6 +117,11 @@ typedef struct fuse_in_header {
   uint32_t gid;       /* GID of the requesting process */
   uint32_t pid;       /* PID of the requesting process */
   uint32_t padding;
+
+  fuse_in_header(uint32_t plen, uint32_t opcod, uint64_t uniqu, uint64_t nodei)
+  : len(sizeof(fuse_in_header) + plen), opcode(opcod), unique(uniqu), nodeid(nodei),
+    uid(0), gid(0), pid(0), padding(0)
+  {}
 } fuse_in_header;
 
 typedef struct fuse_out_header {
@@ -129,9 +137,16 @@ typedef struct fuse_init_in {
 	uint32_t flags;
 	uint32_t flags2;
 	uint32_t unused[11];
+
+  fuse_init_in(uint32_t majo, uint32_t mino) :
+    major(majo), minor(mino), max_readahead(0),
+    flags(FUSE_INIT_EXT), flags2(0)
+  {
+    std::fill_n(unused, sizeof(unused), 0);
+  }
 } fuse_init_in;
 
-typedef struct fuse_init_out {
+typedef struct {
   uint32_t major;
   uint32_t minor;
   uint32_t max_readahead;        /* Since v7.6 */
