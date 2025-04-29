@@ -1,5 +1,6 @@
 #include "virtiofs.hpp"
 
+#include <memory>
 #include <sys/types.h>
 #include <string>
 
@@ -19,27 +20,36 @@ VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
   set_driver_ok_bit();
 
   /* Performing a FUSE negotiation */
-  static uint64_t id;
+  // static uint64_t id;
 
-  virtio_fs_init_req init_req(FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION_MIN, 0, 0);
-  volatile virtio_fs_init_res init_res{}; // Zero initialize the response
+  virtio_fs_init_req *init_req = new virtio_fs_init_req(FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION_MIN, 0, 0);
+  virtio_fs_init_res *init_res = new virtio_fs_init_res;
+
+  INFO("VirtioFS", "Successfully created objects!");
 
   VirtTokens init_req_tokens;
   init_req_tokens.reserve(2);
-  init_req_tokens.emplace_back(VIRTQ_DESC_F_NEXT, reinterpret_cast<uint8_t*>(&init_req), sizeof(init_req));
-  init_req_tokens.emplace_back(VIRTQ_DESC_F_WRITE, reinterpret_cast<uint8_t*>(const_cast<virtio_fs_init_res*>(&init_res)), sizeof(init_res));
+  init_req_tokens.emplace_back(VIRTQ_DESC_F_NEXT, (uint8_t*)init_req, sizeof(init_req));
+  init_req_tokens.emplace_back(VIRTQ_DESC_F_WRITE, (uint8_t*)init_res, sizeof(init_res));
 
-  _req->enqueue(init_req_tokens);
-  _req->kick();
+  // _req->enqueue(init_req_tokens);
+  // _req->kick();
 
-  while(_req->has_processed_used());
-  uint32_t device_written_len;
-  _req->dequeue(device_written_len);
+  // while(_req->has_processed_used());
+  // uint32_t device_written_len;
+  // _req->dequeue(device_written_len);
 
-  INFO2("FUSE major version is %d", init_res.init_out.major);
-  INFO2("FUSE minor version is %d", init_res.init_out.minor);
-  INFO2("Device wrote %d", device_written_len);
-  os::panic("Panicking for no good reason!");
+  delete init_req;
+  delete init_res;
+
+  // INFO2("FUSE major version is %d", init_res.init_out.major);
+  // INFO2("FUSE minor version is %d", init_res.init_out.minor);
+  // INFO2("FUSE congestion threshold is %d", init_res.init_out.congestion_threshold);
+  // INFO2("FUSE max write is %d", init_res.init_out.max_write);
+  // INFO2("FUSE time granularity is %d", init_res.init_out.time_gran);
+  // INFO2("Device wrote %d", device_written_len);
+
+  INFO("VirtioFS", "Device initialization is now complete");
 }
 
 /** Factory method used to create VirtioFS driver object */

@@ -140,7 +140,7 @@ typedef struct __attribute__((packed)) fuse_init_in {
 
   fuse_init_in(uint32_t majo, uint32_t mino) :
     major(majo), minor(mino), max_readahead(0),
-    flags(FUSE_INIT_EXT), flags2(0)
+    flags(FUSE_INIT_EXT | FUSE_SUBMOUNTS), flags2(0)
   {
     std::fill_n(unused, sizeof(unused), 0);
   }
