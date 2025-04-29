@@ -25,6 +25,7 @@ typedef struct VirtToken {
     INFO2("Constructing a VirtToken!");
   }
 
+  /* Used simply for testing C++ NRVO */
   VirtToken(const VirtToken &token) : flags(token.flags), buffer(token.buffer.data(), token.buffer.size())
   {
     INFO2("Called copy constructor for VirtToken!");
@@ -87,7 +88,10 @@ typedef struct __attribute__((packed)) {
 } virtq_used;
   
 #define USED_RING_SIZE(x) (sizeof(virtq_used) + x * sizeof(virtq_used_elem))
-  
+
+/*
+  Beginning ot he Virtio queue implementation. Defines an interface
+ */
 class VirtQueue {
 public:
   VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);

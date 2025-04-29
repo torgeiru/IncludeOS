@@ -17,13 +17,28 @@ VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
   /* Creating a polling request queue and completing Virtio initialization */
   _req = create_virtqueue(*this, 1, true);
   set_driver_ok_bit();
-  INFO("VirtioFS", "Continue initialization of FUSE subsystem");
 
-  /* Sending a FUSE init request to finalize the initialization */
-  virtio_fs_init_req init_req();
-  virtio_fs_init_res init_res {}; // Zero initialize the response
+  /* Performing a FUSE negotiation */
+  static uint64_t id;
 
-  INFO("VirtioFS", "FUSE subsystem is now initialized!");
+  virtio_fs_init_req init_req(FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION_MIN, 0, 0);
+  volatile virtio_fs_init_res init_res{}; // Zero initialize the response
+
+  VirtTokens init_req_tokens;
+  init_req_tokens.reserve(2);
+  init_req_tokens.emplace_back(VIRTQ_DESC_F_NEXT, reinterpret_cast<uint8_t*>(&init_req), sizeof(init_req));
+  init_req_tokens.emplace_back(VIRTQ_DESC_F_WRITE, reinterpret_cast<uint8_t*>(const_cast<virtio_fs_init_res*>(&init_res)), sizeof(init_res));
+
+  _req->enqueue(init_req_tokens);
+  _req->kick();
+
+  while(_req->has_processed_used());
+  uint32_t device_written_len;
+  _req->dequeue(device_written_len);
+
+  INFO2("FUSE major version is %d", init_res.init_out.major);
+  INFO2("FUSE minor version is %d", init_res.init_out.minor);
+  INFO2("Device wrote %d", device_written_len);
   os::panic("Panicking for no good reason!");
 }
 

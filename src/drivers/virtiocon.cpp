@@ -63,7 +63,7 @@ void VirtioCon::send(std::string& message) {
 
   /* Cleaning up the tokens buffer */
   while(_tx->has_processed_used());
-  uint32_t device_written_len;
+  uint32_t device_written_len; // Discarded
   VirtTokens in_tokens = _tx->dequeue(device_written_len);
 
   for (VirtToken& token: in_tokens) {
@@ -79,7 +79,7 @@ std::string VirtioCon::recv() {
   uint32_t device_written_len;
   VirtTokens tokens = _rx->dequeue(device_written_len);
   VirtToken& token = tokens[0];
-  token.buffer.last(1).[0] = 0;
+  token.buffer.last(1)[0] = 0;
   std::string msg(reinterpret_cast<char*>(token.buffer.data()));
 
   /* Null data, enqueue token again and kick */

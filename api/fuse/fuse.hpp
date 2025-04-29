@@ -108,7 +108,7 @@ enum fuse_opcode {
 #define FUSE_NO_EXPORT_SUPPORT	(1ULL << 38)
 #define FUSE_HAS_RESEND		(1ULL << 39)
 
-typedef struct fuse_in_header {
+typedef struct __attribute__((packed)) fuse_in_header {
   uint32_t len;       /* Total size of the data, including this header */
   uint32_t opcode;    /* The kind of operation (see below) */
   uint64_t unique;    /* A unique identifier for this request */
@@ -124,13 +124,13 @@ typedef struct fuse_in_header {
   {}
 } fuse_in_header;
 
-typedef struct fuse_out_header {
+typedef struct __attribute__((packed)) {
   uint32_t len;       /* Total size of data written to the file descriptor */
   int32_t  error;     /* Any error that occurred (0 if none) */
   uint64_t unique;    /* The value from the corresponding request */
 } fuse_out_header;
 
-typedef struct fuse_init_in {
+typedef struct __attribute__((packed)) fuse_init_in {
 	uint32_t major;
 	uint32_t minor;
 	uint32_t max_readahead;
@@ -146,7 +146,7 @@ typedef struct fuse_init_in {
   }
 } fuse_init_in;
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint32_t major;
   uint32_t minor;
   uint32_t max_readahead;        /* Since v7.6 */
