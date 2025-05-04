@@ -56,7 +56,7 @@ VirtQueue::VirtQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling)
   memset(const_cast<virtq_used*>(_used_ring), 0, used_ring_size);
   cfg.queue_device = reinterpret_cast<uint64_t>(_used_ring);
   
-  /* Queue initialization is now complete! */
+  /* Completing formal Virtio queue spec initialization! */
   cfg.queue_enable = 1;
 
   /* Initializing free list for driver bookkeeping*/

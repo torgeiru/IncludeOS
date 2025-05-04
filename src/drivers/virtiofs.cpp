@@ -10,14 +10,14 @@
 #include <info>
 
 VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0),
-_req(*this, 1, true)
+_req(*this, 1, true), _unique_counter(0)
 {
   static int id_count = 0;
   _id = id_count++;
   set_driver_ok_bit();
 
   /* Negotiate FUSE version */
-  virtio_fs_init_req init_req(FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION_MIN, 0, 0);
+  virtio_fs_init_req init_req(FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION_MIN, _unique_counter++, FUSE_ROOT_ID);
   virtio_fs_init_res init_res {};
 
   VirtTokens init_req_tokens;
@@ -45,16 +45,26 @@ _req(*this, 1, true)
 
   bool compatible_minor_version = (FUSE_MINOR_VERSION_MIN <= init_res.init_out.minor);
   CHECK(compatible_minor_version, "Daemon falls back to the driver supported minor FUSE version");
+  Expects(compatible_minor_version);
 
-  virtio_fs_lookup_req lookup_req(2, 1, "Torgeir");
+  /* Lookup a random file for testing */
+  char *fname = "torgeir.txt";
+  uint32_t fname_buflen = strlen(fname) + 1;
+
+  virtio_fs_lookup_req lookup_req(fname_buflen, _unique_counter++, FUSE_ROOT_ID);
   virtio_fs_lookup_res lookup_res {};
 
   VirtTokens lookup_tokens;
-  lookup_tokens.reserve(2);
+  lookup_tokens.reserve(3);
   lookup_tokens.emplace_back(
     VIRTQ_DESC_F_NEXT,
     reinterpret_cast<uint8_t*>(&lookup_req),
     sizeof(virtio_fs_lookup_req)
+  );
+  lookup_tokens.emplace_back(
+    VIRTQ_DESC_F_NEXT,
+    reinterpret_cast<uint8_t*>(fname),
+    fname_buflen
   );
   lookup_tokens.emplace_back(
     VIRTQ_DESC_F_WRITE,
@@ -69,41 +79,72 @@ _req(*this, 1, true)
   uint32_t device_written_len;
   _req.dequeue(&device_written_len);
 
-  INFO2("Wrote %d", device_written_len);
+  fuse_ino_t ino = lookup_res.entry_param.ino;
+  INFO2("The file inode number is %d", ino);
 
-  /* GetAttr */
-  // virtio_fs_getattr_req getattr_req(0, 0, 2, 1);
-  // virtio_fs_getattr_res getattr_res {};
+  /* Creating a file handle */
+  virtio_fs_open_req open_req(0, 0, _unique_counter++, ino);
+  virtio_fs_open_res open_res {};
 
-  // VirtTokens getattr_req_tokens;
-  // getattr_req_tokens.reserve(2);
-  // getattr_req_tokens.emplace_back(
-  //   VIRTQ_DESC_F_NEXT, 
-  //   reinterpret_cast<uint8_t*>(&getattr_req), 
-  //   sizeof(virtio_fs_getattr_req)
-  // );
-  // getattr_req_tokens.emplace_back(
-  //   VIRTQ_DESC_F_WRITE, 
-  //   reinterpret_cast<uint8_t*>(&getattr_res), 
-  //   sizeof(virtio_fs_getattr_res)
-  // );
+  VirtTokens open_tokens;
+  open_tokens.reserve(2);
+  open_tokens.emplace_back(
+    VIRTQ_DESC_F_NEXT,
+    reinterpret_cast<uint8_t*>(&open_req),
+    sizeof(virtio_fs_open_req)
+  );
+  open_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(&open_res),
+    sizeof(virtio_fs_open_res)
+  );
 
-  // _req.enqueue(getattr_req_tokens);
-  // _req.kick();
+  _req.enqueue(open_tokens);
+  _req.kick();
 
-  // while(_req.has_processed_used());
-  
-  // uint32_t device_written_len;
-  // _req.dequeue(&device_written_len);
+  while(_req.has_processed_used());
+  _req.dequeue();
 
-  // INFO2("Device written length from getattr is %d", device_written_len);
-  // INFO2("# of links for attribute is %d", getattr_res.attr_out.attr.nlink);
-  // INFO2("", getattr_res.attr_o.attr.nlink);
-  // INFO2("", getattr_res.attr_o.attr.nlink);
-  // INFO2("", getattr_res.attr_o.attr.nlink);
+  uint64_t fh = open_res.open_out.fh;
 
-  /* Lookup */
+  if (open_res.out_header.error == 0) {
+    INFO2("Successfully opened file handle!");
+    INFO2("File handle is %d", fh);
+  }
 
+  /* Reading content from file handle */
+  char buffer[4];
+  virtio_fs_read_req read_req(fh, 0, 4, _unique_counter++, ino);
+  virtio_fs_read_res read_res {};
+
+  VirtTokens read_tokens;
+  read_tokens.reserve(3);
+  read_tokens.emplace_back(
+    VIRTQ_DESC_F_NEXT, 
+    reinterpret_cast<uint8_t*>(&read_req),
+    sizeof(virtio_fs_read_req)
+  );
+  read_tokens.emplace_back(
+    VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE, 
+    reinterpret_cast<uint8_t*>(&read_res),
+    sizeof(virtio_fs_read_res)
+  );
+  read_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE, 
+    reinterpret_cast<uint8_t*>(&buffer),
+    4
+  );
+
+  _req.enqueue(read_tokens);
+  _req.kick();
+
+  while(_req.has_processed_used());
+  _req.dequeue();
+
+  buffer[3] = 0;
+  INFO2("Message is %s", buffer);
+
+  /* Closing the file handle */
   /* Finalizing initialization */
   INFO("VirtioFS", "Device initialization is now complete");
 }

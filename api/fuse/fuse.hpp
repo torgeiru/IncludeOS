@@ -3,58 +3,60 @@
 
 #include <algorithm>
 
+/* Add more flags support or whatever */
+
 /* FUSE opcodes copied directly from libfuse */
 enum fuse_opcode {
-	FUSE_LOOKUP		= 1,
-	FUSE_FORGET		= 2,  /* no reply */
-	FUSE_GETATTR		= 3,
-	FUSE_SETATTR		= 4,
-	FUSE_READLINK		= 5,
-	FUSE_SYMLINK		= 6,
-	FUSE_MKNOD		= 8,
-	FUSE_MKDIR		= 9,
-	FUSE_UNLINK		= 10,
-	FUSE_RMDIR		= 11,
-	FUSE_RENAME		= 12,
-	FUSE_LINK		= 13,
-	FUSE_OPEN		= 14,
-	FUSE_READ		= 15,
-	FUSE_WRITE		= 16,
-	FUSE_STATFS		= 17,
-	FUSE_RELEASE		= 18,
-	FUSE_FSYNC		= 20,
-	FUSE_SETXATTR		= 21,
-	FUSE_GETXATTR		= 22,
-	FUSE_LISTXATTR		= 23,
-	FUSE_REMOVEXATTR	= 24,
-	FUSE_FLUSH		= 25,
-	FUSE_INIT		= 26,
-	FUSE_OPENDIR		= 27,
-	FUSE_READDIR		= 28,
-	FUSE_RELEASEDIR		= 29,
-	FUSE_FSYNCDIR		= 30,
-	FUSE_GETLK		= 31,
-	FUSE_SETLK		= 32,
-	FUSE_SETLKW		= 33,
-	FUSE_ACCESS		= 34,
-	FUSE_CREATE		= 35,
-	FUSE_INTERRUPT		= 36,
-	FUSE_BMAP		= 37,
-	FUSE_DESTROY		= 38,
-	FUSE_IOCTL		= 39,
-	FUSE_POLL		= 40,
-	FUSE_NOTIFY_REPLY	= 41,
-	FUSE_BATCH_FORGET	= 42,
-	FUSE_FALLOCATE		= 43,
-	FUSE_READDIRPLUS	= 44,
-	FUSE_RENAME2		= 45,
-	FUSE_LSEEK		= 46,
-	FUSE_COPY_FILE_RANGE	= 47,
-	FUSE_SETUPMAPPING	= 48,
-	FUSE_REMOVEMAPPING	= 49,
-	FUSE_SYNCFS		= 50,
-	FUSE_TMPFILE		= 51,
-	FUSE_STATX		= 52,
+	FUSE_LOOKUP          = 1,
+	FUSE_FORGET          = 2,  /* no reply */
+	FUSE_GETATTR         = 3,
+	FUSE_SETATTR         = 4,
+	FUSE_READLINK        = 5,
+	FUSE_SYMLINK         = 6,
+	FUSE_MKNOD           = 8,
+	FUSE_MKDIR           = 9,
+	FUSE_UNLINK          = 10,
+	FUSE_RMDIR           = 11,
+	FUSE_RENAME          = 12,
+	FUSE_LINK            = 13,
+	FUSE_OPEN            = 14,
+	FUSE_READ            = 15,
+	FUSE_WRITE           = 16,
+	FUSE_STATFS          = 17,
+	FUSE_RELEASE         = 18,
+	FUSE_FSYNC           = 20,
+	FUSE_SETXATTR        = 21,
+	FUSE_GETXATTR        = 22,
+	FUSE_LISTXATTR       = 23,
+	FUSE_REMOVEXATTR     = 24,
+	FUSE_FLUSH           = 25,
+	FUSE_INIT            = 26,
+	FUSE_OPENDIR         = 27,
+	FUSE_READDIR         = 28,
+	FUSE_RELEASEDIR      = 29,
+	FUSE_FSYNCDIR        = 30,
+	FUSE_GETLK           = 31,
+	FUSE_SETLK           = 32,
+	FUSE_SETLKW	         = 33,
+	FUSE_ACCESS	         = 34,
+	FUSE_CREATE	         = 35,
+	FUSE_INTERRUPT       = 36,
+	FUSE_BMAP            = 37,
+	FUSE_DESTROY         = 38,
+	FUSE_IOCTL           = 39,
+	FUSE_POLL            = 40,
+	FUSE_NOTIFY_REPLY    = 41,
+	FUSE_BATCH_FORGET    = 42,
+	FUSE_FALLOCATE       = 43,
+	FUSE_READDIRPLUS     = 44,
+	FUSE_RENAME2         = 45,
+	FUSE_LSEEK           = 46,
+	FUSE_COPY_FILE_RANGE = 47,
+	FUSE_SETUPMAPPING    = 48,
+	FUSE_REMOVEMAPPING   = 49,
+	FUSE_SYNCFS          = 50,
+	FUSE_TMPFILE         = 51,
+	FUSE_STATX           = 52,
 
 	/* CUSE specific operations */
 	CUSE_INIT		= 4096,
@@ -64,6 +66,9 @@ enum fuse_opcode {
 	FUSE_INIT_BSWAP_RESERVED	= 436207616,	/* FUSE_INIT << 24 */
 };
 
+typedef uint64_t fuse_ino_t;
+
+/* Flags copied directly from  */
 /* Main flags */
 #define FUSE_ASYNC_READ		(1 << 0)
 #define FUSE_POSIX_LOCKS	(1 << 1)
@@ -108,97 +113,28 @@ enum fuse_opcode {
 #define FUSE_NO_EXPORT_SUPPORT	(1ULL << 38)
 #define FUSE_HAS_RESEND		(1ULL << 39)
 
-struct fuse_file_info {
-	/** Open flags.	 Available in open(), release() and create() */
-	int flags;
-
-	/** In case of a write operation indicates if this was caused
-	    by a delayed write from the page cache. If so, then the
-	    context's pid, uid, and gid fields will not be valid, and
-	    the *fh* value may not match the *fh* value that would
-	    have been sent with the corresponding individual write
-	    requests if write caching had been disabled. */
-	unsigned int writepage : 1;
-
-	/** Can be filled in by open/create, to use direct I/O on this file. */
-	unsigned int direct_io : 1;
-
-	/** Can be filled in by open and opendir. It signals the kernel that any
-	    currently cached data (ie., data that the filesystem provided the
-	    last time the file/directory was open) need not be invalidated when
-	    the file/directory is closed. */
-	unsigned int keep_cache : 1;
-
-	/** Can be filled by open/create, to allow parallel direct writes on this
-	    file */
-	unsigned int parallel_direct_writes : 1;
-
-	/** Indicates a flush operation.  Set in flush operation, also
-	    maybe set in highlevel lock operation and lowlevel release
-	    operation. */
-	unsigned int flush : 1;
-
-	/** Can be filled in by open, to indicate that the file is not
-	    seekable. */
-	unsigned int nonseekable : 1;
-
-	/* Indicates that flock locks for this file should be
-	   released.  If set, lock_owner shall contain a valid value.
-	   May only be set in ->release(). */
-	unsigned int flock_release : 1;
-
-	/** Can be filled in by opendir. It signals the kernel to
-	    enable caching of entries returned by readdir().  Has no
-	    effect when set in other contexts (in particular it does
-	    nothing when set by open()). */
-	unsigned int cache_readdir : 1;
-
-	/** Can be filled in by open, to indicate that flush is not needed
-	    on close. */
-	unsigned int noflush : 1;
-
-	/** Padding.  Reserved for future use*/
-	unsigned int padding : 23;
-	unsigned int padding2 : 32;
-
-	/** File handle id.  May be filled in by filesystem in create,
-	 * open, and opendir().  Available in most other file operations on the
-	 * same file handle. */
-	uint64_t fh;
-
-	/** Lock owner id.  Available in locking operations and flush */
-	uint64_t lock_owner;
-
-	/** Requested poll events.  Available in ->poll.  Only set on kernels
-	    which support it.  If unsupported, this field is set to zero. */
-	uint32_t poll_events;
-
-	/** Passthrough backing file id.  May be filled in by filesystem in
-	 * create and open.  It is used to create a passthrough connection
-	 * between FUSE file and backing file. */
-	int32_t backing_id;
-};
+#define FUSE_ROOT_ID 1ULL
 
 typedef struct __attribute__((packed)) fuse_in_header {
-  uint32_t len;       /* Total size of the data, including this header */
-  uint32_t opcode;    /* The kind of operation (see below) */
-  uint64_t unique;    /* A unique identifier for this request */
-  uint64_t nodeid;    /* ID of the filesystem object being operated on */
-  uint32_t uid;       /* UID of the requesting process */
-  uint32_t gid;       /* GID of the requesting process */
-  uint32_t pid;       /* PID of the requesting process */
-  uint32_t padding;
+	uint32_t len;       /* Total size of the data, including this header */
+	uint32_t opcode;    /* The kind of operation (see below) */
+	uint64_t unique;    /* A unique identifier for this request */
+	uint64_t nodeid;    /* ID of the filesystem object being operated on */
+	uint32_t uid;       /* UID of the requesting process */
+	uint32_t gid;       /* GID of the requesting process */
+	uint32_t pid;       /* PID of the requesting process */
+	uint32_t padding;
 
-  fuse_in_header(uint32_t plen, uint32_t opcod, uint64_t uniqu, uint64_t nodei)
-  : len(sizeof(fuse_in_header) + plen), opcode(opcod), unique(uniqu), nodeid(nodei),
-    uid(0), gid(0), pid(0), padding(0)
-  {}
+	fuse_in_header(uint32_t plen, uint32_t opcod, uint64_t uniqu, uint64_t nodei)
+	: len(sizeof(fuse_in_header) + plen), opcode(opcod), unique(uniqu), nodeid(nodei),
+	  uid(0), gid(0), pid(0), padding(0)
+	{}
 } fuse_in_header;
 
 typedef struct __attribute__((packed)) {
-  uint32_t len;       /* Total size of data written to the file descriptor */
-  int32_t  error;     /* Any error that occurred (0 if none) */
-  uint64_t unique;    /* The value from the corresponding request */
+	uint32_t len;       /* Total size of data written to the file descriptor */
+	int32_t  error;     /* Any error that occurred (0 if none) */
+	uint64_t unique;    /* The value from the corresponding request */
 } fuse_out_header;
 
 typedef struct __attribute__((packed)) fuse_init_in {
@@ -209,59 +145,144 @@ typedef struct __attribute__((packed)) fuse_init_in {
 	uint32_t flags2;
 	uint32_t unused[11];
 
-  fuse_init_in(uint32_t majo, uint32_t mino) :
+	fuse_init_in(uint32_t majo, uint32_t mino) :
     major(majo), minor(mino), max_readahead(0),
     flags(FUSE_INIT_EXT | FUSE_SUBMOUNTS), flags2(0)
-  {
-    std::fill_n(unused, 11, 0);
-  }
+	{
+		std::fill_n(unused, 11, 0);
+	}
 } fuse_init_in;
 
 typedef struct __attribute__((packed)) {
-  uint32_t major;
-  uint32_t minor;
-  uint32_t max_readahead;        /* Since v7.6 */
-  uint32_t flags;                /* Since v7.6; some flags bits were introduced later */
-  uint16_t max_background;       /* Since v7.13 */
-  uint16_t congestion_threshold; /* Since v7.13 */
-  uint32_t max_write;            /* Since v7.5 */
-  uint32_t time_gran;            /* Since v7.6 */
-  uint32_t unused[9];
+	uint32_t major;
+	uint32_t minor;
+	uint32_t max_readahead;
+	uint32_t flags;
+	uint16_t max_background;
+	uint16_t congestion_threshold;
+	uint32_t max_write;
+	uint32_t time_gran;
+	uint32_t unused[9];
 } fuse_init_out;
 
-typedef struct __attribute__((packed)) fuse_getattr_in {
-	uint32_t	getattr_flags;
-	uint32_t	dummy;
-	uint64_t	fh;
+/* Ported from VirtioFSD daemon start */
+typedef struct {
+    uint64_t ino;
+    uint64_t size;
+    uint64_t blocks;
+    uint64_t atime;
+    uint64_t mtime;
+    uint64_t ctime;
+    uint32_t atimensec;
+    uint32_t mtimensec;
+    uint32_t ctimensec;
+    uint32_t mode;
+    uint32_t nlink;
+    uint32_t uid;
+    uint32_t gid;
+    uint32_t rdev;
+    uint32_t blksize;
+    uint32_t flags;
+} stat;
 
-	fuse_getattr_in(uint32_t getattr_flag, uint64_t f) 
-	: getattr_flags(getattr_flag), dummy(0), fh(f) {}
-} fuse_getattr_in;
-
-typedef struct __attribute__((packed)) {
-	uint64_t ino;
-	uint64_t size;
-	uint64_t blocks;
-	uint64_t atime;
-	uint64_t mtime;
-	uint64_t ctime;
-	uint32_t atimensec;
-	uint32_t mtimensec;
-	uint32_t ctimensec;
-	uint32_t mode;
-	uint32_t nlink;
-	uint32_t uid;
-	uint32_t gid;
-	uint32_t rdev;
-	uint32_t blksize;
-	uint32_t flags;
-} fuse_attr;
-
-typedef struct __attribute__((packed)) {
+typedef struct {
+	fuse_ino_t ino;
+	uint64_t generation;
+	uint64_t entry_valid;
 	uint64_t attr_valid;
+	uint32_t entry_valid_nsec;
 	uint32_t attr_valid_nsec;
-	uint32_t dummy;
-	fuse_attr attr;
-} fuse_attr_out;
+	stat attr;
+} fuse_entry_param;
+/* Ported from Rust VirtioFSD daemon end */
+
+typedef struct __attribute__((packed)) fuse_open_in {
+	uint32_t flags;
+	uint32_t open_flags;
+
+	fuse_open_in(uint32_t flag, uint32_t open_flag)
+	: flags(flag), open_flags(open_flag) {}
+} fuse_open_in;
+
+typedef struct __attribute__((packed)) {
+	uint64_t fh;
+	uint32_t open_flags;
+	int32_t	backing_id;
+} fuse_open_out;
+
+typedef struct __attribute__((packed)) fuse_read_in {
+	uint64_t fh;
+	uint64_t offset;
+	uint32_t size;
+	uint32_t read_flags;
+	uint64_t lock_owner;
+	uint32_t flags;
+	uint32_t padding;
+
+	fuse_read_in(uint64_t f, uint64_t offse, uint32_t siz, 
+		uint32_t read_flag, uint32_t flag)
+	: fh(f), offset(offse), size(siz), read_flags(read_flag),
+	  lock_owner(0), flags(flag), padding(0) {}
+} fuse_read_in;
+
+// typedef struct __attribute__((packed)) fuse_release_in {
+// 	uint64_t fh;
+// 	uint32_t flags;
+// 	uint32_t release_flags;
+// 	uint64_t lock_owner;
+// 	fuse_release_in() {}
+// } fuse_release_in;
+
+// typedef struct __attribute__((packed)) fuse_lseek_in {
+// uint64_t fh;
+// uint64_t offset;
+// uint32_t whence;
+// uint32_t padding;
+// fuse_lseek_in() {}
+// } fuse_lseek_in;
+
+// typedef struct __attribute__((packed)) {
+// 	uint64_t offset;
+// } fuse_lseek_out;
+
+// typedef struct __attribute__((packed)) fuse_interrupt_in {
+// 	uint64_t unique;
+// 	fuse_interrupt_in() {}
+// } fuse_interrupt_in;
+
+// typedef struct __attribute__((packed)) fuse_getattr_in {
+// 	uint32_t getattr_flags;
+// 	uint32_t dummy;
+// 	uint64_t fh;
+// 
+// 	fuse_getattr_in(uint32_t getattr_flag, uint64_t f) 
+// 	: getattr_flags(getattr_flag), dummy(0), fh(f) {}
+// } fuse_getattr_in;
+
+// typedef struct __attribute__((packed)) {
+// 	uint64_t ino;
+// 	uint64_t size;
+// 	uint64_t blocks;
+// 	uint64_t atime;
+// 	uint64_t mtime;
+// 	uint64_t ctime;
+// 	uint32_t atimensec;
+// 	uint32_t mtimensec;
+// 	uint32_t ctimensec;
+// 	uint32_t mode;
+// 	uint32_t nlink;
+// 	uint32_t uid;
+// 	uint32_t gid;
+// 	uint32_t rdev;
+// 	uint32_t blksize;
+// 	uint32_t flags;
+// } fuse_attr;
+
+// typedef struct __attribute__((packed)) {
+// 	uint64_t attr_valid;
+// 	uint32_t attr_valid_nsec;
+// 	uint32_t dummy;
+// 	fuse_attr attr;
+// } fuse_attr_out;
 
 #endif // FILESYSTEM_IN_USERPSACE_HPP

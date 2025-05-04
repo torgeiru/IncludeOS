@@ -22,13 +22,13 @@ typedef struct VirtToken {
     uint8_t *buff, 
     size_t bufl
   ) : flags(flag), buffer(buff, bufl) {
-    INFO2("Constructing a VirtToken!");
+    //INFO2("Constructing a VirtToken!");
   }
 
-  /* Used simply for testing C++ NRVO */
+  /* Used simply for testing that C++ NRVO is working */
   VirtToken(const VirtToken &token) : flags(token.flags), buffer(token.buffer.data(), token.buffer.size())
   {
-    INFO2("Called copy constructor for VirtToken!");
+    // INFO2("Called copy constructor for VirtToken!");
   }
 } VirtToken;
   

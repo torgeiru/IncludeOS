@@ -50,17 +50,17 @@ void VirtioCon::send(std::string& message) {
   std::memcpy(c_message, message.data(), message.length());
 
   /* Send copied message over Virtio */
-  VirtTokens out_tokens;
-  out_tokens.reserve(1);
-  out_tokens.emplace_back(0, c_message, message.length() + 1);
-  _tx.enqueue(out_tokens);
+  VirtTokens tokens;
+  tokens.reserve(1);
+  tokens.emplace_back(0, c_message, message.length() + 1);
+  _tx.enqueue(tokens);
   _tx.kick();
 
   /* Cleaning up the tokens buffer */
   while(_tx.has_processed_used());
-  VirtTokens in_tokens = _tx.dequeue();
+  _tx.dequeue();
 
-  for (VirtToken& token: in_tokens) {
+  for (VirtToken& token: tokens) {
     free(reinterpret_cast<void*>(token.buffer.data()));
   }
 }
