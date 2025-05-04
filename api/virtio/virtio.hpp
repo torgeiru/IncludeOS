@@ -82,12 +82,12 @@ typedef struct __attribute__((packed)) {
 
 /* Features to use if available */
 #define VIRTIO_F_INDIRECT_DESC_LO (1ULL << 28)
-#define VIRTIO_F_IN_ORDER_HI      (1ULL << 3)
+#define VIRTIO_F_EVENT_IDX_LO     (1ULL << 29) // TODO
 
 /* Other features that will not be supported */
-#define VIRTIO_F_EVENT_IDX_LO     (1ULL << 29)
 #define VIRTIO_F_RING_PACKED_HI   (1ULL << 2)
 #define VIRTIO_F_RING_RESET_HI    (1ULL << 8)
+#define VIRTIO_F_IN_ORDER_HI      (1ULL << 3)
 
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE     1
 #define VIRTIO_CONFIG_S_DRIVER          2
@@ -117,7 +117,6 @@ class Virtio {
     inline uint16_t msix_vector_count() const { return _msix_vector_count; }
       
     /** Negotiated features */
-    inline bool in_order() const { return _in_order; }
     inline bool indirect() const { return _indirect; }
     
   private:
@@ -149,7 +148,7 @@ class Virtio {
     uint16_t _msix_vector_count;
     
     /* Negotiated features */
-    bool _in_order, _indirect;
+    bool _indirect;
     
     /* Configuration structures */
     volatile virtio_pci_common_cfg *_common_cfg;

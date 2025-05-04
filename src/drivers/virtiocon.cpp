@@ -12,7 +12,9 @@
 #include <expects>
 #include <info>
 
-VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS, 0)
+VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS, 0),
+_rx(*this, 0, true),
+_tx(*this, 1, true)
 {
   static int id_count;
   _id = id_count++;
@@ -22,17 +24,12 @@ VirtioCon::VirtioCon(hw::PCI_Device& d) : Virtio(d, REQUIRED_VCON_FEATS, 0)
   // Events::get().subscribe(event_num, {_rx, &RecvQueue::recv});
   // d.setup_msix_vector(0, IRQ_BASE + event_num);
 
-  /* Creating virtqueues */
-  bool use_polling = true;
-  _rx = create_virtqueue(*this, 0, use_polling);
-  _tx = create_virtqueue(*this, 1, use_polling);
-
   /* Populating receive queue with a single chain */
   VirtTokens tokens;
   tokens.reserve(1);
   uint8_t *buffer = reinterpret_cast<uint8_t*>(calloc(1, 4096));
   tokens.emplace_back(VIRTQ_DESC_F_WRITE, buffer, 4096);
-  _rx->enqueue(tokens);
+  _rx.enqueue(tokens);
 
   set_driver_ok_bit();
   INFO("VirtioCon", "Console device initialization successfully!");
@@ -47,8 +44,6 @@ int VirtioCon::id() const noexcept {
 }
 
 void VirtioCon::send(std::string& message) {
-  if (_tx->free_desc_space() == 0) return;
-
   /* Deep copy message */
   uint8_t *c_message = reinterpret_cast<uint8_t*>(calloc(1, message.length() + 1));
   Expects(c_message != NULL);
@@ -58,13 +53,12 @@ void VirtioCon::send(std::string& message) {
   VirtTokens out_tokens;
   out_tokens.reserve(1);
   out_tokens.emplace_back(0, c_message, message.length() + 1);
-  _tx->enqueue(out_tokens);
-  _tx->kick();
+  _tx.enqueue(out_tokens);
+  _tx.kick();
 
   /* Cleaning up the tokens buffer */
-  while(_tx->has_processed_used());
-  uint32_t device_written_len; // Discarded
-  VirtTokens in_tokens = _tx->dequeue(device_written_len);
+  while(_tx.has_processed_used());
+  VirtTokens in_tokens = _tx.dequeue();
 
   for (VirtToken& token: in_tokens) {
     free(reinterpret_cast<void*>(token.buffer.data()));
@@ -72,20 +66,18 @@ void VirtioCon::send(std::string& message) {
 }
 
 std::string VirtioCon::recv() {
-  /*TODO: Make this less CPU intensive by slowing down the beyblade */
-  while(_rx->has_processed_used());
+  while(_rx.has_processed_used());
 
   /* Deep copy a string */
-  uint32_t device_written_len;
-  VirtTokens tokens = _rx->dequeue(device_written_len);
+  VirtTokens tokens = _rx.dequeue();
   VirtToken& token = tokens[0];
   token.buffer.last(1)[0] = 0;
   std::string msg(reinterpret_cast<char*>(token.buffer.data()));
 
   /* Null data, enqueue token again and kick */
   std::fill_n(token.buffer.data(), token.buffer.size(), 0);
-  _rx->enqueue(tokens);
-  _rx->kick();
+  _rx.enqueue(tokens);
+  _rx.kick();
 
   /* Returning the string */
   return msg;

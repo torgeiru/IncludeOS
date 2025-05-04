@@ -108,6 +108,77 @@ enum fuse_opcode {
 #define FUSE_NO_EXPORT_SUPPORT	(1ULL << 38)
 #define FUSE_HAS_RESEND		(1ULL << 39)
 
+struct fuse_file_info {
+	/** Open flags.	 Available in open(), release() and create() */
+	int flags;
+
+	/** In case of a write operation indicates if this was caused
+	    by a delayed write from the page cache. If so, then the
+	    context's pid, uid, and gid fields will not be valid, and
+	    the *fh* value may not match the *fh* value that would
+	    have been sent with the corresponding individual write
+	    requests if write caching had been disabled. */
+	unsigned int writepage : 1;
+
+	/** Can be filled in by open/create, to use direct I/O on this file. */
+	unsigned int direct_io : 1;
+
+	/** Can be filled in by open and opendir. It signals the kernel that any
+	    currently cached data (ie., data that the filesystem provided the
+	    last time the file/directory was open) need not be invalidated when
+	    the file/directory is closed. */
+	unsigned int keep_cache : 1;
+
+	/** Can be filled by open/create, to allow parallel direct writes on this
+	    file */
+	unsigned int parallel_direct_writes : 1;
+
+	/** Indicates a flush operation.  Set in flush operation, also
+	    maybe set in highlevel lock operation and lowlevel release
+	    operation. */
+	unsigned int flush : 1;
+
+	/** Can be filled in by open, to indicate that the file is not
+	    seekable. */
+	unsigned int nonseekable : 1;
+
+	/* Indicates that flock locks for this file should be
+	   released.  If set, lock_owner shall contain a valid value.
+	   May only be set in ->release(). */
+	unsigned int flock_release : 1;
+
+	/** Can be filled in by opendir. It signals the kernel to
+	    enable caching of entries returned by readdir().  Has no
+	    effect when set in other contexts (in particular it does
+	    nothing when set by open()). */
+	unsigned int cache_readdir : 1;
+
+	/** Can be filled in by open, to indicate that flush is not needed
+	    on close. */
+	unsigned int noflush : 1;
+
+	/** Padding.  Reserved for future use*/
+	unsigned int padding : 23;
+	unsigned int padding2 : 32;
+
+	/** File handle id.  May be filled in by filesystem in create,
+	 * open, and opendir().  Available in most other file operations on the
+	 * same file handle. */
+	uint64_t fh;
+
+	/** Lock owner id.  Available in locking operations and flush */
+	uint64_t lock_owner;
+
+	/** Requested poll events.  Available in ->poll.  Only set on kernels
+	    which support it.  If unsupported, this field is set to zero. */
+	uint32_t poll_events;
+
+	/** Passthrough backing file id.  May be filled in by filesystem in
+	 * create and open.  It is used to create a passthrough connection
+	 * between FUSE file and backing file. */
+	int32_t backing_id;
+};
+
 typedef struct __attribute__((packed)) fuse_in_header {
   uint32_t len;       /* Total size of the data, including this header */
   uint32_t opcode;    /* The kind of operation (see below) */
@@ -142,7 +213,7 @@ typedef struct __attribute__((packed)) fuse_init_in {
     major(majo), minor(mino), max_readahead(0),
     flags(FUSE_INIT_EXT | FUSE_SUBMOUNTS), flags2(0)
   {
-    std::fill_n(unused, sizeof(unused), 0);
+    std::fill_n(unused, 11, 0);
   }
 } fuse_init_in;
 
@@ -157,5 +228,40 @@ typedef struct __attribute__((packed)) {
   uint32_t time_gran;            /* Since v7.6 */
   uint32_t unused[9];
 } fuse_init_out;
+
+typedef struct __attribute__((packed)) fuse_getattr_in {
+	uint32_t	getattr_flags;
+	uint32_t	dummy;
+	uint64_t	fh;
+
+	fuse_getattr_in(uint32_t getattr_flag, uint64_t f) 
+	: getattr_flags(getattr_flag), dummy(0), fh(f) {}
+} fuse_getattr_in;
+
+typedef struct __attribute__((packed)) {
+	uint64_t ino;
+	uint64_t size;
+	uint64_t blocks;
+	uint64_t atime;
+	uint64_t mtime;
+	uint64_t ctime;
+	uint32_t atimensec;
+	uint32_t mtimensec;
+	uint32_t ctimensec;
+	uint32_t mode;
+	uint32_t nlink;
+	uint32_t uid;
+	uint32_t gid;
+	uint32_t rdev;
+	uint32_t blksize;
+	uint32_t flags;
+} fuse_attr;
+
+typedef struct __attribute__((packed)) {
+	uint64_t attr_valid;
+	uint32_t attr_valid_nsec;
+	uint32_t dummy;
+	fuse_attr attr;
+} fuse_attr_out;
 
 #endif // FILESYSTEM_IN_USERPSACE_HPP

@@ -9,50 +9,102 @@
 #include <hw/pci_manager.hpp>
 #include <info>
 
-VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0) {
+VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0),
+_req(*this, 1, true)
+{
   static int id_count = 0;
   _id = id_count++;
-  CHECK(not in_order(), "Not in order check");
-  Expects(not in_order());
-
-  /* Creating a polling request queue and completing Virtio initialization */
-  _req = create_virtqueue(*this, 1, true);
   set_driver_ok_bit();
 
-  /* Performing a FUSE negotiation */
-  // static uint64_t id;
-
-  // virtio_fs_init_req init_req(FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION_MIN, 0, 0);
-  virtio_fs_init_res init_res_0 {};
-  virtio_fs_init_res init_res_1 {};
-  virtio_fs_init_res init_res_2 {};
-
-  // virtio_fs_init_req *init_req = (virtio_fs_init_req*)malloc(sizeof(virtio_fs_init_req));
-  // virtio_fs_init_res *init_res = (virtio_fs_init_res*)malloc(sizeof(virtio_fs_init_res));
-  // INFO("VirtioFS", "Successfully created objects! 0x%lx 0x%lx", init_req, init_res);
+  /* Negotiate FUSE version */
+  virtio_fs_init_req init_req(FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION_MIN, 0, 0);
+  virtio_fs_init_res init_res {};
 
   VirtTokens init_req_tokens;
   init_req_tokens.reserve(2);
-  // init_req_tokens.emplace_back(VIRTQ_DESC_F_NEXT, (uint8_t*)&init_req, sizeof(virtio_fs_init_req));
-  // init_req_tokens.emplace_back(VIRTQ_DESC_F_WRITE, (uint8_t*)&init_res, sizeof(virtio_fs_init_res));
+  init_req_tokens.emplace_back(
+    VIRTQ_DESC_F_NEXT, 
+    reinterpret_cast<uint8_t*>(&init_req), 
+    sizeof(virtio_fs_init_req)
+  );
+  init_req_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE, 
+    reinterpret_cast<uint8_t*>(&init_res), 
+    sizeof(virtio_fs_init_res)
+  );
 
-  // _req->enqueue(init_req_tokens);
-  // _req->kick();
+  _req.enqueue(init_req_tokens);
+  _req.kick();
 
-  // while(_req->has_processed_used());
+  while(_req.has_processed_used());
+  _req.dequeue();
+
+  bool compatible_major_version = (FUSE_MAJOR_VERSION == init_res.init_out.major);
+  CHECK(compatible_major_version, "Daemon and driver major FUSE version matches");
+  Expects(compatible_major_version);
+
+  bool compatible_minor_version = (FUSE_MINOR_VERSION_MIN <= init_res.init_out.minor);
+  CHECK(compatible_minor_version, "Daemon falls back to the driver supported minor FUSE version");
+
+  virtio_fs_lookup_req lookup_req(2, 1, "Torgeir");
+  virtio_fs_lookup_res lookup_res {};
+
+  VirtTokens lookup_tokens;
+  lookup_tokens.reserve(2);
+  lookup_tokens.emplace_back(
+    VIRTQ_DESC_F_NEXT,
+    reinterpret_cast<uint8_t*>(&lookup_req),
+    sizeof(virtio_fs_lookup_req)
+  );
+  lookup_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(&lookup_res),
+    sizeof(virtio_fs_lookup_res)
+  );
+
+  _req.enqueue(lookup_tokens);
+  _req.kick();
+
+  while(_req.has_processed_used());
+  uint32_t device_written_len;
+  _req.dequeue(&device_written_len);
+
+  INFO2("Wrote %d", device_written_len);
+
+  /* GetAttr */
+  // virtio_fs_getattr_req getattr_req(0, 0, 2, 1);
+  // virtio_fs_getattr_res getattr_res {};
+
+  // VirtTokens getattr_req_tokens;
+  // getattr_req_tokens.reserve(2);
+  // getattr_req_tokens.emplace_back(
+  //   VIRTQ_DESC_F_NEXT, 
+  //   reinterpret_cast<uint8_t*>(&getattr_req), 
+  //   sizeof(virtio_fs_getattr_req)
+  // );
+  // getattr_req_tokens.emplace_back(
+  //   VIRTQ_DESC_F_WRITE, 
+  //   reinterpret_cast<uint8_t*>(&getattr_res), 
+  //   sizeof(virtio_fs_getattr_res)
+  // );
+
+  // _req.enqueue(getattr_req_tokens);
+  // _req.kick();
+
+  // while(_req.has_processed_used());
+  
   // uint32_t device_written_len;
-  // _req->dequeue(device_written_len);
+  // _req.dequeue(&device_written_len);
 
-  // INFO2("FUSE major version is %d", init_res.init_out.major);
-  // INFO2("FUSE minor version is %d", init_res.init_out.minor);
-  // INFO2("FUSE congestion threshold is %d", init_res.init_out.congestion_threshold);
-  // INFO2("FUSE max write is %d", init_res.init_out.max_write);
-  // INFO2("FUSE time granularity is %d", init_res.init_out.time_gran);
-  // INFO2("Device wrote %d", device_written_len);
+  // INFO2("Device written length from getattr is %d", device_written_len);
+  // INFO2("# of links for attribute is %d", getattr_res.attr_out.attr.nlink);
+  // INFO2("", getattr_res.attr_o.attr.nlink);
+  // INFO2("", getattr_res.attr_o.attr.nlink);
+  // INFO2("", getattr_res.attr_o.attr.nlink);
 
-  // free(init_req);
-  // free(init_res);
+  /* Lookup */
 
+  /* Finalizing initialization */
   INFO("VirtioFS", "Device initialization is now complete");
 }
 

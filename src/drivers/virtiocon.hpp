@@ -34,8 +34,8 @@ public:
   std::string recv() override;
 private:
   int _id;
-  std::unique_ptr<VirtQueue> _rx;
-  std::unique_ptr<VirtQueue> _tx;
+  VirtQueue _rx;
+  VirtQueue _tx;
 };
 
 #endif

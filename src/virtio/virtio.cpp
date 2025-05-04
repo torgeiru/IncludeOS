@@ -155,19 +155,12 @@ bool Virtio::_negotiate_features() {
   uint32_t nego_feats_hi = required_feats_hi;
 
   /* Negotiated (extras) features turned off by default */
-  _in_order = false;
   _indirect = false;
 
   /* Checking support for indirect descriptors */
   if (dev_features_lo & VIRTIO_F_INDIRECT_DESC_LO) {
     nego_feats_lo |= VIRTIO_F_INDIRECT_DESC_LO;
     _indirect = true;
-  }
-
-  /* Checking support for in_order */
-  if (dev_features_hi & VIRTIO_F_IN_ORDER_HI) {
-    nego_feats_hi |= VIRTIO_F_IN_ORDER_HI;
-    _in_order = true;
   }
 
   /* Checking if negotiated features are available */

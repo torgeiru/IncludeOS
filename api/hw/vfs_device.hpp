@@ -6,6 +6,8 @@
 #include <string>
 #include "device.hpp"
 
+#include <info>
+
 namespace hw {
   class VFS_device : public Device {
   public:

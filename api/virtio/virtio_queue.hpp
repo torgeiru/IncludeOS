@@ -98,11 +98,11 @@ public:
   virtual ~VirtQueue();
   
   /** Interface methods for virtqueues */
-  virtual void enqueue(VirtTokens& tokens) = 0;
-  virtual VirtTokens dequeue(uint32_t &device_written_len) = 0;
+  void enqueue(VirtTokens& tokens);
+  VirtTokens dequeue(uint32_t *device_written_len = nullptr);
   void kick();
   
-  virtual uint16_t free_desc_space() const = 0;
+  uint16_t free_desc_space() const { return _free_list.size(); };
   inline uint16_t desc_space_cap() const { return _QUEUE_SIZE; }
   bool has_processed_used() const { return _last_used_idx == _used_ring->idx; };
   
@@ -122,32 +122,10 @@ protected:
   uint16_t _last_used_idx;
   
 private:
+  vector<uint16_t> _free_list;
+
   Virtio& _virtio_dev;
   int _VQUEUE_ID;
 };
-  
-class InorderQueue: public VirtQueue {
-public:
-  InorderQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
-  
-  void enqueue(VirtTokens& tokens) override;
-  VirtTokens dequeue(uint32_t &device_written_len) override;
-  uint16_t free_desc_space() const override { return _free_descs; }
-private:
-  uint16_t _free_descs;
-  uint16_t _next_free;
-};
-  
-class UnorderedQueue: public VirtQueue {
-public:
-  UnorderedQueue(Virtio& virtio_dev, int vqueue_id, bool use_polling);
-  
-  void enqueue(VirtTokens& tokens) override;
-  VirtTokens dequeue(uint32_t &device_written_len) override;
-  uint16_t free_desc_space() const override { return _free_list.size(); }
-private:
-  vector<uint16_t> _free_list;
-};
 
-std::unique_ptr<VirtQueue> create_virtqueue(Virtio& d, int vqueue_id, bool use_polling);
 #endif
