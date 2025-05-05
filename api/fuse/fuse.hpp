@@ -225,21 +225,22 @@ typedef struct __attribute__((packed)) fuse_read_in {
 	  lock_owner(0), flags(flag), padding(0) {}
 } fuse_read_in;
 
-// typedef struct __attribute__((packed)) fuse_release_in {
-// 	uint64_t fh;
-// 	uint32_t flags;
-// 	uint32_t release_flags;
-// 	uint64_t lock_owner;
-// 	fuse_release_in() {}
-// } fuse_release_in;
+typedef struct __attribute__((packed)) fuse_release_in {
+	uint64_t fh;
+	uint32_t flags;
+	uint32_t release_flags;
+	uint64_t lock_owner;
+	fuse_release_in(uint64_t f, uint32_t flag, uint32_t release_flag) 
+	: fh(f), flags(flag), release_flags(release_flag) {}
+} fuse_release_in;
 
-// typedef struct __attribute__((packed)) fuse_lseek_in {
-// uint64_t fh;
-// uint64_t offset;
-// uint32_t whence;
-// uint32_t padding;
-// fuse_lseek_in() {}
-// } fuse_lseek_in;
+typedef struct __attribute__((packed)) fuse_lseek_in {
+	uint64_t fh;
+	uint64_t offset;
+	uint32_t whence;
+	uint32_t padding;
+	fuse_lseek_in() {}
+} fuse_lseek_in;
 
 // typedef struct __attribute__((packed)) {
 // 	uint64_t offset;

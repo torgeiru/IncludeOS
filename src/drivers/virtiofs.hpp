@@ -84,8 +84,18 @@ typedef struct __attribute__((packed)) {
   fuse_out_header out_header;
 } virtio_fs_read_res;
 
-// typedef struct __attribute__((packed)) virtio_fs_close_req{} virtio_fs_close_req;
-// typedef struct __attribute__((packed)) {} virtio_fs_close_res;
+typedef struct __attribute__((packed)) virtio_fs_close_req {
+  fuse_in_header in_header;
+  fuse_release_in release_in;
+
+  virtio_fs_close_req(uint64_t f, uint32_t flag, uint32_t release_flag, uint64_t uniqu, uint64_t nodei)
+  : in_header(sizeof(fuse_release_in), FUSE_RELEASE, uniqu, nodei), 
+    release_in(f, flag, release_flag) {}
+} virtio_fs_close_req;
+
+typedef struct __attribute__((packed)) {
+  fuse_out_header out_header;
+} virtio_fs_close_res;
 
 // typedef struct __attribute__((packed)) virtio_fs_lseek_req {} virtio_fs_lseek_req;
 // typedef struct __attribute__((packed)) {} virtio_fs_lseek_res;

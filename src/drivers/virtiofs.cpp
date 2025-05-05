@@ -113,8 +113,8 @@ _req(*this, 1, true), _unique_counter(0)
   }
 
   /* Reading content from file handle */
-  char buffer[4];
-  virtio_fs_read_req read_req(fh, 0, 4, _unique_counter++, ino);
+  char buffer[30];
+  virtio_fs_read_req read_req(fh, 0, 29, _unique_counter++, ino);
   virtio_fs_read_res read_res {};
 
   VirtTokens read_tokens;
@@ -132,7 +132,7 @@ _req(*this, 1, true), _unique_counter(0)
   read_tokens.emplace_back(
     VIRTQ_DESC_F_WRITE, 
     reinterpret_cast<uint8_t*>(&buffer),
-    4
+    29
   );
 
   _req.enqueue(read_tokens);
@@ -141,10 +141,31 @@ _req(*this, 1, true), _unique_counter(0)
   while(_req.has_processed_used());
   _req.dequeue();
 
-  buffer[3] = 0;
-  INFO2("Message is %s", buffer);
+  buffer[29] = 0;
+  INFO2("%s", buffer);
 
   /* Closing the file handle */
+  virtio_fs_close_req close_req(fh, 0, 0, _unique_counter++, ino); 
+  virtio_fs_close_res close_res{};
+
+  VirtTokens close_tokens;
+  close_tokens.reserve(2);
+  close_tokens.emplace_back(
+    VIRTQ_DESC_F_NEXT,
+    reinterpret_cast<uint8_t*>(&close_req),
+    sizeof(virtio_fs_close_req)
+  );
+  close_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(&close_res), 
+    sizeof(virtio_fs_close_res)
+  );
+
+  _req.enqueue(close_tokens);
+  _req.kick();
+
+  while(_req.has_processed_used());
+
   /* Finalizing initialization */
   INFO("VirtioFS", "Device initialization is now complete");
 }
