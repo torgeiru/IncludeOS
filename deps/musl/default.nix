@@ -10,9 +10,7 @@ stdenv.mkDerivation rec {
   src = fetchGit {
     url = "https://github.com/torgeiru/musl-includeos.git";
     ref = "refs/heads/main";
-    rev = "9166eea3221355808795fad178e1ad19427d21b4";
-    # url = "git://git.musl-libc.org/musl";
-    # rev = "0784374d561435f7c787a555aeab8ede699ed298";
+    rev = "835c7351db9be6c9465b066c5254a5ca46274568";
   };
 
   enableParallelBuilding = true;

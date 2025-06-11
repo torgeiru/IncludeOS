@@ -21,6 +21,8 @@
 #include <util/units.hpp>
 #include <boot/multiboot.h>
 
+#include <atomic>
+
 namespace kernel {
 
   using namespace util;
@@ -28,22 +30,22 @@ namespace kernel {
   constexpr uintptr_t page_shift   = 12;
 
   struct State {
-    bool running               = true;
-    bool boot_sequence_passed  = false;
-    bool libc_initialized      = false; // Set when __libc_main returns
-    bool allow_syscalls        = false; // Set before calling into libc
-    bool block_drivers_ready   = false;
-    bool timestamps            = false;
-    bool timestamps_ready      = false;
-    bool is_live_updated       = false;
-    uintptr_t liveupdate_loc   = 0;
-    uintptr_t liveupdate_phys  = 0;
-    uintptr_t liveupdate_size  = 0;
-    uintptr_t heap_begin       = 0;
-    uintptr_t heap_max         = default_max_mem;;
-    uintptr_t memory_end       = default_max_mem;;
-    const char* cmdline        = nullptr;
-    int  panics                = 0;
+    bool running                   = true;
+    bool boot_sequence_passed      = false;
+    std::atomic<bool> libc_initialized {false}; // Set when __libc_main returns
+    bool allow_syscalls            = false;     // Set before calling into libc
+    bool block_drivers_ready       = false;
+    bool timestamps                = false;
+    bool timestamps_ready          = false;
+    bool is_live_updated           = false;
+    uintptr_t liveupdate_loc       = 0;
+    uintptr_t liveupdate_phys      = 0;
+    uintptr_t liveupdate_size      = 0;
+    uintptr_t heap_begin           = 0;
+    uintptr_t heap_max             = default_max_mem;;
+    uintptr_t memory_end           = default_max_mem;;
+    const char* cmdline            = nullptr;
+    int  panics                    = 0;
     os::Panic_action panic_action {};
     util::KHz cpu_khz {-1};
     //const uintptr_t elf_binary_size = 0;

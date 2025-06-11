@@ -54,6 +54,7 @@ set(MUSL_OBJECTS
   unlink.cpp
   sigaltstack.cpp
   sched_setscheduler.cpp
+  arch_prctl.cpp set_thread_area.cpp
 )
 
 add_library(musl_syscalls STATIC ${MUSL_OBJECTS})

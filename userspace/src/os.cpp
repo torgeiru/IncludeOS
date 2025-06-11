@@ -48,7 +48,7 @@ static void stop_timers() {}
 
 void kernel::start(const char* cmdline)
 {
-  kernel::state().libc_initialized = true;
+  kernel::state().libc_initialized.store(true);
   // setup timer system
   Timers::init(begin_timer, stop_timers);
   Timers::ready();

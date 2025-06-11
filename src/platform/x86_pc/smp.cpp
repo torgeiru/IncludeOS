@@ -59,12 +59,12 @@ extern struct __libc __libc;
 
 static inline void musl_override_glob_locks()
 {
-  printf("__libc.can_do_threads: %d\n__libc.threaded: %d\n",
+  kprintf("__libc.can_do_threads: %d\n__libc.threaded: %d\n",
         __libc.can_do_threads, __libc.threaded);
-  printf("__libc.threads_minus_1: %d -> %d\n",
+  kprintf("__libc.threads_minus_1: %d -> %d\n",
         __libc.threads_minus_1, 1);
   __libc.threads_minus_1 = 1;
-  printf("__libc.need_locks: %d -> 1",
+  kprintf("__libc.need_locks: %d -> 1",
         __libc.need_locks);
   __libc.need_locks = 1;
 }
