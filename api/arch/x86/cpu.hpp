@@ -86,8 +86,14 @@ namespace x86
     static void set_fs(void* entry) noexcept {
       write_msr(IA32_FS_BASE, (uintptr_t) entry);
     }
+    static uintptr_t get_fs() noexcept {
+      return read_msr(IA32_FS_BASE);
+    }
     static void set_gs(void* entry) noexcept {
       write_msr(IA32_GS_BASE, (uintptr_t) entry);
+    }
+    static uintptr_t get_gs() noexcept {
+      return read_msr(IA32_GS_BASE);
     }
 #endif
 

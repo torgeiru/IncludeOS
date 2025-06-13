@@ -37,6 +37,7 @@ struct alignas(64) smp_table
 {
   // per-cpu cpuid
   int cpuid;
+  uintptr_t thread_ptr;
   /** put more here **/
 };
 static SMP::Array<smp_table> cpu_tables;
@@ -122,6 +123,9 @@ void x86::initialize_cpu_tables_for_cpu(int cpu)
 
 #ifdef ARCH_x86_64
   x86::CPU::set_gs(&cpu_tables[cpu]);
+  // Setting libc initilialized thread pointer for SMP cores!
+  if (cpu != 0)
+    x86::CPU::set_fs(cpu_tables[cpu].thread_ptr);
 #else
   int fs = gdt.create_data(&cpu_tables[cpu], 1);
   GDT::reload_gdt(gdt);

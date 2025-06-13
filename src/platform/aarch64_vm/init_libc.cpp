@@ -36,7 +36,7 @@ int kernel_main(int, char * *, char * *)
 {
   PRATTLE("<kernel_main> libc initialization complete \n");
   LL_ASSERT(global_ctors_ok == 42);
-  kernel::state().libc_initialized.store(true);
+  kernel::state().libc_initialized = true;
 
   Elf_binary<Elf64> elf{{(char*)&_ELF_START_, &_ELF_END_ - &_ELF_START_}};
   LL_ASSERT(elf.is_ELF() && "ELF header intact");

@@ -25,9 +25,11 @@ static long sys_arch_prctl(int code, uintptr_t ptr)
     x86::CPU::set_fs((void*)ptr);
     break;
   case ARCH_GET_GS:
-    os::panic("<arch_prctl> GET_GS called!\n");
+    // os::panic("<arch_prctl> GET_GS called!\n");
+    return x86::CPU::get_gs();
   case ARCH_GET_FS:
-    os::panic("<arch_prctl> GET_FS called!\n");
+    // os::panic("<arch_prctl> GET_FS called!\n");
+    return x86::CPU::get_fs();
   }
   return 0;
 #else

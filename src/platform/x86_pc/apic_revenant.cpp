@@ -115,12 +115,6 @@ void revenant_main(int cpu)
     RNG::get().init();
   }
 
-  // Initialize libc for CPU core
-  while (! kernel::libc_initialized());
-  SMP::global_lock();
-  INFO2("Libc (%d) has been initialized!", cpu);
-  SMP::global_unlock();
-
   // allow programmers to do stuff on each core at init
   SMP::init_task();
 

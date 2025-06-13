@@ -47,7 +47,7 @@ extern "C"
 int kernel_main(int, char * *, char * *)
 {
   KDEBUG("<kernel_main> libc initialization complete \n");
-  kernel::state().libc_initialized.store(true);
+  kernel::state().libc_initialized = true;
   kernel::diag::hook<kernel::diag::post_init_libc>();
   KDEBUG("<kernel_main> OS start \n");
 
