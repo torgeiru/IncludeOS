@@ -33,15 +33,6 @@
 extern "C" char* get_cpu_esp();
 extern "C" void* get_cpu_ebp();
 
-struct alignas(64) smp_table
-{
-  // per-cpu cpuid
-  int cpuid;
-  uintptr_t thread_ptr;
-  /** put more here **/
-};
-static SMP::Array<smp_table> cpu_tables;
-
 // TODO: -Wunused-variable
 // static util::KHz cpu_freq_{};
 
@@ -49,7 +40,6 @@ namespace x86 {
   void initialize_cpu_tables_for_cpu(int cpu);
   void register_deactivation_function(delegate<void()>);
 }
-
 
 void __platform_init()
 {
@@ -119,13 +109,12 @@ static x86::GDT gdt;
 
 void x86::initialize_cpu_tables_for_cpu(int cpu)
 {
+extern SMP::Array<smp_table> cpu_tables;
+
   cpu_tables[cpu].cpuid = cpu;
 
 #ifdef ARCH_x86_64
   x86::CPU::set_gs(&cpu_tables[cpu]);
-  // Setting libc initilialized thread pointer for SMP cores!
-  if (cpu != 0)
-    x86::CPU::set_fs(cpu_tables[cpu].thread_ptr);
 #else
   int fs = gdt.create_data(&cpu_tables[cpu], 1);
   GDT::reload_gdt(gdt);

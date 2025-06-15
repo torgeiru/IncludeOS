@@ -5,7 +5,6 @@
 #include "idt.hpp"
 #include <kernel.hpp>
 #include <kernel/events.hpp>
-//#include <kernel/os.hpp>
 #include <os.hpp>
 #include <kernel/rng.hpp>
 #include <kprint>
@@ -14,6 +13,7 @@ namespace x86 {
   extern void initialize_cpu_tables_for_cpu(int);
   smp_stuff smp_main;
   SMP::Array<smp_system_stuff> smp_system;
+  SMP::Array<smp_table> cpu_tables;
 }
 
 extern "C" void*  get_cpu_esp();
@@ -91,6 +91,8 @@ void revenant_main(int cpu)
   x86::idt_initialize_for_cpu(cpu);
   assert(cpu == SMP::cpu_id());
   assert(stack >= this_stack_end && stack < this_stack);
+  // setting thread pointer
+  x86::CPU::set_fs(cpu_tables[cpu].thread_ptr);
 
   static Spinlock lock;
   {

@@ -45,38 +45,29 @@ struct apic_boot {
   uint32_t  stack_base;
   uint32_t  stack_size;
 };
-struct __libc {
-  char can_do_threads;
-  char threaded;
-  char secure;
-  volatile signed char need_locks;
-  int threads_minus_1;
-  size_t *auxv;
-};
-extern struct __libc __libc;
-//extern "C" struct __libc *__libc_loc(void) __attribute__((const));
-//#define __libc (*__libc_loc())
 
-static inline void musl_override_glob_locks()
-{
-  kprintf("__libc.can_do_threads: %d\n__libc.threaded: %d\n",
-        __libc.can_do_threads, __libc.threaded);
-  kprintf("__libc.threads_minus_1: %d -> %d\n",
-        __libc.threads_minus_1, 1);
-  __libc.threads_minus_1 = 1;
-  kprintf("__libc.need_locks: %d -> 1",
-        __libc.need_locks);
-  __libc.need_locks = 1;
-}
+extern "C"
+int __pthread_create(...);
 
 namespace x86
 {
+extern SMP::Array<smp_table> cpu_tables;
 
 void init_SMP()
 {
   const uint32_t CPUcount = ACPI::get_cpus().size();
   if (CPUcount <= 1) return;
   assert(CPUcount <= SMP_MAX_CORES);
+
+  // initialize musl for every aux cpu
+  for (uint32_t i = 1; i < CPUcount; ++i) {
+    void *thread_ptr;
+    int ret = __pthread_create(&thread_ptr, NULL, NULL, NULL);
+    if (ret < 0)
+      os::panic("Failed to initialize libc on aux CPU!");
+    cpu_tables[i].thread_ptr = thread_ptr;
+  }
+
   // avoid heap usage during AP init
   x86::smp_main.initialized_cpus.reserve(CPUcount);
 
@@ -110,9 +101,6 @@ void init_SMP()
 
   // reset barrier
   smp_main.boot_barrier.reset(1);
-
-  // enable global locks on musl
-  musl_override_glob_locks();
 
   auto& apic = x86::APIC::get();
   // turn on CPUs

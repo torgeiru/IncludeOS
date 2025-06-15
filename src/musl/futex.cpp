@@ -22,13 +22,9 @@ static int sys_futex(int *uaddr, int /*futex_op*/, int val,
 {
 
   if (*uaddr != val){
-    return EAGAIN;
+    return -EAGAIN;
   } else {
     *uaddr = 0;
-  }
-
-  if (timeout == nullptr){
-    kprintf("No timeout\n");
   }
 
   return 0;

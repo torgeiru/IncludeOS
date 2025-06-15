@@ -27,10 +27,17 @@ typedef SMP::task_func smp_task_func;
 typedef SMP::done_func smp_done_func;
 
 namespace x86 {
-
 extern void init_SMP();
 extern void initialize_gdt_for_cpu(int cpuid);
 
+struct alignas(64) smp_table
+{
+  // per-cpu cpuid
+  int cpuid;
+  // used by aux cpus for getting/setting tip
+  void *thread_ptr;
+  /** put more here **/
+};
 }
 
 #endif
