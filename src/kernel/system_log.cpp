@@ -132,8 +132,8 @@ void SystemLog::initialize()
   SystemLog::write(temp_mrb.sequentialize(), temp_mrb.size());
 }
 
-__attribute__((constructor))
-static void system_log_gconstr()
-{
-  os::add_stdout(SystemLog::write);
-}
+// __attribute__((constructor))
+// static void system_log_gconstr()
+// {
+//   os::add_stdout(SystemLog::write);
+// }
