@@ -2,12 +2,10 @@
   
   smp ? false,        # Enable multcore support (SMP)
   
-  debugsyms ? false,  # Include debug symbols in chainloader and executable
-  
   nixpkgs ? ./pinned.nix,
   
   overlays ? [
-    (import ./overlay.nix { inherit withCcache; inherit smp; inherit debugsyms; } )
+    (import ./overlay.nix { inherit withCcache; inherit smp; } )
   ],
   
   pkgs ? import nixpkgs { config = {}; inherit overlays; }

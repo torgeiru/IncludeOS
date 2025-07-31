@@ -32,7 +32,6 @@ namespace fs
     this->modif   = other.modif;
   }
 
-
   Dirent& Dirent::operator=(const Dirent& other) noexcept
   {
     this->fs_     = other.fs_;
@@ -46,5 +45,4 @@ namespace fs
 
     return *this;
   }
-
 }

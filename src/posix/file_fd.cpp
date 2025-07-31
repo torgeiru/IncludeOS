@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cerrno>
 #include <posix/file_fd.hpp>
 #include <errno.h>
 #include <dirent.h>
@@ -31,16 +32,24 @@ ssize_t File_FD::read(void* p, size_t n)
   if(UNLIKELY(n == 0))
     return 0;
 
-  auto buf = ent_.read(offset_, n);
-  if (not buf.is_valid()) return -EIO;
+  if (LIKELY(is_blocking())) {
+    auto buf = ent_.read(offset_, n);
+    if (not buf.is_valid()) return -EIO;
 
-  memcpy(p, buf.data(), std::min(n, buf.size()));
-  offset_ += buf.size();
-  return buf.size();
+    memcpy(p, buf.data(), std::min(n, buf.size()));
+    offset_ += buf.size();
+    return buf.size();
+  } else {
+    return -ENOTSUP;
+  }
 }
 
 ssize_t File_FD::readv(const struct iovec* iov, int iovcnt)
 {
+  if (not is_blocking()) {
+    return -ENOTSUP;
+  }
+
   if(UNLIKELY(iovcnt <= 0 and iovcnt > IOV_MAX))
     return -EINVAL;
 

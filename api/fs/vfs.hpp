@@ -52,7 +52,6 @@ inline std::string type_name(const std::type_info& type_, size_t max_chars = 0) 
   return result;
 }
 
-
 namespace fs {
 
   struct VFS_err : public std::runtime_error {

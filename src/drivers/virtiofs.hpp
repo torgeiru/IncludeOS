@@ -31,20 +31,6 @@ typedef struct __attribute__((packed)) {
   fuse_init_out init_out; // out.len - sizeof(fuse_out_header)
 } virtio_fs_init_res;
 
-// typedef struct __attribute__((packed)) virtio_fs_getattr_req {
-//   fuse_in_header in_header;
-//   fuse_getattr_in getattr_in;
-// 
-//   virtio_fs_getattr_req(uint32_t getattr_flag, uint64_t f, uint64_t uniqu, uint64_t nodei) 
-//   : in_header(sizeof(fuse_getattr_in), FUSE_GETATTR, uniqu, nodei),
-//     getattr_in(getattr_flag, f) {}
-// } virtio_fs_getattr_req;
-
-// typedef struct __attribute__((packed)) {
-//   fuse_out_header out_header;
-//   fuse_attr_out attr_out;
-// } virtio_fs_getattr_res;
-
 typedef struct __attribute__((packed)) virtio_fs_lookup_req {
   fuse_in_header in_header;
 
@@ -97,30 +83,6 @@ typedef struct __attribute__((packed)) {
   fuse_out_header out_header;
 } virtio_fs_close_res;
 
-// typedef struct __attribute__((packed)) virtio_fs_lseek_req {} virtio_fs_lseek_req;
-// typedef struct __attribute__((packed)) {} virtio_fs_lseek_res;
-
-// typedef struct __attribute__((packed)) virtio_fs_setupmapping_req {} virtio_fs_setupmapping_req;
-// typedef struct __attribute__((packed)) {} virtio_fs_setupmapping_res;
-
-// typedef struct __attribute__((packed)) virtio_fs_removemapping_req {} virtio_fs_removemapping_req;
-// typedef struct __attribute__((packed)) {} virtio_fs_removemapping_res;
-
-// typedef struct __attribute__((packed)) virtio_fs_opendir_req {} virtio_fs_opendir_req;
-// typedef struct __attribute__((packed)) {} virtio_fs_opendir_res;
-
-// typedef struct __attribute__((packed)) virtio_fs_readdir_req {} virtio_fs_readdir_req;
-// typedef struct __attribute__((packed)) {} virtio_fs_readdir_res;
-
-// typedef struct __attribute__((packed)) virtio_fs_releasedir_req {} virtio_fs_releasedir_req;
-// typedef struct __attribute__((packed)) {} virtio_fs_releasedir_res;
-
-// typedef struct __attribute__((packed)) virtio_fs_interrupt_req {} virtio_fs_interrupt_req;
-// typedef struct __attribute__((packed)) {} virtio_fs_interrupt_res;
-
-// typedef struct __attribute__((packed)) virtio_fs_destroy_req {} virtio_fs_destroy_req;
-// typedef struct __attribute__((packed)) {} virtio_fs_destroy_res;
-
 /* Virtio configuration stuff */
 #define REQUIRED_VFS_FEATS 0ULL
 
@@ -149,3 +111,8 @@ private:
 };
 
 #endif
+
+// TODO: Destruction of Filesystem/Device
+// TODO: Simple read only Filesystem using open, lseek, read, close
+// TODO: Implement DAX and injected pagefault interrupts
+// TODO: Pause instructions
