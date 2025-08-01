@@ -1,20 +1,20 @@
 if(${ARCH} STREQUAL "x86_64")
-  set(OPENSSL_MODULES
-    openssl/init.cpp
-    openssl/client.cpp
-    openssl/server.cpp
-    openssl/tls_stream.cpp
-    https/openssl_server.cpp
-    http/client.cpp
+  # set(OPENSSL_MODULES
+  #   openssl/init.cpp
+  #   openssl/client.cpp
+  #   openssl/server.cpp
+  #   openssl/tls_stream.cpp
+  #   https/openssl_server.cpp
+  #   http/client.cpp
     # TODO: Fix s2n build issues and move to their own repo.
     # https/s2n_server.cpp
-  )
+  #)
   #TODO get from conan
-  set(OPENSSL_LIBS
-    s2n_libs2n
-    s2n_libssl
-    s2n_crypto
-  )
+  # set(OPENSSL_LIBS
+  #   s2n_libs2n
+  #   s2n_libssl
+  #   s2n_crypto
+  # )
 endif()
 
 set(BOTAN_MODULES
@@ -136,7 +136,7 @@ if (NOT ${PLATFORM} STREQUAL "nano")
   if (NOT CMAKE_TESTING_ENABLED)
     list(APPEND OBJLIST
       ${BOTAN_MODULES}
-      ${OPENSSL_MODULES}
+      # ${OPENSSL_MODULES}
     )
     list(APPEND SRCS
       configure.cpp

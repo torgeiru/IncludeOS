@@ -4,7 +4,7 @@
 
 #include <hw/pci_device.hpp>
 #include <vector>
-#include <stdint.h>
+#include <cstdint>
 
 /* Virtio PCI capability */
 typedef struct __attribute__((packed)) { 

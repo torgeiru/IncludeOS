@@ -6,6 +6,7 @@
 #include <kernel/events.hpp>
 //#include <kernel/os.hpp>
 #include <os.hpp>
+#include <info>
 #include <kernel/rng.hpp>
 #include <kprint>
 
@@ -17,7 +18,6 @@ namespace x86 {
 
 extern "C" void*  get_cpu_esp();
 extern "C" void   lapic_exception_handler();
-#define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 
 using namespace x86;
 

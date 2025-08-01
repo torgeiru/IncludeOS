@@ -9,7 +9,7 @@
 #include <hw/pci_manager.hpp>
 #include <info>
 
-VirtioFS::VirtioFS(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0),
+VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) : Virtio(d, REQUIRED_VFS_FEATS, 0),
 _req(*this, 1, true), _unique_counter(0)
 {
   static int id_count = 0;
@@ -171,25 +171,25 @@ _req(*this, 1, true), _unique_counter(0)
 }
 
 /** Factory method used to create VirtioFS driver object */
-std::unique_ptr<hw::VFS_device> VirtioFS::new_instance(hw::PCI_Device& d) {
-  return std::make_unique<VirtioFS>(d);
+std::unique_ptr<hw::VFS_device> VirtioFS_device::new_instance(hw::PCI_Device& d) {
+  return std::make_unique<VirtioFS_device>(d);
 }
 
-int VirtioFS::id() const noexcept {
+int VirtioFS_device::id() const noexcept {
   return _id;
 }
 
 /** Method returns the name of the device */
-std::string VirtioFS::device_name() const {
+std::string VirtioFS_device::device_name() const {
   return "VirtioFS" + std::to_string(_id);
 }
 
-int VirtioFS::open(const char *pathname, int flags, mode_t mode) { return -1; }
-ssize_t VirtioFS::read(int fd, void *buf, size_t count) { return -1; }
-int VirtioFS::close(int fd) { return -1; }
+int VirtioFS_device::open(const char *pathname, int flags, mode_t mode) { return -1; }
+ssize_t VirtioFS_device::read(int fd, void *buf, size_t count) { return -1; }
+int VirtioFS_device::close(int fd) { return -1; }
 
 __attribute__((constructor))
 void autoreg_virtiofs() {
   // Make this part less hacky for the future
-  hw::PCI_manager::register_vfs(PCI::VENDOR_VIRTIO, 0x105a, &VirtioFS::new_instance);
+  hw::PCI_manager::register_vfs(PCI::VENDOR_VIRTIO, 0x105a, &VirtioFS_device::new_instance);
 }

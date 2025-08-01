@@ -527,7 +527,5 @@ namespace fs {
     FILLINE('_');
     printf("\n");
   }
-
 } // fs
-
 #endif

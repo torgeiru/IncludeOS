@@ -3,7 +3,7 @@
 #define VIRTIO_FILESYSTEM_HPP
 
 #include <sys/types.h>
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <cstring>
 
@@ -11,7 +11,6 @@
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
 #include <virtio/virtio_queue.hpp>
-
 #include <fuse/fuse.hpp>
 
 #define FUSE_MAJOR_VERSION 7
@@ -86,11 +85,14 @@ typedef struct __attribute__((packed)) {
 /* Virtio configuration stuff */
 #define REQUIRED_VFS_FEATS 0ULL
 
-class VirtioFS : public Virtio, public hw::VFS_device {
+class VirtioFS_device : 
+  public Virtio, 
+  public hw::VFS_device
+{
 public:
   /** Constructor and VirtioFS driver factory */
-  VirtioFS(hw::PCI_Device& d);
-  ~VirtioFS();
+  VirtioFS_device(hw::PCI_Device& d);
+  ~VirtioFS_device();
 
   static std::unique_ptr<hw::VFS_device> new_instance(hw::PCI_Device& d);
 
@@ -111,8 +113,3 @@ private:
 };
 
 #endif
-
-// TODO: Destruction of Filesystem/Device
-// TODO: Simple read only Filesystem using open, lseek, read, close
-// TODO: Implement DAX and injected pagefault interrupts
-// TODO: Pause instructions

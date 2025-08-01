@@ -6,7 +6,7 @@
 #include <info>
 
 #include <stddef.h>
-#include <stdint.h>
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <span>
@@ -26,10 +26,10 @@ typedef struct VirtToken {
   }
 
   /* Used simply for testing that C++ NRVO is working */
-  VirtToken(const VirtToken &token) : flags(token.flags), buffer(token.buffer.data(), token.buffer.size())
-  {
-    // INFO2("Called copy constructor for VirtToken!");
-  }
+  // VirtToken(const VirtToken &token) : flags(token.flags), buffer(token.buffer.data(), token.buffer.size())
+  // {
+  //   // INFO2("Called copy constructor for VirtToken!");
+  // }
 } VirtToken;
   
 using std::vector;
@@ -117,7 +117,7 @@ protected:
   volatile virtq_avail *_avail_ring;
   volatile virtq_used *_used_ring;
     
-  volatile uint16_t *_avail_notify;
+  std::atomic<uint16_t*> _avail_notify;
   uint16_t _QUEUE_SIZE;
   uint16_t _last_used_idx;
   

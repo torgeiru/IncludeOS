@@ -1,6 +1,5 @@
 #include <virtio/virtio.hpp>
 #include <os.hpp>
-#include <assert.h>
 #include <info>
 #include <hw/pci.hpp>
 

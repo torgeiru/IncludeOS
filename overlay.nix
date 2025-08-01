@@ -123,6 +123,7 @@ final: prev: {
       nativeBuildInputs = [
         prev.buildPackages.cmake
         prev.buildPackages.nasm
+        prev.python3
       ] ++ prev.lib.optionals withCcache [self.ccacheWrapper];
 
       buildInputs = [
