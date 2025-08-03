@@ -46,7 +46,7 @@ int open(const char* s, int oflag, ...)
     return -1;
   }
   try {
-    auto ent = fs::VFS::stat_sync(s);
+    auto ent = fs::stat_sync(s);
     if (ent.is_valid())
     {
       auto& fd = FD_map::_open<File_FD>(ent);
@@ -225,7 +225,7 @@ int chdir(const char *path)
     desired_path.assign(path);
   }
   try {
-    auto ent = fs::VFS::stat_sync(desired_path);
+    auto ent = fs::stat_sync(desired_path);
     if (ent.is_dir())
     {
       cwd = desired_path;

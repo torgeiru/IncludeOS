@@ -1,6 +1,7 @@
 #include "common.hpp"
 #include <sys/types.h>
 #include <fs/vfs.hpp>
+#include <fs/path.hpp>
 #include <posix/fd_map.hpp>
 #include <posix/file_fd.hpp>
 
@@ -12,15 +13,18 @@ static long sys_open(const char *pathname, int /*flags*/, mode_t /*mode = 0*/) {
     return -ENOENT;
 
   try {
-    auto& entry = fs::VFS::get<FD_compatible>(pathname);
-    auto& fd = entry.open_fd();
+    fs::Path path{pathname};
+
+    const bool copy_path = false;
+    auto& entry = fs::get<FD_compatible>(path, copy_path);
+    auto& fd = entry.open_fd(path);
     return fd.get_id();
   }
   // Not FD_compatible, try dirent
   catch(const fs::VFS_err& err)
   {
     try {
-      auto ent = fs::VFS::stat_sync(pathname);
+      auto ent = fs::stat_sync(pathname);
       if (ent.is_valid())
       {
         auto& fd = FD_map::_open<File_FD>(ent);

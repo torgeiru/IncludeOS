@@ -13,7 +13,7 @@ static long sys_access(const char *pathname, int mode) {
 
   try
   {
-    auto ent = fs::VFS::stat_sync(pathname);
+    auto ent = fs::stat_sync(pathname);
     if (ent.is_valid()) {
       return ((mode & our_flags) == mode) ? 0 : -EROFS;
     }

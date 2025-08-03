@@ -30,7 +30,7 @@ static long sys_chdir(const char* path)
     desired_path.assign(path);
   }
   try {
-    auto ent = fs::VFS::stat_sync(desired_path);
+    auto ent = fs::stat_sync(desired_path);
     if (ent.is_dir())
     {
       cwd = desired_path;

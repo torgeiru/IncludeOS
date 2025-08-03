@@ -48,7 +48,7 @@ _req(*this, 1, true), _unique_counter(0)
   Expects(compatible_minor_version);
 
   /* Lookup a random file for testing */
-  char *fname = "torgeir.txt";
+  char *fname = "torgeir/torgeir.txt";
   uint32_t fname_buflen = strlen(fname) + 1;
 
   virtio_fs_lookup_req lookup_req(fname_buflen, _unique_counter++, FUSE_ROOT_ID);
@@ -114,7 +114,7 @@ _req(*this, 1, true), _unique_counter(0)
 
   /* Reading content from file handle */
   char buffer[30];
-  virtio_fs_read_req read_req(fh, 0, 29, _unique_counter++, ino);
+  virtio_fs_read_req read_req(fh, 2, 29, _unique_counter++, ino);
   virtio_fs_read_res read_res {};
 
   VirtTokens read_tokens;

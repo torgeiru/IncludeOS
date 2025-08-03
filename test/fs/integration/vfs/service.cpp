@@ -156,7 +156,7 @@ void Service::start(const std::string&)
   auto func2 = []{ printf("I'print at random: %i \n", rand()); };
   fs::mount("/proc/functions/func2", func2, "User function");
 
-  CHECKSERT(fs::VFS::root().child_count() == 1, "Mount added one element to root");
+  CHECKSERT(fs::root().child_count() == 1, "Mount added one element to root");
 
   auto func3 = []{ printf("I'm user function 3"); };
 
@@ -279,7 +279,7 @@ void Service::start(const std::string&)
     std::cout << entry.name() << "\n";
 
   const char* vfs_path = "/suspicious_users/alfred/etc/ip4/config.txt";
-  auto alfreds_config = fs::VFS::stat_sync(vfs_path);
+  auto alfreds_config = fs::stat_sync(vfs_path);
 
   INFO("VFS_test", "Trying to stat vfs path '%s' directly", vfs_path);
   auto alfreds_config2 = fs::stat_sync(vfs_path);
@@ -301,6 +301,7 @@ void Service::start(const std::string&)
     fs::mount({"dev", drv.get().device_name()}, drv.get(), drv.get().driver_name());
   }
 
+  /*
   auto& disk0 = fs::get<fs::Disk_ptr>("/dev/vblk0");
   auto& disk1 = fs::get<fs::Disk_ptr>("/dev/vblk1");
 
@@ -312,7 +313,7 @@ void Service::start(const std::string&)
 
   // Mount a directory on a given disk, on a VFS path
   try {
-    fs::VFS::mount({"/overlord/pictures/"}, disk0->device_id(), {"/pictures/"}, "Image of our lord commander", [](auto){
+    fs::mount({"/overlord/pictures/"}, disk0->device_id(), {"/pictures/"}, "Image of our lord commander", [](auto){
         FAIL("Mounting a directory from an uninitialized disk should not call user callback");
       });
     FAIL("Mounting a directory from an uninitialized disk should throw");
@@ -345,8 +346,9 @@ void Service::start(const std::string&)
 
         });
 
+      
       INFO("VFS_test", "Filesystem mounted on %s", my_disk->name().c_str());
-      fs::VFS::mount({"/overlord/pictures/"}, my_disk->device_id(), {"/pictures/"}, "Images of our lord commander", [my_disk](auto err){
+      fs::mount({"/overlord/pictures/"}, my_disk->device_id(), {"/pictures/"}, "Images of our lord commander", [my_disk](auto err){
 
           if (err)
             os::panic("Error mounting dirent from disk on VFS path");
@@ -374,9 +376,8 @@ void Service::start(const std::string&)
                 });
             });
 
-          /** PRINT **/
           fs::print_tree();
 
         });
-    });
+    });*/
 }

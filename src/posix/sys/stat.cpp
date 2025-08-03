@@ -186,7 +186,7 @@ int stat(const char *path, struct stat *buf)
   }
   memset(buf, 0, sizeof(struct stat));
   try {
-    auto ent = fs::VFS::stat_sync(path);
+    auto ent = fs::stat_sync(path);
     if (ent.is_valid())
     {
       if (ent.is_file()) buf->st_mode = S_IFREG;

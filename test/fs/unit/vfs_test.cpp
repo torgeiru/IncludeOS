@@ -86,12 +86,12 @@ CASE("VFS entries can contain arbitrary objects")
 CASE("VFS can mount entries in a tree")
 {
   // tree is initially empty
-  EXPECT(fs::VFS::root().child_count() == 0);
+  EXPECT(fs::root().child_count() == 0);
 
   // mount a char
   char a {'a'};
   fs::mount("/mnt/chars/a", a, "the letter a");
-  EXPECT(fs::VFS::root().child_count() == 1);
+  EXPECT(fs::root().child_count() == 1);
 
   // cannot mount if already occupied
   char b {'b'};
@@ -107,7 +107,7 @@ CASE("VFS can mount entries in a tree")
   char e {'e'};
   EXPECT_NO_THROW(fs::mount("/d", d, "the letter d"));
   EXPECT_NO_THROW(fs::mount("/e", e, "the letter e"));
-  EXPECT(fs::VFS::root().child_count() == 3);
+  EXPECT(fs::root().child_count() == 3);
 
   // get mounted objects of correct type
   char our_char;

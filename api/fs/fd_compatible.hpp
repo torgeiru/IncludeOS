@@ -21,6 +21,7 @@
 
 #include <posix/fd.hpp>
 #include <delegate>
+#include "path.hpp"
 
 /**
  * @brief      Makes classes inheriting this carry the
@@ -29,10 +30,9 @@
  */
 class FD_compatible {
 public:
-  delegate<FD&()> open_fd = nullptr;
+  delegate<FD&(fs::Path&)> open_fd = nullptr;
 
   virtual ~FD_compatible() = default;
-
 };
 
 #endif

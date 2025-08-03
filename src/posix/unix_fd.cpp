@@ -17,6 +17,7 @@
 #include <posix/unix_fd.hpp>
 #include <sys/un.h>
 #include <fs/vfs.hpp>
+#include <fs/path.hpp>
 
 long Unix_FD::set_impl_if_needed(const struct sockaddr* addr, socklen_t addrlen)
 {
@@ -32,10 +33,9 @@ long Unix_FD::set_impl_if_needed(const struct sockaddr* addr, socklen_t addrlen)
   if(un_addr.sun_family != AF_UNIX)
     return -EAFNOSUPPORT;
 
-  const std::string path{un_addr.sun_path};
-
+  fs::Path path{un_addr.sun_path};
   try {
-    auto& ent = fs::VFS::get<Impl>(path);
+    auto& ent = fs::get<Impl>(path);
     impl = &ent;
     return 0;
   }

@@ -160,7 +160,6 @@ namespace fs {
       return obj<T>();
     }
 
-
     void print_tree(std::string tabs = "" ) const {
 
       printf("%s-- %s", tabs.c_str(), name_.c_str());
@@ -189,11 +188,13 @@ namespace fs {
      * Walk a given path in the VFS tree.
      *
      * @return pointer to found node, nullptr is none found
+     * @param path    : walk along this path, pops the parents from reference
+    *                   along the way
      * @param partial : walk as far as possible, return last node if dirent
      * @Note: Clobbers path, to support partial walks.
      **/
-    template <bool create = false>
-    Obs_ptr walk (Path& path, bool partial = false){
+    template <bool create = false, bool strip = false>
+    Obs_ptr walk(Path& path, bool partial = false){
 
       Expects(not path.empty());
 
@@ -222,11 +223,41 @@ namespace fs {
         current_node = next_node;
       }
 
-
       Ensures(next_node);
       Ensures(path.empty());
 
       return next_node;
+    }
+
+    /**
+     * Mount object (leaf node) on this subtree
+     * @note : create is template param to avoid implicit conversion to bool
+     **/
+    template <bool create, typename T>
+    void mount(Path& path, T& obj, std::string desc) {
+      Expects(not path.empty());
+
+      auto token = path.back();
+      path.pop_back();
+
+      VFS_entry* parent = nullptr;
+
+      if (not path.empty()) {
+        parent = walk<create>(path);
+        if (not parent) {
+          Expects(not create); // Parent node should have been created otherwise
+          throw_if<not create, Err_mountpoint_invalid>(path.back() + " doesn't exist");
+        }
+      } else {
+        parent = this;
+      }
+
+      // Throw if occupied
+      if (parent->get_child(token))
+        throw Err_mountpoint_invalid(std::string("Mount point ") + token + " occupied");
+
+      // Insert the leaf
+      parent->template insert<T>(token, obj, desc);
     }
 
     template<bool Throw, typename Exception>
@@ -242,41 +273,6 @@ namespace fs {
     friend struct VFS;
 
   private:
-
-    /**
-     * Mount object (leaf node) on this subtree
-     * @note : create is template param to avoid implicit conversion to bool
-     **/
-    template <bool create, typename T>
-    void mount(Path path, T& obj, std::string desc) {
-
-      Expects(not path.empty());
-
-      auto token = path.back();
-      path.pop_back();
-
-      VFS_entry* parent = nullptr;
-
-      if (not path.empty()) {
-        parent = walk<create>(path);
-        if (not parent) {
-          Expects(not create); // Parent node should have been created otherwise
-          throw_if<not create, Err_mountpoint_invalid>(path.back() + " doesn't exist");
-        }
-
-      } else {
-        parent = this;
-      }
-
-
-      // Throw if occupied
-      if (parent->get_child(token))
-        throw Err_mountpoint_invalid(std::string("Mount point ") + token + " occupied");
-
-      // Insert the leaf
-      parent->template insert<T>(token, obj, desc);
-    }
-
     Obs_ptr get_child(const std::string& name) const {
       for (auto&& child : children_)
         if (child.get()->name() == name) return child.get();
@@ -301,7 +297,6 @@ namespace fs {
     std::string desc_;
     std::vector<Own_ptr> children_;
     bool is_fd_compatible = false;
-
   }; // End VFS_entry
 
 
@@ -318,97 +313,48 @@ namespace fs {
     using insert_dirent_delg = delegate<void(error_t, Dirent&)>;
     using on_mount_delg = delegate<void(fs::error_t)>;
 
-    template<bool create_path = true, typename T>
-    static void mount(Path path, T& obj, std::string desc) {
-      INFO("VFS", "Mounting %s on %s", type_name(typeid(obj)).c_str(), path.to_string().c_str());;
-      mutable_root().mount<create_path, T>(path, obj, desc);
-    }
+    static VFS_entry& get_entry(Path &path) {
+      std::string path_as_str = path.to_string();
+      auto item = VFS::mutable_root().walk(path, true);
 
-    /** Mount a path local to a disk, on a VFS path - async **/
-    static inline void mount(
-      Path local,
-      Disk_id disk,
-      Path remote,
-      std::string desc,
-      on_mount_delg callback
-    )
-    {
-
-      INFO(
-        "VFS",
-        "Creating mountpoint for %s::%s on %s",
-        (std::string("blk") + std::to_string(disk)).c_str(),
-        remote.to_string().c_str(),
-        local.to_string().c_str()
-      );
-
-      VFS::insert_dirent(
-        disk,
-        remote,
-        insert_dirent_delg::make_packed(
-        [local, callback, desc](error_t err, auto& dirent_ref)
-        {
-          VFS::mount<true>(local, dirent_ref, desc);
-          callback(err);
-        })
-      );
-    }
-
-    template <typename P = Path>
-    static VFS_entry& get_entry(P path){
-
-      Path p{path};
-      auto item = VFS::mutable_root().walk(p);
-
-      if (not item)
-        throw Err_not_found(std::string("Path ") + p.to_string() + " does not exist");
+      if (not item) 
+        throw Err_not_found("Path " + path_as_str + " does not exist");
 
       return *item;
     }
 
-    template <typename T, typename P = Path>
-    static T& get(P path) {
+    template <typename T>
+    static T& get(Path& path) {
       return get_entry(path).template obj<T>();
     }
 
-
-    template<typename P = Path>
-    static void stat(P path, on_stat_func fn) {
-
-      Path p{path};
-      auto item = VFS::mutable_root().walk(p, true);
+    static void stat(Path& path, on_stat_func fn) {
+      std::string orig_pathstr = path.to_string();
+      auto item = VFS::mutable_root().walk(path, true);
 
       if (not item)
-        throw Err_not_found(std::string("Path ") + p.to_string() + " does not exist");
+        throw Err_not_found("Path " + orig_pathstr + " does not exist");
 
       auto&& obj = item->obj<Dirent>();
 
-      obj.stat(p, fn);
+      obj.stat(path, fn);
     }
 
-    template<typename P = Path>
-    static Dirent stat_sync(P path) {
-
-      Path p{path};
-      auto item = VFS::mutable_root().walk(p, true);
+    static Dirent stat_sync(Path& path) {
+      std::string orig_pathstr = path.to_string();
+      auto item = VFS::mutable_root().walk(path, true);
 
       if (not item)
-        throw Err_not_found(std::string("Path ") + p.to_string() + " does not exist (stat sync)");
+        throw Err_not_found("Path " + orig_pathstr + " does not exist (stat sync)");
 
       auto&& obj = item->obj<Dirent>();
 
-      return obj.stat_sync(p);
+      return obj.stat_sync(path);
     }
 
 
-    static const VFS_entry& root() {
+    static VFS_entry& root() {
       return mutable_root();
-    }
-
-    static fs::Disk_ptr& insert_disk(hw::Block_device& blk) {
-      Disk_ptr ptr = std::make_shared<Disk>(blk);
-      auto& res = (disk_map().emplace(blk.id(), ptr)).first->second;
-      return res;
     }
 
     static void insert_dirent(Disk_key disk_id, Path path, insert_dirent_delg fn) {
@@ -447,17 +393,34 @@ namespace fs {
       );
     }
 
-  private:
-
-    static Dirent& invalid_dirent() {
-      static Dirent dir{nullptr};
-      return dir;
-    }
-
     static VFS_entry& mutable_root() {
       static VFS_entry root_{"/", "Root directory"};
       return root_;
     };
+
+    static fs::Disk_ptr& insert_disk(hw::Block_device& blk) {
+      Disk_ptr ptr = std::make_shared<Disk>(blk);
+      auto& res = (disk_map().emplace(blk.id(), ptr)).first->second;
+      return res;
+    }
+
+    template<bool create_path = true, typename T>
+    static void mount(Path& path, T& obj, std::string desc) {
+      INFO("VFS", "Mounting %s on %s", type_name(typeid(obj)).c_str(), path.to_string().c_str());
+      mutable_root().mount<create_path, T>(path, obj, desc);
+    }
+
+    template<>
+    static void mount(Path& path, hw::Block_device &obj, std::string desc) {
+      INFO("VFS", "Creating Disk object for %s ", obj.device_name().c_str());
+      auto& disk_ptr = VFS::insert_disk(obj);
+      mount(path, obj, desc);
+    }
+  private:
+    static Dirent& invalid_dirent() {
+      static Dirent dir{nullptr};
+      return dir;
+    }
 
     static Disk_map& disk_map() {
       static Disk_map mounted_disks_;
@@ -468,56 +431,85 @@ namespace fs {
       static Dirent_map mounted_dirents_;
       return mounted_dirents_;
     }
-
   };
-
-
-  /** Template specializations **/
-  template<>
-  inline void VFS::mount(Path path, hw::Block_device& obj, std::string desc) {
-    INFO("VFS", "Creating Disk object for %s ", obj.device_name().c_str());
-    auto& disk_ptr = VFS::insert_disk(obj);
-    VFS::mount<true>(path, disk_ptr, desc);
-  }
-
 
   /**
    * Global access points
    **/
 
-  /** fs::mount **/
-  template <bool create_path = true, typename T = void, typename P = Path>
+  /** Inserting **/
+  static fs::Disk_ptr& insert_disk(hw::Block_device& blk) {
+    return VFS::insert_disk(blk);
+  }
+
+  /** Mount functions **/
+  template <bool create_path = true, typename T = void, typename P = Path&>
   inline auto mount(P path, T& obj, std::string desc = "N/A") {
     Path p{path};
     VFS::mount<create_path, T>(p, obj, desc);
   };
 
-  /** fs::root **/
-  inline auto&& root() {
+  template <typename T = Path&&>
+  static inline void mount(
+    T local,
+    VFS::Disk_id disk,
+    Path remote,
+    std::string desc,
+    VFS::on_mount_delg callback
+  )
+  {
+    Path copy_local{local};
+
+    INFO(
+      "VFS",
+      "Creating mountpoint for %s::%s on %s",
+      (std::string("blk") + std::to_string(disk)).c_str(),
+      remote.to_string().c_str(),
+      local.to_string().c_str()
+    );
+
+    VFS::insert_dirent(
+      disk,
+      remote,
+      VFS::insert_dirent_delg::make_packed(
+      [&copy_local, callback, desc](error_t err, Dirent& dirent_ref)
+      {
+        VFS::mount(copy_local, dirent_ref, desc);
+        callback(err);
+      })
+    );
+  }
+
+  /** Grabbing VFS-root rvalue reference **/
+  inline VFS_entry& root() {
     return VFS::root();
   };
 
-  /** fs::get **/
+  /** Grabbing object given by path **/
   template <typename T, typename P = Path>
-  inline T& get(P pathstr) {
-    return VFS::get<T>(pathstr);
+  inline T& get(P& path, bool copy_path = true) {
+    if(copy_path) {
+      Path copy_path{path};
+      return VFS::get<T>(copy_path);
+    }
+    return VFS::get<T>(path);
   }
 
-  /** fs::stat_sync **/
+  /** Stat sync **/
   template <typename P = Path>
   inline Dirent stat_sync(P path) {
-    Path p{path};
-    return VFS::stat_sync(p);
+    Path copy_path{path};
+    return VFS::stat_sync(copy_path);
   }
 
-  /** fs::stat async **/
+  /** Stat async **/
   template <typename P = Path>
   inline void stat(P path, on_stat_func func) {
-    Path p{path};
-    VFS::stat(p, func);
+    Path copy_path{path};
+    VFS::stat(copy_path, func);
   }
 
-  /** fs::print_tree **/
+  /** Printing virtual filesystem tree. Understand VFS_entry nodes only **/
   inline void print_tree() {
     printf("\n");
     FILLINE('=');

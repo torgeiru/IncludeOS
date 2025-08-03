@@ -1,4 +1,5 @@
 #include <common.cxx>
+#include <fs/path.hpp>
 #include <fs/fd_compatible.hpp>
 #include <posix/fd_map.hpp>
 #include <posix/fd.hpp>
@@ -26,7 +27,7 @@ public:
   Shit()
   {
     this->open_fd =
-      [] () -> FD& {
+      [] (fs::Path&) -> FD& {
         return FD_map::_open<TestableFD>();
       };
   }

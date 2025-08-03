@@ -19,6 +19,7 @@
 // resources to the virtual filesystem (VFS)
 
 #include <fs/vfs.hpp>
+#include <fs/path.hpp>
 #include <posix/fd_map.hpp>
 
 #ifndef RAPIDJSON_HAS_STDSTRING
@@ -80,7 +81,7 @@ static void parse_config()
     Expects(val.HasMember("description") && "Missing description");
 
     auto& dev = get_block_device(val["disk"].GetString());
-    auto disk = fs::VFS::insert_disk(dev);
+    auto disk = fs::insert_disk(dev);
 
     // TODO: maybe move this code to get_block_device
     if (not disk->fs_ready())
@@ -92,23 +93,24 @@ static void parse_config()
 
     Expects(disk->fs_ready() && "Filesystem not ready (async disk?)");
 
-    fs::VFS::mount(
+    fs::mount(
       fs::Path{val["mount"].GetString()},
       dev.id(),
       fs::Path{val["root"].GetString()},
       val["description"].GetString(),
       [](auto err) {
         Expects(not err && "Error occured while mounting");
-      });
+      }
+    );
   }
-
 }
 
 #include <posix/rng_fd.hpp>
 // Mount RNG functionality to system paths
 static void mount_rng()
 {
-  RNG::get().open_fd = []()->FD& {
+  RNG::get().open_fd = [](fs::Path& path)->FD& {
+    Expects(path.empty());
     return FD_map::_open<RNG_fd>();
   };
 
