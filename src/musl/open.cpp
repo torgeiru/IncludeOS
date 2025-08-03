@@ -15,8 +15,7 @@ static long sys_open(const char *pathname, int /*flags*/, mode_t /*mode = 0*/) {
   try {
     fs::Path path{pathname};
 
-    const bool copy_path = false;
-    auto& entry = fs::get<FD_compatible>(path, copy_path);
+    auto& entry = fs::VFS::get<FD_compatible>(path);
     auto& fd = entry.open_fd(path);
     return fd.get_id();
   }

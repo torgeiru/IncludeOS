@@ -414,7 +414,7 @@ namespace fs {
     static void mount(Path& path, hw::Block_device &obj, std::string desc) {
       INFO("VFS", "Creating Disk object for %s ", obj.device_name().c_str());
       auto& disk_ptr = VFS::insert_disk(obj);
-      mount(path, obj, desc);
+      mount(path, disk_ptr, desc);
     }
   private:
     static Dirent& invalid_dirent() {
@@ -443,15 +443,15 @@ namespace fs {
   }
 
   /** Mount functions **/
-  template <bool create_path = true, typename T = void, typename P = Path&>
+  template <bool create_path = true, typename T, typename P = Path&&>
   inline auto mount(P path, T& obj, std::string desc = "N/A") {
     Path p{path};
     VFS::mount<create_path, T>(p, obj, desc);
   };
 
-  template <typename T = Path&&>
+  template <typename P = Path&&>
   static inline void mount(
-    T local,
+    P local,
     VFS::Disk_id disk,
     Path remote,
     std::string desc,
@@ -486,13 +486,10 @@ namespace fs {
   };
 
   /** Grabbing object given by path **/
-  template <typename T, typename P = Path>
-  inline T& get(P& path, bool copy_path = true) {
-    if(copy_path) {
-      Path copy_path{path};
-      return VFS::get<T>(copy_path);
-    }
-    return VFS::get<T>(path);
+  template <typename T, typename P = Path&>
+  inline T& get(P path) {
+    Path copy_path{path};
+    return VFS::get<T>(copy_path);
   }
 
   /** Stat sync **/
