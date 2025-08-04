@@ -330,25 +330,14 @@ endfunction()
 # automatically build memdisk from folder
 function(os_build_memdisk TARGET FOLD)
   get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  #detect changes in disc folder and if and only if changed update the file that triggers rebuild
-  find_program(CHSUM NAMES md5sum md5)
-  if (CHSUM-NOTFOUND)
-    message(FATAL_ERROR md5sum not found)
-  endif()
-  add_custom_target(${TARGET}_disccontent ALL
-    COMMAND find ${REL_PATH}/ -type f -exec ${CHSUM} "{}" + > /tmp/manifest.txt.new
-    COMMAND cmp --silent ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt /tmp/manifest.txt.new || cp /tmp/manifest.txt.new ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt
-    COMMENT "Checking disc content changes"
-    BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt
-    VERBATIM
-  )
 
+  # TODO: Make disk creation cache compatible with nix
   add_custom_command(
-      OUTPUT  memdisk.fat
-      COMMAND ${DISKBUILDER} -o memdisk.fat ${REL_PATH}
-      COMMENT "Creating memdisk"
-      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt ${TARGET}_disccontent
+    OUTPUT  memdisk.fat
+    COMMAND ${DISKBUILDER} -o memdisk.fat ${REL_PATH}
+    COMMENT "Creating memdisk"
   )
+  
   add_custom_target(${TARGET}_diskbuilder DEPENDS memdisk.fat)
   os_add_dependencies(${TARGET} ${TARGET}_diskbuilder)
   os_add_memdisk(${TARGET} "${CMAKE_CURRENT_BINARY_DIR}/memdisk.fat")
