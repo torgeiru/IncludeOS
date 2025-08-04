@@ -26,10 +26,16 @@ includeos.pkgs.mkShell.override { inherit (includeos) stdenv; } rec {
     else
       includeos.pkgs.callPackage (builtins.toPath /. + vmrunner) {};
 
+  # Used for some tests
+  diskbuilderPkg = includeos.pkgs.callPackage(builtins.fetchGit {
+      url = "https://github.com/torgeiru/diskbuilder";
+    }) {};
+
   packages = [
     (includeos.pkgs.python3.withPackages (p: [
       vmrunnerPkg
     ]))
+    diskbuilderPkg
     includeos.pkgs.buildPackages.cmake
     includeos.pkgs.buildPackages.nasm
     includeos.pkgs.qemu
