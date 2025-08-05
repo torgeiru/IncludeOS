@@ -236,6 +236,7 @@ exclusions=(
 )
 
 run_testsuite "./test/fs/integration" "${exclusions[@]}"
+nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/posix/integration/file_fd --run ./test.py
 
 echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
