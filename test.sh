@@ -225,6 +225,18 @@ exclusions=(
 
 run_testsuite "./test/net/integration" "${exclusions[@]}"
 
+#
+# File system tests
+#
+exclusions=(
+  "fat16"        # Uses FAT32 diskbuilder
+  "ide"          # IDE is broken and deprecated
+  "ide_write"    # Same as above exclusion
+  "virtio_block" # Requires sudo and needs to be rewritten to run without
+)
+
+run_testsuite "./test/fs/integration" "${exclusions[@]}"
+
 echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
 if [ $fails -eq 0 ]; then
