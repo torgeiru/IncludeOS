@@ -2,11 +2,10 @@
 #ifndef VFS_DEVICE_HPP
 #define VFS_DEVICE_HPP
 
+#include <cstdint>
 #include <sys/types.h>
 #include <string>
 #include "device.hpp"
-
-#include <info>
 
 namespace hw {
   class VFS_device : public Device {
@@ -25,13 +24,13 @@ namespace hw {
     virtual int id() const noexcept = 0;
 
     /** Method for creating a file handle */
-    virtual int open(const char *pathname, int flags, mode_t mode) = 0;
+    virtual uint64_t open(char *pathname, int flags, mode_t mode) = 0;
 
     /** Method for reading from a file handle */
-    virtual ssize_t read(int fd, void *buf, size_t count) = 0;
+    virtual ssize_t read(uint64_t fh, void *buf, uint32_t count) = 0;
 
     /** Method for closing a file handle  */
-    virtual int close(int fd) = 0;
+    virtual int close(uint64_t fh) = 0;
   };
 }
 

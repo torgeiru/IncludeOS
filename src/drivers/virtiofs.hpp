@@ -2,9 +2,11 @@
 #ifndef VIRTIO_FILESYSTEM_HPP
 #define VIRTIO_FILESYSTEM_HPP
 
+#include <string>
+#include <unordered_map>
+
 #include <sys/types.h>
 #include <cstdint>
-#include <string>
 #include <cstring>
 
 #include <hw/vfs_device.hpp>
@@ -102,12 +104,13 @@ public:
   std::string device_name() const override;
 
   /** VFS operations overriden with mock functions for now */
-  int open(const char *pathname, int flags, mode_t mode) override;
-  ssize_t read(int fd, void *buf, size_t count) override;
-  int close(int fd) override;
+  uint64_t open(char *pathname, int flags, mode_t mode) override;
+  ssize_t read(uint64_t fh, void *buf, uint32_t count)  override;
+  int close(uint64_t fh) override;
 
 private:
   VirtQueue _req;
+  std::unordered_map<uint64_t, fuse_ino_t> _ino_fh_map;
   uint64_t _unique_counter;
   int _id;
 };

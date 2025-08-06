@@ -47,11 +47,29 @@ _req(*this, 1, true), _unique_counter(0)
   CHECK(compatible_minor_version, "Daemon falls back to the driver supported minor FUSE version");
   Expects(compatible_minor_version);
 
-  /* Lookup a random file for testing */
-  char *fname = "torgeir/torgeir.txt";
-  uint32_t fname_buflen = strlen(fname) + 1;
+  /* Finalizing initialization */
+  INFO("VirtioFS", "Device initialization is now complete");
+}
 
-  virtio_fs_lookup_req lookup_req(fname_buflen, _unique_counter++, FUSE_ROOT_ID);
+/** Factory method used to create VirtioFS driver object */
+std::unique_ptr<hw::VFS_device> VirtioFS_device::new_instance(hw::PCI_Device& d) {
+  return std::make_unique<VirtioFS_device>(d);
+}
+
+int VirtioFS_device::id() const noexcept {
+  return _id;
+}
+
+/** Method returns the name of the device */
+std::string VirtioFS_device::device_name() const {
+  return "VirtioFS" + std::to_string(_id);
+}
+
+uint64_t VirtioFS_device::open(char *pathname, int flags, mode_t mode) {
+  /* FUSE lookup */
+  uint32_t pathname_len = strlen(pathname) + 1;
+
+  virtio_fs_lookup_req lookup_req(pathname_len, _unique_counter++, FUSE_ROOT_ID);
   virtio_fs_lookup_res lookup_res {};
 
   VirtTokens lookup_tokens;
@@ -63,8 +81,8 @@ _req(*this, 1, true), _unique_counter(0)
   );
   lookup_tokens.emplace_back(
     VIRTQ_DESC_F_NEXT,
-    reinterpret_cast<uint8_t*>(fname),
-    fname_buflen
+    reinterpret_cast<uint8_t*>(pathname),
+    pathname_len
   );
   lookup_tokens.emplace_back(
     VIRTQ_DESC_F_WRITE,
@@ -79,8 +97,11 @@ _req(*this, 1, true), _unique_counter(0)
   uint32_t device_written_len;
   _req.dequeue(&device_written_len);
 
+  if (lookup_res.out_header.error != 0) {
+    return -1;
+  }
+
   fuse_ino_t ino = lookup_res.entry_param.ino;
-  INFO2("The file inode number is %d", ino);
 
   /* Creating a file handle */
   virtio_fs_open_req open_req(0, 0, _unique_counter++, ino);
@@ -105,20 +126,30 @@ _req(*this, 1, true), _unique_counter(0)
   while(_req.has_processed_used());
   _req.dequeue();
 
-  uint64_t fh = open_res.open_out.fh;
-
-  if (open_res.out_header.error == 0) {
-    INFO2("Successfully opened file handle!");
-    INFO2("File handle is %d", fh);
+  if (open_res.out_header.error != 0) {
+    return -1;
   }
 
-  /* Reading content from file handle */
-  char buffer[30];
-  virtio_fs_read_req read_req(fh, 2, 29, _unique_counter++, ino);
-  virtio_fs_read_res read_res {};
+  /* Inserting into fh_ino mapping */
+  uint64_t fh = open_res.open_out.fh;
+  
+  _ino_fh_map[fh] = ino;
+
+  return fh;
+}
+
+ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
+  if (not _ino_fh_map.contains(fh)) return -1;
+
+  fuse_ino_t ino = _ino_fh_map[fh];
+
+  /* FUSE read request */
+  virtio_fs_read_req read_req(fh, 0, count, _unique_counter++, ino);
+  virtio_fs_read_res read_res{};
 
   VirtTokens read_tokens;
   read_tokens.reserve(3);
+
   read_tokens.emplace_back(
     VIRTQ_DESC_F_NEXT, 
     reinterpret_cast<uint8_t*>(&read_req),
@@ -131,8 +162,8 @@ _req(*this, 1, true), _unique_counter(0)
   );
   read_tokens.emplace_back(
     VIRTQ_DESC_F_WRITE, 
-    reinterpret_cast<uint8_t*>(&buffer),
-    29
+    reinterpret_cast<uint8_t*>(buf),
+    count
   );
 
   _req.enqueue(read_tokens);
@@ -141,10 +172,17 @@ _req(*this, 1, true), _unique_counter(0)
   while(_req.has_processed_used());
   _req.dequeue();
 
-  buffer[29] = 0;
-  INFO2("%s", buffer);
+  if (read_res.out_header.error != 0) return -1;
 
-  /* Closing the file handle */
+  return (read_res.out_header.len - sizeof(fuse_out_header));
+}
+
+int VirtioFS_device::close(uint64_t fh) {
+  if (not _ino_fh_map.contains(fh)) return -1;
+  fuse_ino_t ino = _ino_fh_map[fh];
+  _ino_fh_map.erase(fh);
+
+  /* FUSE close request */
   virtio_fs_close_req close_req(fh, 0, 0, _unique_counter++, ino); 
   virtio_fs_close_res close_res{};
 
@@ -166,27 +204,12 @@ _req(*this, 1, true), _unique_counter(0)
 
   while(_req.has_processed_used());
 
-  /* Finalizing initialization */
-  INFO("VirtioFS", "Device initialization is now complete");
-}
+  if (close_res.out_header.error != 0) {
+    return -1;
+  }
 
-/** Factory method used to create VirtioFS driver object */
-std::unique_ptr<hw::VFS_device> VirtioFS_device::new_instance(hw::PCI_Device& d) {
-  return std::make_unique<VirtioFS_device>(d);
+  return 0;
 }
-
-int VirtioFS_device::id() const noexcept {
-  return _id;
-}
-
-/** Method returns the name of the device */
-std::string VirtioFS_device::device_name() const {
-  return "VirtioFS" + std::to_string(_id);
-}
-
-int VirtioFS_device::open(const char *pathname, int flags, mode_t mode) { return -1; }
-ssize_t VirtioFS_device::read(int fd, void *buf, size_t count) { return -1; }
-int VirtioFS_device::close(int fd) { return -1; }
 
 __attribute__((constructor))
 void autoreg_virtiofs() {
