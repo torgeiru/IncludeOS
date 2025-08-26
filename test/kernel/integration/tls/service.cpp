@@ -15,38 +15,83 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <service>
-#include <cassert>
+#include <os>
+#include <expects>
+#include <smp>
 
-// TBSS area
-thread_local int test_int = 0;
-thread_local char test_char = 0;
-// TDATA area
-thread_local char test_array[3] = {1, 2, 3};
-thread_local int64_t test_i64 = 0x11ABCDEF22ABCDEF;
+const int CPU_COUNT = 5;
+static minimal_barrier_t barrier;
 
-void Service::start()
+// Uninitialized TLS data
+thread_local int tbss_arr[5];
+
+// Initialized TLS data
+thread_local int tdata_arr[5] = {0, 1, 2, 3, 4};
+
+auto verify_initial_data = []() {
+  for (int i = 0; i < 5; ++i) {
+    Expects(tbss_arr[i] == 0);
+    Expects(tdata_arr[i] == i);
+  }
+
+  barrier.inc();
+};
+
+auto modify_data = []() {
+  int cpu_id = SMP::cpu_id();
+  tbss_arr[cpu_id] = cpu_id;
+  tdata_arr[cpu_id] = 0;
+
+  barrier.inc();
+};
+
+auto verify_local_data = []() {
+  int cpu_id = SMP::cpu_id();
+
+  for (int i = 0; i < 5; ++i) {
+    if (i == cpu_id) {
+      Expects(tbss_arr[cpu_id] == cpu_id);
+      Expects(tdata_arr[cpu_id] == 0);
+    } else {
+      Expects(tbss_arr[i] == 0);
+      Expects(tdata_arr[i] == i);
+    }
+  }
+
+  barrier.inc();
+};
+
+int main()
 {
-  int bss_local = 0;
-  int data_local = 1;
-  // TBSS area
-  assert(test_int == 0);
-  assert(test_char == 0);
-  // modify TBSS
-  test_int = 1;
-  assert(test_int == 1);
-  // TDATA area
-  assert(test_array[0] == 1);
-  assert(test_array[1] == 2);
-  assert(test_array[2] == 3);
-  assert(test_i64 == 0x11ABCDEF22ABCDEF);
-  // modify TDATA area
-  test_array[0] = 44;
-  assert(test_array[0] == 44);
-  assert(test_array[1] == 2);
-  assert(test_array[2] == 3);
-  // verify locals
-  assert(bss_local == 0);
-  assert(data_local == 1);
+  // Verify correct values for all CPUs
+  for (int i = 1; i < 5; ++i) {
+    SMP::add_task(verify_initial_data, i);
+  }
+
+  barrier.reset(0);
+  SMP::signal();
+  verify_initial_data();
+  barrier.spin_wait(CPU_COUNT);
+
+  // Alter core specific TLS data
+  for (int i = 1; i < 5; ++i) {
+    SMP::add_task(modify_data, i);
+  }
+
+  barrier.reset(0);
+  SMP::signal();
+  modify_data();
+  barrier.spin_wait(CPU_COUNT);
+
+  // Verify local TLS changes
+  for (int i = 1; i < 5; ++i) {
+    SMP::add_task(verify_local_data, i);
+  }
+
+  barrier.reset(0);
+  SMP::signal();
+  verify_local_data();
+  barrier.spin_wait(CPU_COUNT);
+
   printf("SUCCESS\n");
 }
