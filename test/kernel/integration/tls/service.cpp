@@ -1,20 +1,3 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include <os>
 #include <expects>
 #include <smp>
@@ -28,7 +11,30 @@ thread_local int tbss_arr[5];
 // Initialized TLS data
 thread_local int tdata_arr[5] = {0, 1, 2, 3, 4};
 
+void print_data(int *data, int size) {
+  for (int i = 0; i < size; ++i) {
+     printf("%d ", data[i]);
+  }
+  printf("\n");
+}
+
+void print_tls_data() {
+  int cpu_id = SMP::cpu_id();
+
+  SMP::global_lock();
+
+  printf("CPU#%d (tbss):  ", cpu_id);
+  print_data(tbss_arr, 5);
+
+  printf("CPU#%d (tdata): ", cpu_id);
+  print_data(tdata_arr, 5);
+
+  SMP::global_unlock();
+}
+
 auto verify_initial_data = []() {
+  print_tls_data();
+
   for (int i = 0; i < 5; ++i) {
     Expects(tbss_arr[i] == 0);
     Expects(tdata_arr[i] == i);
@@ -46,8 +52,9 @@ auto modify_data = []() {
 };
 
 auto verify_local_data = []() {
-  int cpu_id = SMP::cpu_id();
+  print_tls_data();
 
+  int cpu_id = SMP::cpu_id();
   for (int i = 0; i < 5; ++i) {
     if (i == cpu_id) {
       Expects(tbss_arr[cpu_id] == cpu_id);
@@ -73,6 +80,8 @@ int main()
   verify_initial_data();
   barrier.spin_wait(CPU_COUNT);
 
+  printf("\nCorrect initial values!\n\n");
+
   // Alter core specific TLS data
   for (int i = 1; i < 5; ++i) {
     SMP::add_task(modify_data, i);
@@ -92,6 +101,8 @@ int main()
   SMP::signal();
   verify_local_data();
   barrier.spin_wait(CPU_COUNT);
+
+  printf("\nCorrect modified values for TBSS and TDATA!\n\n");
 
   printf("SUCCESS\n");
 }
