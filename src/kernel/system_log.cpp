@@ -1,3 +1,4 @@
+#include <smp>
 #include <system_log>
 #include <kernel.hpp>
 #include <os.hpp>
@@ -66,6 +67,9 @@ bool SystemLog::is_initialized() {
 
 void SystemLog::write(const char* buffer, size_t length)
 {
+  // Systemlog only works on CPU#0
+  if (SMP::cpu_id() != 0) return;
+
   size_t free = get_mrb()->free_space();
   if (free < length) {
     get_mrb()->discard(length - free);
