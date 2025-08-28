@@ -9,7 +9,7 @@ auto lambda = []() {
   for (int j = 0; j < 10; ++j) {
     void *buffers[10];
     for (int k = 0; k < 10; ++k) {
-      size_t chunk_size = k * 0x20;
+      size_t chunk_size = (k + 1) * 0x20;
       
       buffers[k] = malloc(chunk_size);
       if (buffers[k] == NULL) {
@@ -18,7 +18,7 @@ auto lambda = []() {
       printf("CPU#%d: Allocating chunk 0x%lx with\n", SMP::cpu_id(), chunk_size);
     }
     for (int k = 0; k < 10; ++k) {
-      size_t chunk_size = k * 0x20;
+      size_t chunk_size = (k + 1) * 0x20;
 
       if (buffers[k]) {
         printf("CPU#%d: Freeing chunk 0x%lx (size 0x%lx bytes)\n", SMP::cpu_id(), buffers[k], chunk_size);
