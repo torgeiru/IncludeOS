@@ -12,7 +12,7 @@ auto lambda = []() {
       size_t chunk_size = k * 0x20;
       
       buffers[k] = malloc(chunk_size);
-      if (buffers[j] == NULL) {
+      if (buffers[k] == NULL) {
         os::panic("Failed to allocate buffer!\n");
       }
       printf("CPU#%d: Allocating chunk 0x%lx with\n", SMP::cpu_id(), chunk_size);
