@@ -1,15 +1,11 @@
 #include "common.hpp"
-#include <posix/fd_map.hpp>
+#include <sys/types.h>
+
+#include <hw/vfs_device.hpp>
 
 static long sys_close(int fd)
 {
-  if(auto* fildes = FD_map::_get(fd); fildes)
-  {
-    long res = fildes->close();
-    FD_map::close(fd);
-    return res;
-  }
-  return -EBADF;
+  return -ENOSYS;
 }
 
 extern "C"

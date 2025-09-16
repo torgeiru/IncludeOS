@@ -234,13 +234,18 @@ typedef struct __attribute__((packed)) fuse_release_in {
 	: fh(f), flags(flag), release_flags(release_flag) {}
 } fuse_release_in;
 
-typedef struct __attribute__((packed)) fuse_lseek_in {
-	uint64_t fh;
-	uint64_t offset;
-	uint32_t whence;
-	uint32_t padding;
-	fuse_lseek_in() {}
-} fuse_lseek_in;
+// typedef struct __attribute__((packed)) fuse_lseek_in {
+// 	uint64_t fh;
+// 	uint64_t offset;
+// 	uint32_t whence;
+// 	uint32_t padding;
+// 	fuse_lseek_in() {}
+// } fuse_lseek_in;
+
+// TODO: Implement seeking
+// TODO: Add options to vmrunner for more settings (uphold DIRECT_IO, writeback caching)
+// TODO: Implement possibility for many requests in flight
+// TODO: Research thread safety
 
 // typedef struct __attribute__((packed)) {
 // 	uint64_t offset;
