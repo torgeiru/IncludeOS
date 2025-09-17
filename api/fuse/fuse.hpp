@@ -225,6 +225,26 @@ typedef struct __attribute__((packed)) fuse_read_in {
 	  lock_owner(0), flags(flag), padding(0) {}
 } fuse_read_in;
 
+typedef struct __attribute__((packed)) fuse_write_in {
+  uint64_t fh;
+  uint64_t offset;
+  uint32_t size;
+  uint32_t write_flags;
+  uint64_t lock_owner;
+  uint32_t flags;
+  uint32_t padding;
+
+	fuse_write_in(uint64_t f, uint64_t offse, uint32_t siz, 
+		uint32_t write_flag, uint32_t flag)
+	: fh(f), offset(offse), size(siz), write_flags(write_flag),
+	  lock_owner(0), flags(flag), padding(0) {}
+};
+
+typedef struct __attribute__((packed)) fuse_write_out {
+	uint32_t size;
+	uint32_t padding;
+};
+
 typedef struct __attribute__((packed)) fuse_release_in {
 	uint64_t fh;
 	uint32_t flags;
@@ -233,62 +253,5 @@ typedef struct __attribute__((packed)) fuse_release_in {
 	fuse_release_in(uint64_t f, uint32_t flag, uint32_t release_flag) 
 	: fh(f), flags(flag), release_flags(release_flag) {}
 } fuse_release_in;
-
-// typedef struct __attribute__((packed)) fuse_lseek_in {
-// 	uint64_t fh;
-// 	uint64_t offset;
-// 	uint32_t whence;
-// 	uint32_t padding;
-// 	fuse_lseek_in() {}
-// } fuse_lseek_in;
-
-// TODO: Implement seeking
-// TODO: Add options to vmrunner for more settings (uphold DIRECT_IO, writeback caching)
-// TODO: Implement possibility for many requests in flight
-// TODO: Research thread safety
-
-// typedef struct __attribute__((packed)) {
-// 	uint64_t offset;
-// } fuse_lseek_out;
-
-// typedef struct __attribute__((packed)) fuse_interrupt_in {
-// 	uint64_t unique;
-// 	fuse_interrupt_in() {}
-// } fuse_interrupt_in;
-
-// typedef struct __attribute__((packed)) fuse_getattr_in {
-// 	uint32_t getattr_flags;
-// 	uint32_t dummy;
-// 	uint64_t fh;
-// 
-// 	fuse_getattr_in(uint32_t getattr_flag, uint64_t f) 
-// 	: getattr_flags(getattr_flag), dummy(0), fh(f) {}
-// } fuse_getattr_in;
-
-// typedef struct __attribute__((packed)) {
-// 	uint64_t ino;
-// 	uint64_t size;
-// 	uint64_t blocks;
-// 	uint64_t atime;
-// 	uint64_t mtime;
-// 	uint64_t ctime;
-// 	uint32_t atimensec;
-// 	uint32_t mtimensec;
-// 	uint32_t ctimensec;
-// 	uint32_t mode;
-// 	uint32_t nlink;
-// 	uint32_t uid;
-// 	uint32_t gid;
-// 	uint32_t rdev;
-// 	uint32_t blksize;
-// 	uint32_t flags;
-// } fuse_attr;
-
-// typedef struct __attribute__((packed)) {
-// 	uint64_t attr_valid;
-// 	uint32_t attr_valid_nsec;
-// 	uint32_t dummy;
-// 	fuse_attr attr;
-// } fuse_attr_out;
 
 #endif // FILESYSTEM_IN_USERPSACE_HPP

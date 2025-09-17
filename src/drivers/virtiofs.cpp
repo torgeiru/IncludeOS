@@ -129,6 +129,9 @@ uint64_t VirtioFS_device::open(char *pathname, uint32_t flags, mode_t /*mode*/) 
   if (open_res.out_header.error != 0) {
     return -1;
   }
+  INFO("VirtioFS", "The error code is %d", open_res.out_header.error);
+  INFO("VirtioFS", "The len is %d", open_res.out_header.len);
+  INFO("VirtioFS", "The unique is %d", open_res.out_header.unique);
 
   /* Inserting into fh_ino mapping */
   uint64_t fh = open_res.open_out.fh;
@@ -157,6 +160,50 @@ off_t VirtioFS_device::lseek(uint64_t fh, off_t offset, int whence) {
 
   fh_info_map[fh].offset = new_offset;
   return new_offset;
+}
+
+ssize_t VirtioFS_device::write(uint64_t fh, void *buf, uint32_t count) {
+  if (not fh_info_map.contains(fh)) return -1;
+
+  fuse_ino_t ino = fh_info_map[fh].ino;
+  off_t offset = fh_info_map[fh].offset;
+
+  /* FUSE write request */
+  virtio_fs_write_req write_req(fh, offset, count, _unique_counter++, ino);
+  virtio_fs_write_res write_res{};
+
+  VirtTokens write_tokens;
+  write_tokens.reserve(3);
+
+  write_tokens.emplace_back(
+    VIRTQ_DESC_F_NEXT,
+    reinterpret_cast<uint8_t*>(&write_req),
+    sizeof(virtio_fs_write_req)
+  );
+  write_tokens.emplace_back(
+    VIRTQ_DESC_F_NEXT,
+    reinterpret_cast<uint8_t*>(buf),
+    count
+  );
+  write_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(&write_res),
+    sizeof(virtio_fs_write_res)
+  );
+
+  _req.enqueue(write_tokens);
+  _req.kick();
+
+  while(_req.has_processed_used());
+  _req.dequeue();
+
+  if (write_res.out_header.error != 0) return -1;
+
+  /* Updating seek offset and returning */
+  ssize_t write_count = write_res.write_out.size;
+  fh_info_map[fh].offset += write_count;
+
+  return write_count;
 }
 
 ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {

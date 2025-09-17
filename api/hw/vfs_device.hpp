@@ -29,6 +29,9 @@ namespace hw {
     /** Method for moving offset to read from without invoking read */
     virtual off_t lseek(uint64_t fh, off_t offset, int whence) = 0;
 
+    /** Method for writing to a file handle */
+    virtual ssize_t write(uint64_t fh, void *buf, uint32_t count) = 0;
+
     /** Method for reading from a file handle */
     virtual ssize_t read(uint64_t fh, void *buf, uint32_t count) = 0;
 

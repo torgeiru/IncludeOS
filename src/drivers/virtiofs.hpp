@@ -71,6 +71,20 @@ typedef struct __attribute__((packed)) {
   fuse_out_header out_header;
 } virtio_fs_read_res;
 
+typedef struct __attribute__((packed)) virtio_fs_write_req {
+  fuse_in_header in_header;
+  fuse_write_in write_in;
+
+  virtio_fs_write_req(uint64_t f, uint64_t offse, uint32_t siz, uint64_t uniqu, uint64_t nodei) 
+  : in_header(sizeof(fuse_write_in) + siz, FUSE_WRITE, uniqu, nodei),
+    write_in(f, offse, siz, 0, 0) {}
+} virtio_fs_write_req;
+
+typedef struct __attribute__((packed)) virtio_fs_write_res {
+  fuse_out_header out_header;
+  fuse_write_out write_out;
+} virtio_fs_write_res;
+
 typedef struct __attribute__((packed)) virtio_fs_close_req {
   fuse_in_header in_header;
   fuse_release_in release_in;
@@ -111,6 +125,7 @@ public:
   /** VFS operations overriden with mock functions for now */
   uint64_t open(char *pathname, uint32_t flags, mode_t mode) override;
   off_t lseek(uint64_t fh, off_t offset, int whence) override;
+  ssize_t write(uint64_t fh, void *buf, uint32_t count) override;
   ssize_t read(uint64_t fh, void *buf, uint32_t count)  override;
   int close(uint64_t fh) override;
 
