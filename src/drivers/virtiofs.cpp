@@ -129,9 +129,6 @@ uint64_t VirtioFS_device::open(char *pathname, uint32_t flags, mode_t /*mode*/) 
   if (open_res.out_header.error != 0) {
     return -1;
   }
-  INFO("VirtioFS", "The error code is %d", open_res.out_header.error);
-  INFO("VirtioFS", "The len is %d", open_res.out_header.len);
-  INFO("VirtioFS", "The unique is %d", open_res.out_header.unique);
 
   /* Inserting into fh_ino mapping */
   uint64_t fh = open_res.open_out.fh;
