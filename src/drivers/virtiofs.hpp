@@ -131,7 +131,7 @@ public:
 
 private:
   VirtQueue _req;
-  std::unordered_map<uint64_t, fh_info> fh_info_map;
+  std::unordered_map<uint64_t, fh_info> _fh_info_map;
   uint64_t _unique_counter;
   int _id;
 };

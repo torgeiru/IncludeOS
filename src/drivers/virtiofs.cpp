@@ -133,13 +133,13 @@ uint64_t VirtioFS_device::open(char *pathname, uint32_t flags, mode_t /*mode*/) 
   /* Inserting into fh_ino mapping */
   uint64_t fh = open_res.open_out.fh;
   
-  fh_info_map[fh] = {ino, 0};
+  _fh_info_map[fh] = {ino, 0};
 
   return fh;
 }
 
 off_t VirtioFS_device::lseek(uint64_t fh, off_t offset, int whence) {
-  if (not fh_info_map.contains(fh)) return -1;
+  if (not _fh_info_map.contains(fh)) return -1;
   
   // TODO: Find ways to avoid integer overflows
   // TODO: Figure out how to do shit POSIX stuff with errno
@@ -149,21 +149,21 @@ off_t VirtioFS_device::lseek(uint64_t fh, off_t offset, int whence) {
       new_offset = offset;
       break;
     case SEEK_CUR:
-      new_offset = fh_info_map[fh].offset + offset;
+      new_offset = _fh_info_map[fh].offset + offset;
       break;
     default:
       return -1;
   }
 
-  fh_info_map[fh].offset = new_offset;
+  _fh_info_map[fh].offset = new_offset;
   return new_offset;
 }
 
 ssize_t VirtioFS_device::write(uint64_t fh, void *buf, uint32_t count) {
-  if (not fh_info_map.contains(fh)) return -1;
+  if (not _fh_info_map.contains(fh)) return -1;
 
-  fuse_ino_t ino = fh_info_map[fh].ino;
-  off_t offset = fh_info_map[fh].offset;
+  fuse_ino_t ino = _fh_info_map[fh].ino;
+  off_t offset = _fh_info_map[fh].offset;
 
   /* FUSE write request */
   virtio_fs_write_req write_req(fh, offset, count, _unique_counter++, ino);
@@ -198,16 +198,16 @@ ssize_t VirtioFS_device::write(uint64_t fh, void *buf, uint32_t count) {
 
   /* Updating seek offset and returning */
   ssize_t write_count = write_res.write_out.size;
-  fh_info_map[fh].offset += write_count;
+  _fh_info_map[fh].offset += write_count;
 
   return write_count;
 }
 
 ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
-  if (not fh_info_map.contains(fh)) return -1;
+  if (not _fh_info_map.contains(fh)) return -1;
 
-  fuse_ino_t ino = fh_info_map[fh].ino;
-  off_t offset = fh_info_map[fh].offset;
+  fuse_ino_t ino = _fh_info_map[fh].ino;
+  off_t offset = _fh_info_map[fh].offset;
 
   /* FUSE read request */
   virtio_fs_read_req read_req(fh, offset, count, _unique_counter++, ino);
@@ -242,15 +242,15 @@ ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
 
   /* Updating seek offset and returning */
   ssize_t read_count = read_res.out_header.len - sizeof(fuse_out_header);
-  fh_info_map[fh].offset += read_count;
+  _fh_info_map[fh].offset += read_count;
 
   return read_count;
 }
 
 int VirtioFS_device::close(uint64_t fh) {
-  if (not fh_info_map.contains(fh)) return -1;
-  fuse_ino_t ino = fh_info_map[fh].ino;
-  fh_info_map.erase(fh);
+  if (not _fh_info_map.contains(fh)) return -1;
+  fuse_ino_t ino = _fh_info_map[fh].ino;
+  _fh_info_map.erase(fh);
 
   /* FUSE close request */
   virtio_fs_close_req close_req(fh, 0, 0, _unique_counter++, ino); 
@@ -265,7 +265,7 @@ int VirtioFS_device::close(uint64_t fh) {
   );
   close_tokens.emplace_back(
     VIRTQ_DESC_F_WRITE,
-    reinterpret_cast<uint8_t*>(&close_res), 
+    reinterpret_cast<uint8_t*>(&close_res),
     sizeof(virtio_fs_close_res)
   );
 
@@ -273,6 +273,7 @@ int VirtioFS_device::close(uint64_t fh) {
   _req.kick();
 
   while(_req.has_processed_used());
+  _req.dequeue();
 
   if (close_res.out_header.error != 0) {
     return -1;
