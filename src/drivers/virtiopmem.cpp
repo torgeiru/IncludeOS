@@ -18,7 +18,7 @@ int VirtioPMEM_device::id() const noexcept {
 
 /** Method returns the name of the device */
 std::string VirtioPMEM_device::device_name() const {
-  return "VirtioFS" + std::to_string(_id);
+  return "VirtioPMEM" + std::to_string(_id);
 }
 
 /** Factory method used to create VirtioFS driver object */
