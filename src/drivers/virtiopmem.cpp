@@ -7,9 +7,10 @@ VirtioPMEM_device::VirtioPMEM_device(hw::PCI_Device& d) : Virtio(d, 0, 0),
 _req(*this, 0, true) {
   static int id_count = 0;
   _id = id_count++;
-
-  INFO("VirtioPMEM", "Initializing VirtioPMEM!");
   _config = reinterpret_cast<virtio_pmem_config*>(specific_cfg());
+
+  set_driver_ok_bit();
+  INFO("VirtioPMEM", "Initializing VirtioPMEM was a success!");
 }
 
 int VirtioPMEM_device::id() const noexcept {
@@ -27,6 +28,8 @@ std::unique_ptr<hw::DAX_device> VirtioPMEM_device::new_instance(hw::PCI_Device& 
 }
 
 void VirtioPMEM_device::flush() {
+  INFO("VirtioPMEM", "Executing flush!");
+
   virtio_pmem_req req {VIRTIO_PMEM_REQ_TYPE_FLUSH};
   virtio_pmem_res res { 0 };
 
