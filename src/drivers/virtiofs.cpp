@@ -4,8 +4,6 @@
 #include <sys/types.h>
 #include <string>
 
-#include <virtio/virtio_queue.hpp>
-#include <hw/vfs_device.hpp>
 #include <hw/pci_manager.hpp>
 #include <info>
 

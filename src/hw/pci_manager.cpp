@@ -41,6 +41,7 @@ namespace hw {
   static std::vector<Driver_entry<PCI_manager::BLK_driver>> blk_fact;
   static std::vector<Driver_entry<PCI_manager::VFS_driver>> vfs_fact;
   static std::vector<Driver_entry<PCI_manager::CON_driver>> con_fact;
+  static std::vector<Driver_entry<PCI_manager::DAX_driver>> dax_fact;
 
   template <typename Factory, typename Class>
   static inline bool register_device(hw::PCI_Device& dev,
@@ -151,6 +152,10 @@ namespace hw {
           register_device<CON_driver, hw::CON_device>(stored_dev, con_fact);
           break;
         }
+        case PCI::OLD: {
+          register_device<DAX_driver, hw::DAX_device>(stored_dev, dax_fact);
+          break;
+        }
         default:
           INFO2("|--[ %s ] (Unsupported type)", stored_dev.to_string().c_str());
           break;
@@ -181,6 +186,10 @@ namespace hw {
   void PCI_manager::register_vfs(uint16_t vendor, uint16_t prod, VFS_driver factory)
   {
     vfs_fact.emplace_back(driver_id(vendor, prod), factory);
+  }
+  void PCI_manager::register_dax(uint16_t vendor, uint16_t prod, DAX_driver factory)
+  {
+    dax_fact.emplace_back(driver_id(vendor, prod), factory);
   }
   void PCI_manager::register_con(uint16_t vendor, uint16_t prod, CON_driver factory)
   {

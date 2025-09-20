@@ -110,6 +110,8 @@ void __platform_init()
   hw::PCI_manager::init_devices(PCI::NIC);
   // Initialize console devices for custom use (Torgeir Skovholt VirtioFS implementation)
   hw::PCI_manager::init_devices(PCI::COMMUNICATION);
+  // Initialize DAX devices for custom use (Torgeir Skovholt VirtioPMEM implementation)
+  hw::PCI_manager::init_devices(PCI::OLD);
   // Print registered devices
   os::machine().print_devices();
 }

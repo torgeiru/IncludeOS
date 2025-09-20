@@ -26,7 +26,8 @@ namespace hw {
       Block,
       Nic,
       Vfs,
-      Con
+      Dax,
+      Con,
     };
     // ^^^Adding an additional enum type of Vfs
 
@@ -46,6 +47,7 @@ namespace hw {
         case Type::Block: return "Block device";
         case Type::Nic:   return "NIC";
         case Type::Vfs:   return "VFS";
+        case Type::Dax:   return "DAX";
         default:          return "Unknown device";
       }
     }

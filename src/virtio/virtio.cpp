@@ -110,9 +110,6 @@ void Virtio::_find_cap_cfgs() {
       uint64_t cfg_addr = bar_region + bar_offset;
 
       switch(cfg_type) {
-        case VIRTIO_PCI_CAP_SHARED_MEMORY_CFG:
-          INFO("Virtio", "Found shared memory capability!");
-          break;
         case VIRTIO_PCI_CAP_COMMON_CFG:
           _common_cfg = reinterpret_cast<volatile virtio_pci_common_cfg*>(cfg_addr);
           break;
