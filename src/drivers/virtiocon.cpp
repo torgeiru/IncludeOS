@@ -78,6 +78,7 @@ std::string VirtioCon::recv() {
   std::fill_n(token.buffer.data(), token.buffer.size(), 0);
   _rx.enqueue(tokens);
   _rx.kick();
+  _rx.dequeue();
 
   /* Returning the string */
   return msg;

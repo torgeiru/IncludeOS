@@ -31,6 +31,8 @@ if (${PLATFORM} STREQUAL "default")
     vga_emergency.cpp
     virtiofs.cpp
     virtiopmem.cpp
+    virtiocon.cpp
+    # virtionet.cpp
   )
 elseif (${PLATFORM} STREQUAL "solo5-hvt" OR ${PLATFORM} STREQUAL "solo5-spt")
   list(APPEND DRIVER_SRCS
