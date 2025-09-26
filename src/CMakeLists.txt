@@ -33,6 +33,7 @@ set(LIBRARIES
     fs
     posix
     virtio
+    modern_virtio
     hw
 )
 
