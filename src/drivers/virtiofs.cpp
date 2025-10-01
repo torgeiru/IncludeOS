@@ -12,6 +12,7 @@ Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
 {
   static int id_count = 0;
   _id = id_count++;
+  _req.negotiate_features(0, 0);
   set_driver_ok_bit();
 
   /* Negotiate FUSE version */
