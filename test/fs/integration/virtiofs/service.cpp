@@ -6,10 +6,11 @@
 
 #include <hal/machine.hpp>
 #include <hw/vfs_device.hpp>
+#include <fuse/fuse.hpp>
 
 int main() {
-  char buffer[600] = {0};
-  char read_again_buffer[600] = {0};
+  char buffer[600] = {};
+  char read_again_buffer[600] = {};
 
   /* Testing read functionality */
   auto& vfs_device = os::machine().get<hw::VFS_device>(0);
@@ -40,8 +41,8 @@ int main() {
   printf("Successfully wrote and read back banana!\n");
 
   /* Testing SEEK_SET and SEEK_CUR functionality */
-  char buffer0[4];
-  char buffer1[5];
+  char buffer0[4] = {};
+  char buffer1[5] = {};
 
   uint64_t fh3 = vfs_device.open("seek_file.txt", O_RDONLY, 0);
   
@@ -57,7 +58,19 @@ int main() {
 
   printf("Seeking was a success!\n");
 
-  printf("%s\n", buffer);
+  /* Attempting to create a new file, write to it and read it back */
+  char buffer2[8] = {};
+
+  uint64_t fh4 = vfs_device.open("new_file.txt", O_CREAT | O_RDWR, 0644);
+  Expects(vfs_device.write(fh4, (void*)"torgeir", 7) == 7);
+  vfs_device.lseek(fh4, 0, SEEK_SET);  
+  Expects(vfs_device.read(fh4, buffer2, 8) == 7);
+  Expects(memcmp(buffer2, "torgeir", 7) == 0);
+  vfs_device.close(fh4);
+
+  printf("Successfully created a new file!\n");
+
+  printf("%s\n", read_again_buffer);
 
   os::shutdown();
 }

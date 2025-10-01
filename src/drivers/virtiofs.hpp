@@ -6,7 +6,6 @@
 #include <unordered_map>
 
 #include <sys/types.h>
-#include <cstdint>
 #include <cstring>
 
 #include <hw/vfs_device.hpp>
@@ -14,6 +13,56 @@
 #include <modern_virtio/control_plane.hpp>
 #include <modern_virtio/split_queue.hpp>
 #include <fuse/fuse.hpp>
+
+// #define FUSE_ASYNC_READ      (1 << 0)
+// #define FUSE_ASYNC_DIO       (1 << 15)
+// #define FUSE_WRITEBACK_CACHE (1 << 16)
+// TODO: Implement ability to async IO
+
+typedef struct {
+  fuse_ino_t ino;
+  off_t offset;
+} fh_info;
+
+class VirtioFS_device : 
+  public Virtio_control, 
+  public hw::VFS_device
+{
+public:
+  /** Constructor and VirtioFS driver factory */
+  VirtioFS_device(hw::PCI_Device& d);
+
+  void deactivate() override;
+  void flush() override;
+
+  static std::unique_ptr<hw::VFS_device> new_instance(hw::PCI_Device& d);
+
+  int id() const noexcept override;
+
+  /** Overriden device base functions */
+  std::string device_name() const override;
+
+  /** Implemented VFS operations */
+  uint64_t open(char *pathname, uint32_t flags, mode_t mode) override;
+  off_t lseek(uint64_t fh, off_t offset, int whence) override;
+  ssize_t write(uint64_t fh, void *buf, uint32_t count) override;
+  ssize_t read(uint64_t fh, void *buf, uint32_t count)  override;
+  int close(uint64_t fh) override;
+private:
+  Split_queue _req;
+  std::unordered_map<uint64_t, fh_info> _fh_info_map;
+  uint64_t _unique_counter;
+  int _id;
+
+  /** Helper methods for open */
+  fuse_ino_t _lookup_inode(char *pathname, size_t pathname_len);
+  
+  uint64_t _open_exist(char *pathname, size_t 
+    pathname_len, uint32_t flags);
+  
+  uint64_t _open_creat(char *pathname, size_t pathname_len, 
+    uint32_t flags, mode_t mode);
+};
 
 #define FUSE_MAJOR_VERSION 7
 #define FUSE_MINOR_VERSION_MIN 36
@@ -58,6 +107,20 @@ typedef struct __attribute__((packed)) {
   fuse_open_out open_out;
 } virtio_fs_open_res;
 
+typedef struct __attribute__((packed)) virtio_fs_creat_req {
+  fuse_in_header in_header;
+  fuse_creat_in create_in;
+
+  virtio_fs_creat_req(uint32_t pathname_len,uint32_t flag, uint32_t mod, uint64_t uniqu, uint64_t nodei) 
+  : in_header(sizeof(fuse_creat_in) + pathname_len + 1, FUSE_CREATE, uniqu, nodei), create_in(flag, mod) {}
+} virtio_fs_creat_req;
+
+typedef struct __attribute__((packed)) virtio_fs_creat_res {
+  fuse_out_header out_header;
+  fuse_entry_param entry_param;
+  fuse_open_out open_out;
+} virtio_fs_creat_res;
+
 typedef struct __attribute__((packed)) virtio_fs_read_req {
   fuse_in_header in_header;
   fuse_read_in read_in;
@@ -97,45 +160,5 @@ typedef struct __attribute__((packed)) virtio_fs_close_req {
 typedef struct __attribute__((packed)) {
   fuse_out_header out_header;
 } virtio_fs_close_res;
-
-/* Virtio configuration stuff */
-#define REQUIRED_VFS_FEATS 0ULL
-
-typedef struct {
-  fuse_ino_t ino;
-  off_t offset;
-} fh_info;
-
-class VirtioFS_device : 
-  public Virtio_control, 
-  public hw::VFS_device
-{
-public:
-  /** Constructor and VirtioFS driver factory */
-  VirtioFS_device(hw::PCI_Device& d);
-
-  void deactivate() override;
-  void flush() override;
-
-  static std::unique_ptr<hw::VFS_device> new_instance(hw::PCI_Device& d);
-
-  int id() const noexcept override;
-
-  /** Overriden device base functions */
-  std::string device_name() const override;
-
-  /** VFS operations overriden with mock functions for now */
-  uint64_t open(char *pathname, uint32_t flags, mode_t mode) override;
-  off_t lseek(uint64_t fh, off_t offset, int whence) override;
-  ssize_t write(uint64_t fh, void *buf, uint32_t count) override;
-  ssize_t read(uint64_t fh, void *buf, uint32_t count)  override;
-  int close(uint64_t fh) override;
-
-private:
-  Split_queue _req;
-  std::unordered_map<uint64_t, fh_info> _fh_info_map;
-  uint64_t _unique_counter;
-  int _id;
-};
 
 #endif

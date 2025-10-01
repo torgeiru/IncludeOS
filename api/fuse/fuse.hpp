@@ -163,37 +163,6 @@ typedef struct __attribute__((packed)) {
 	uint32_t unused[9];
 } fuse_init_out;
 
-/* Ported from VirtioFSD daemon start */
-typedef struct {
-    uint64_t ino;
-    uint64_t size;
-    uint64_t blocks;
-    uint64_t atime;
-    uint64_t mtime;
-    uint64_t ctime;
-    uint32_t atimensec;
-    uint32_t mtimensec;
-    uint32_t ctimensec;
-    uint32_t mode;
-    uint32_t nlink;
-    uint32_t uid;
-    uint32_t gid;
-    uint32_t rdev;
-    uint32_t blksize;
-    uint32_t flags;
-} stat;
-
-typedef struct {
-	fuse_ino_t ino;
-	uint64_t generation;
-	uint64_t entry_valid;
-	uint64_t attr_valid;
-	uint32_t entry_valid_nsec;
-	uint32_t attr_valid_nsec;
-	stat attr;
-} fuse_entry_param;
-/* Ported from Rust VirtioFSD daemon end */
-
 typedef struct __attribute__((packed)) fuse_open_in {
 	uint32_t flags;
 	uint32_t open_flags;
@@ -207,6 +176,48 @@ typedef struct __attribute__((packed)) {
 	uint32_t open_flags;
 	int32_t	backing_id;
 } fuse_open_out;
+
+
+/* Ported from VirtioFSD daemon start */
+typedef struct {
+  uint64_t ino;
+  uint64_t size;
+  uint64_t blocks;
+  uint64_t atime;
+  uint64_t mtime;
+  uint64_t ctime;
+  uint32_t atimensec;
+  uint32_t mtimensec;
+  uint32_t ctimensec;
+  uint32_t mode;
+  uint32_t nlink;
+  uint32_t uid;
+  uint32_t gid;
+  uint32_t rdev;
+  uint32_t blksize;
+  uint32_t flags;
+} stat;
+
+typedef struct {
+	fuse_ino_t ino;
+	uint64_t generation;
+	uint64_t entry_valid;
+	uint64_t attr_valid;
+	uint32_t entry_valid_nsec;
+	uint32_t attr_valid_nsec;
+	stat attr;
+} fuse_entry_param;
+/* Ported from Rust VirtioFSD daemon end */
+
+typedef struct __attribute__((packed)) fuse_creat_in {
+	uint32_t flags;
+	uint32_t mode;
+	uint32_t umask;
+	uint32_t padding;
+
+	fuse_creat_in(uint32_t flag, uint32_t mod) 
+	: flags(flag), mode(mod), umask(0), padding(0) {}
+} fuse_creat_in;
 
 typedef struct __attribute__((packed)) fuse_read_in {
 	uint64_t fh;
