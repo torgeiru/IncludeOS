@@ -9,6 +9,7 @@ _req(*this, 0, true) {
   _id = id_count++;
   _config = reinterpret_cast<virtio_pmem_config*>(specific_cfg());
 
+  _req.negotiate_features(0, 0);
   set_driver_ok_bit();
   INFO("VirtioPMEM", "Initializing VirtioPMEM was a success!");
 }
