@@ -1,6 +1,8 @@
 {
-  "virtiopmem" : {
-    "image" : "./my.disk",
-    "size" : 1 
-  }
+  "virtiopmem" : [
+    {
+      "image" : "./my.disk",
+      "size" : 1
+    }
+  ]
 }
