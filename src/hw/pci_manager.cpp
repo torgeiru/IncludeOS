@@ -125,7 +125,7 @@ void PCI_manager::init_devices(const uint8_t classcode)
     switch (devclass.classcode)
     {
       case PCI::STORAGE: {
-        if (id == 0x105a1af4)
+        if (devclass.subclass == 0x80)
           register_device<VFS_driver, hw::VFS_device>(stored_dev, vfs_fact);
         else
           register_device<BLK_driver, hw::Block_device>(stored_dev, blk_fact);

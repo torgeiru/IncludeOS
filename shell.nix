@@ -39,11 +39,11 @@ includeos.pkgs.mkShell.override { inherit (includeos) stdenv; } rec {
     (includeos.pkgs.python3.withPackages (p: [
       vmrunnerPkg
     ]))
-    vmrunnerPkg.virtiofsd
     diskbuilderPkg
     includeos.pkgs.buildPackages.cmake
     includeos.pkgs.buildPackages.nasm
     includeos.pkgs.qemu
+    includeos.pkgs.virtiofsd
     includeos.pkgs.which
     includeos.pkgs.grub2
     includeos.pkgs.iputils
