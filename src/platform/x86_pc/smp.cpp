@@ -21,6 +21,7 @@
 #include "apic_revenant.hpp"
 #include "pit.hpp"
 #include <os.hpp>
+#include <musl/musl.hpp>
 #include <kernel/events.hpp>
 #include <malloc.h>
 #include <algorithm>
@@ -45,14 +46,7 @@ struct apic_boot {
   uint32_t  stack_base;
   uint32_t  stack_size;
 };
-struct __libc {
-  char can_do_threads;
-  char threaded;
-  char secure;
-  volatile signed char need_locks;
-  int threads_minus_1;
-  size_t *auxv;
-};
+
 extern struct __libc __libc;
 //extern "C" struct __libc *__libc_loc(void) __attribute__((const));
 //#define __libc (*__libc_loc())
@@ -71,6 +65,23 @@ static inline void musl_override_glob_locks()
 
 namespace x86
 {
+extern "C" void *__copy_tls(unsigned char *mem);
+
+extern thread_handover handover;
+
+// Initialize thread local storage for auxiliary CPUs
+void create_TLS_copy() {
+  // Allocating TLS memory
+  size_t tls_memsize = __libc.tls_size + PTHREAD_TSD_SIZE;
+  unsigned char *tls_mem = (unsigned char*)kalloc_aligned(4096, tls_memsize);
+  assert(tls_mem != NULL);
+  memset(tls_mem, 0, tls_memsize);
+  void **thread_ptr = reinterpret_cast<void**>(__copy_tls(tls_mem + __libc.tls_size));
+  
+  // Saving allocated memory intelligently so that we can later free it if we want
+  thread_ptr[0] = tls_mem;
+  handover.push_back(reinterpret_cast<void*>(thread_ptr));
+}
 
 void init_SMP()
 {
@@ -89,6 +100,11 @@ void init_SMP()
   void* stack = kalloc_aligned(4096, CPUcount * REV_STACK_SIZE);
   smp_main.stack_base = (uintptr_t) stack;
   smp_main.stack_size = REV_STACK_SIZE;
+
+  // creating thread local memory copies for auxiliary CPUs
+  for (uint32_t i = 1; i < CPUcount; ++i) {
+    create_TLS_copy();
+  }
 
   // modify bootloader to support our cause
   auto* boot = (apic_boot*) BOOTLOADER_LOCATION;

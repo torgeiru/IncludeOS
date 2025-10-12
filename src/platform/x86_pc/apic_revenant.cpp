@@ -6,6 +6,7 @@
 #include <kernel/events.hpp>
 //#include <kernel/os.hpp>
 #include <os.hpp>
+#include <musl/musl.hpp>
 #include <kernel/rng.hpp>
 #include <kprint>
 
@@ -13,10 +14,12 @@ namespace x86 {
   extern void initialize_cpu_tables_for_cpu(int);
   smp_stuff smp_main;
   SMP::Array<smp_system_stuff> smp_system;
+  thread_handover handover;
 }
 
 extern "C" void*  get_cpu_esp();
 extern "C" void   lapic_exception_handler();
+#undef INFO
 #define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 
 using namespace x86;
@@ -90,6 +93,14 @@ void revenant_main(int cpu)
   x86::idt_initialize_for_cpu(cpu);
   assert(cpu == SMP::cpu_id());
   assert(stack >= this_stack_end && stack < this_stack);
+
+  // Setting up thread pointer
+  SMP::global_lock();
+  void *thread_ptr = handover.back();
+  INFO2("AP %d using %p as thread ptr", SMP::cpu_id(), thread_ptr);
+  x86::CPU::set_fs(thread_ptr);
+  handover.pop_back();
+  SMP::global_unlock();
 
   static Spinlock lock;
   {
