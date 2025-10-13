@@ -3,7 +3,6 @@
   nixpkgs ? ./pinned.nix,
   overlays ? [
     (import ./overlay.nix { inherit withCcache; inherit smp; } )
-    (import ./virtiofs_overlay.nix { inherit withCcache; inherit smp; })
   ],
   pkgs ? import nixpkgs { config = {}; inherit overlays; }
 }:
