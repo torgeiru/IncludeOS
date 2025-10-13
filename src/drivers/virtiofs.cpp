@@ -8,8 +8,8 @@
 #include <hw/pci_manager.hpp>
 #include <info>
 
-VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) : 
-Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
+VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
+Virtio_control(d), _req(*this, 1, true), _unique_counter(1)
 {
   static int id_count = 0;
   _id = id_count++;
@@ -23,13 +23,13 @@ Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
   VirtTokens init_req_tokens;
   init_req_tokens.reserve(2);
   init_req_tokens.emplace_back(
-    VIRTQ_DESC_F_NOFLAGS, 
-    reinterpret_cast<uint8_t*>(&init_req), 
+    VIRTQ_DESC_F_NOFLAGS,
+    reinterpret_cast<uint8_t*>(&init_req),
     sizeof(virtio_fs_init_req)
   );
   init_req_tokens.emplace_back(
-    VIRTQ_DESC_F_WRITE, 
-    reinterpret_cast<uint8_t*>(&init_res), 
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(&init_res),
     sizeof(virtio_fs_init_res)
   );
 
@@ -142,14 +142,14 @@ uint64_t VirtioFS_device::_open_exist(char *pathname, size_t pathname_len, uint3
 
   /* Inserting into fh_ino mapping */
   uint64_t fh = open_res.open_out.fh;
-  
+
   _fh_info_map[fh] = {ino, 0};
 
   return fh;
 }
 
 uint64_t VirtioFS_device::_open_creat(
-  char *pathname, size_t pathname_len, 
+  char *pathname, size_t pathname_len,
   uint32_t flags, mode_t mode)
 {
   /* Creating a file handle from newly created file */
@@ -181,10 +181,10 @@ uint64_t VirtioFS_device::_open_creat(
   _req.dequeue();
 
   if (creat_res.out_header.error != 0) return -1;
-  
+
   fuse_ino_t ino = creat_res.entry_param.ino;
   uint64_t fh = creat_res.open_out.fh;
-  
+
   _fh_info_map[fh] = {ino, 0};
 
   return fh;
@@ -192,14 +192,14 @@ uint64_t VirtioFS_device::_open_creat(
 
 uint64_t VirtioFS_device::open(char *pathname, uint32_t flags, mode_t mode = 0) {
   size_t pathname_len = std::strlen(pathname);
-  if (flags & O_CREAT) 
+  if (flags & O_CREAT)
     return _open_creat(pathname, pathname_len, flags, mode);
   return _open_exist(pathname, pathname_len, flags);
 }
 
 off_t VirtioFS_device::lseek(uint64_t fh, off_t offset, int whence) {
   if (not _fh_info_map.contains(fh)) return -1;
-  
+
   // TODO: Find ways to avoid integer overflows
   // TODO: Figure out how to do shit POSIX stuff with errno
   off_t new_offset;
@@ -276,17 +276,17 @@ ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
   read_tokens.reserve(3);
 
   read_tokens.emplace_back(
-    VIRTQ_DESC_F_NOFLAGS, 
+    VIRTQ_DESC_F_NOFLAGS,
     reinterpret_cast<uint8_t*>(&read_req),
     sizeof(virtio_fs_read_req)
   );
   read_tokens.emplace_back(
-    VIRTQ_DESC_F_WRITE, 
+    VIRTQ_DESC_F_WRITE,
     reinterpret_cast<uint8_t*>(&read_res),
     sizeof(virtio_fs_read_res)
   );
   read_tokens.emplace_back(
-    VIRTQ_DESC_F_WRITE, 
+    VIRTQ_DESC_F_WRITE,
     reinterpret_cast<uint8_t*>(buf),
     count
   );
@@ -312,7 +312,7 @@ int VirtioFS_device::close(uint64_t fh) {
   _fh_info_map.erase(fh);
 
   /* FUSE close request */
-  virtio_fs_close_req close_req(fh, 0, 0, _unique_counter++, ino); 
+  virtio_fs_close_req close_req(fh, 0, 0, _unique_counter++, ino);
   virtio_fs_close_res close_res{};
 
   VirtTokens close_tokens;
