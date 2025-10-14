@@ -95,12 +95,7 @@ void revenant_main(int cpu)
   assert(stack >= this_stack_end && stack < this_stack);
 
   // Setting up thread pointer
-  SMP::global_lock();
-  void *thread_ptr = handover.back();
-  INFO2("AP %d using %p as thread ptr", SMP::cpu_id(), thread_ptr);
-  x86::CPU::set_fs(thread_ptr);
-  handover.pop_back();
-  SMP::global_unlock();
+  x86::CPU::set_fs(handover[SMP::cpu_id() - 1]);
 
   static Spinlock lock;
   {

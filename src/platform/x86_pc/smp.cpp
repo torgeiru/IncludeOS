@@ -32,6 +32,7 @@ extern "C" {
   extern char _binary_apic_boot_bin_end;
   extern void __apic_trampoline(); // 64-bit entry
   extern void* kalloc_aligned(size_t, size_t);
+  void* kalloc(size_t);
 }
 
 static const uintptr_t BOOTLOADER_LOCATION = 0x10000;
@@ -73,13 +74,15 @@ extern thread_handover handover;
 void create_TLS_copy() {
   // Allocating TLS memory
   size_t tls_memsize = __libc.tls_size + PTHREAD_TSD_SIZE;
-  unsigned char *tls_mem = (unsigned char*)kalloc_aligned(4096, tls_memsize);
+  unsigned char *tls_mem = (unsigned char*)kalloc(tls_memsize);
   assert(tls_mem != NULL);
   memset(tls_mem, 0, tls_memsize);
-  void **thread_ptr = reinterpret_cast<void**>(__copy_tls(tls_mem + __libc.tls_size));
-  
-  // Saving allocated memory intelligently so that we can later free it if we want
-  thread_ptr[0] = tls_mem;
+  void **thread_ptr = reinterpret_cast<void**>(__copy_tls(tls_mem));
+
+  INFO("TLS", "Using %p as thread_ptr and %p as memory with 0x%lx tls_memsize", thread_ptr, tls_mem, tls_memsize);
+
+  // fs:0x00 needs to point to itself
+  thread_ptr[0] = reinterpret_cast<void*>(thread_ptr);
   handover.push_back(reinterpret_cast<void*>(thread_ptr));
 }
 

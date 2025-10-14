@@ -2,6 +2,8 @@
 #include <expects>
 #include <smp>
 
+extern "C" void kprintf(const char*, ...);
+
 const int CPU_COUNT = 5;
 static minimal_barrier_t barrier;
 
@@ -11,34 +13,15 @@ thread_local int tbss_arr[5];
 // Initialized TLS data
 thread_local int tdata_arr[5] = {0, 1, 2, 3, 4};
 
-void print_data(int *data, int size) {
-  for (int i = 0; i < size; ++i) {
-     printf("%d ", data[i]);
-  }
-  printf("\n");
-}
-
-void print_tls_data() {
-  int cpu_id = SMP::cpu_id();
-
-  SMP::global_lock();
-
-  printf("CPU#%d (tbss):  ", cpu_id);
-  print_data(tbss_arr, 5);
-
-  printf("CPU#%d (tdata): ", cpu_id);
-  print_data(tdata_arr, 5);
-
-  SMP::global_unlock();
-}
-
 auto verify_initial_data = []() {
-  print_tls_data();
-
   for (int i = 0; i < 5; ++i) {
     Expects(tbss_arr[i] == 0);
     Expects(tdata_arr[i] == i);
   }
+
+  SMP::global_lock();
+  kprintf("Iw got here boyzzz %d\n", SMP::cpu_id());
+  SMP::global_unlock();
 
   barrier.inc();
 };
@@ -49,11 +32,13 @@ auto modify_data = []() {
   tdata_arr[cpu_id] = 0;
 
   barrier.inc();
+
+  SMP::global_lock();
+  kprintf("Iw2 got here boyzzz %d\n", SMP::cpu_id());
+  SMP::global_unlock();
 };
 
 auto verify_local_data = []() {
-  print_tls_data();
-
   int cpu_id = SMP::cpu_id();
   for (int i = 0; i < 5; ++i) {
     if (i == cpu_id) {
@@ -64,6 +49,10 @@ auto verify_local_data = []() {
       Expects(tdata_arr[i] == i);
     }
   }
+
+  SMP::global_lock();
+  kprintf("Iw3 got here boyzzz %d\n", SMP::cpu_id());
+  SMP::global_unlock();
 
   barrier.inc();
 };
@@ -80,7 +69,9 @@ int main()
   verify_initial_data();
   barrier.spin_wait(CPU_COUNT);
 
-  printf("\nCorrect initial values!\n\n");
+  SMP::global_lock();
+  kprintf("Correct initial values!\n");
+  SMP::global_unlock();
 
   // Alter core specific TLS data
   for (int i = 1; i < 5; ++i) {
@@ -90,7 +81,11 @@ int main()
   barrier.reset(0);
   SMP::signal();
   modify_data();
-  barrier.spin_wait(CPU_COUNT);
+  barrier.debug_spin_wait(CPU_COUNT);
+
+  SMP::global_lock();
+  kprintf("Modified some values!\n");
+  SMP::global_unlock();
 
   // Verify local TLS changes
   for (int i = 1; i < 5; ++i) {
@@ -102,9 +97,8 @@ int main()
   verify_local_data();
   barrier.spin_wait(CPU_COUNT);
 
-  // Testing TSD area functionality
-
-  printf("\nCorrect modified values for TBSS and TDATA!\n\n");
-
-  printf("SUCCESS\n");
+  SMP::global_lock();
+  kprintf("Correct modified values!\n");
+  kprintf("SUCCESS\n");
+  SMP::global_unlock();
 }
