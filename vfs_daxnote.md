@@ -37,3 +37,5 @@ on host page cache pages without copying!
 4. Boot your IncludeOS unikernel with the json configuration
   and the virtiofs driver included in the cmake.
 5. Bon appetite!
+
+[Other useful resource on VirtioFS DAX](https://virtio-fs.gitlab.io/howto-qemu.html/?utm_source=chatgpt.com)
