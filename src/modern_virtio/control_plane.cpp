@@ -105,6 +105,9 @@ void Virtio_control::_find_cap_cfgs() {
           _notify_region = reinterpret_cast<uint8_t*>(cfg_addr);
           _notify_off_multiplier = _pcidev.read32(offset + VIRTIO_PCI_NOTIFY_CAP_MUL);
           break;
+        case VIRTIO_PCI_CAP_SHARED_MEMORY_CFG:
+          INFO("Virtio", "Found shared memory capability!");
+          break;
       }
     }
 
@@ -122,7 +125,7 @@ void Virtio_control::_set_ack_and_driver_bits() {
 }
 
 uint64_t Virtio_control::negotiate_features(
-  uint64_t required_feats, 
+  uint64_t required_feats,
   uint64_t optional_feats
 ) {
   /* Virtio version 1 is required for modern Virtio PCI */
@@ -172,7 +175,7 @@ uint64_t Virtio_control::negotiate_features(
   _virtio_panic(features_ok);
 
   // Returning all the optional features supported
-  return (static_cast<uint64_t>(satisfied_opt_feats_hi) << 32) 
+  return (static_cast<uint64_t>(satisfied_opt_feats_hi) << 32)
     | satisfied_opt_feats_lo;
 }
 
