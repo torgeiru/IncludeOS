@@ -15,9 +15,9 @@ on host page cache pages without copying!
 2. Download dependencies: `libseccomp-dev`, `libcapstone-dev`, `libfdt-dev` etc (debian). Resolve as build or configuration fails (repro not my problem).
 3. Goto repository root, create a build directory and type the following:
   `../configure --python=<path-to-your-python> --disable-werror --target-list="x86_64-softmmu"`.
-4. Stub the setrlimit-thingy and unshare-thingy for VirtioFSD. Type `make` to build qemu and `make virtiofsd` to make VirtioFSD.
+4. Stub the setrlimit-thingy and unshare-thingy for VirtioFSD. Build using the `build-qemu.sh`
+   script from [virtio-fs-ci](https://gitlab.com/virtio-fs/virtio-fs-ci).
 5. Now you have a custom qemu and VirtioFSD that can drive DAX!
-6. You need to do `chmod u+s <path-to-virtiofsd`.
 
 ## Guide on using VirtioFS DAX within IncludeOS
 
