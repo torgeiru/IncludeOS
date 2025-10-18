@@ -106,7 +106,14 @@ void Virtio_control::_find_cap_cfgs() {
           _notify_off_multiplier = _pcidev.read32(offset + VIRTIO_PCI_NOTIFY_CAP_MUL);
           break;
         case VIRTIO_PCI_CAP_SHARED_MEMORY_CFG:
-          INFO("Virtio", "Found shared memory capability!");
+          uint8_t cap_id = static_cast<uint8_t>(_pcidev.read16(offset + VIRTIO_PCI_CAP_BAR) >> 8);
+          uint64_t reglen_lo = static_cast<uint64_t>(_pcidev.read32(offset + VIRTIO_PCI_CAP_LENGTH));
+          uint64_t reglen_hi = static_cast<uint64_t>(_pcidev.read32(offset + VIRTIO_PCI_CAP_LENGTH64));
+          _shm_regions.emplace_back(
+            cap_id,
+            reinterpret_cast<void*>(cfg_addr),
+            (reglen_hi << 32) | reglen_lo
+          );
           break;
       }
     }

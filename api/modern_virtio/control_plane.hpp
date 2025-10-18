@@ -36,8 +36,11 @@ typedef struct __attribute__((packed)) {
 #define VIRTIO_PCI_NOT_CAP_LEN sizeof(virtio_pci_notify_cap)
 
 #define VIRTIO_PCI_CAP_BAR        offsetof(virtio_pci_cap, bar)
+#define VIRTIO_PCI_CAP_ID         offsetof(virtio_pci_cap, id)
 #define VIRTIO_PCI_CAP_BAROFF     offsetof(virtio_pci_cap, offset)
+#define VIRTIO_PCI_CAP_LENGTH     offsetof(virtio_pci_cap, length)
 #define VIRTIO_PCI_CAP_BAROFF64   offsetof(virtio_pci_cap64, offset_hi)
+#define VIRTIO_PCI_CAP_LENGTH64   offsetof(virtio_pci_cap64, length_hi)
 #define VIRTIO_PCI_NOTIFY_CAP_MUL offsetof(virtio_pci_notify_cap, notify_off_multiplier)
 
 typedef struct __attribute__((packed)) { 
@@ -67,6 +70,14 @@ typedef struct __attribute__((packed)) {
   volatile uint16_t admin_queue_index;         /* read-only for driver */ 
   volatile uint16_t admin_queue_num;           /* read-only for driver */ 
 } virtio_pci_common_cfg;
+
+typedef struct {
+  uint8_t id;
+  void *addr;
+  uint64_t size;
+} shm_region;
+
+using shm_regions = std::vector<shm_region>;
 
 /* Types of configurations */ 
 #define VIRTIO_PCI_CAP_COMMON_CFG        1 
@@ -132,6 +143,8 @@ class Virtio_control {
     inline uint32_t notify_off_multiplier() const { return _notify_off_multiplier; }
     inline uint8_t *notify_region() const { return _notify_region; }
     
+    /* Get a reference a vector describing the shared memory regions */
+    inline shm_regions& get_shm_regions() { return _shm_regions; }
   private:
     /** Finds the common configuration address */
     void _find_cap_cfgs();
@@ -166,8 +179,9 @@ class Virtio_control {
     bool _LEGACY_ID = 0;
     bool _STD_ID = 0;
     
-    /* Other */
+    /* Misc */
     hw::PCI_Device& _pcidev;
+    shm_regions _shm_regions;
     bool _msix_enabled;
     uint16_t _virtio_device_id = 0;
 };
