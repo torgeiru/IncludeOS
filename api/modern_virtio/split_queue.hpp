@@ -39,7 +39,7 @@ using Descriptors = vector<uint16_t>;
   
 #define VIRTIO_MSI_NO_VECTOR 0xffff
   
-/* Note: The Queue Size value is a power of 2 */
+/* Note: The Queue Size value is a power of 2 (requirement) */
 #define VQUEUE_MAX_SIZE  32768
   
 /* Split queue alignment requirements */
