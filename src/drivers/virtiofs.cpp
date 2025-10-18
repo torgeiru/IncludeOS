@@ -43,8 +43,9 @@ Virtio_control(d), _req(*this, 1, true), _unique_counter(1)
   CHECK(compatible_major_version, "Daemon and driver major FUSE version matches");
   Expects(compatible_major_version);
 
-  bool compatible_minor_version = (FUSE_MINOR_VERSION_MIN <= init_res.init_out.minor);
-  CHECK(compatible_minor_version, "Daemon falls back to the driver supported minor FUSE version");
+  uint32_t daemon_supported_minor = init_res.init_out.minor;
+  bool compatible_minor_version = (FUSE_MINOR_VERSION_MIN <= daemon_supported_minor);
+  CHECK(compatible_minor_version, "Daemon falls back to the driver supported minor FUSE version (%d)", FUSE_MINOR_VERSION_MIN);
   Expects(compatible_minor_version);
 
   /* Finalizing initialization */

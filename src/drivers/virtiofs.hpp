@@ -65,7 +65,7 @@ private:
 };
 
 #define FUSE_MAJOR_VERSION 7
-#define FUSE_MINOR_VERSION_MIN 36
+#define FUSE_MINOR_VERSION_MIN 27
 
 typedef struct __attribute__((packed)) virtio_fs_init_req {
   fuse_in_header in_header;
