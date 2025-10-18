@@ -46,7 +46,7 @@ using Descriptors = vector<uint16_t>;
 #define DESC_TBL_ALIGN   16
 #define AVAIL_RING_ALIGN 2
 #define USED_RING_ALIGN  4
-  
+
 /* Descriptor table stuff */
 #define VIRTQ_DESC_F_NOFLAGS  0
 #define VIRTQ_DESC_F_NEXT     1
@@ -65,30 +65,30 @@ typedef struct __attribute__((packed)) {
 /* Available ring stuff */
 #define VIRTQ_AVAIL_F_NO_INTERRUPT 1
 #define VIRTQ_AVAIL_F_INTERRUPT    0
-  
+
 typedef struct __attribute__((packed)) {
   uint16_t flags;            /* Flags for the avail ring */
   uint16_t idx; /* Next index modulo queue size to insert */
   uint16_t ring[];           /* Ring of descriptors */
 } virtq_avail;
-  
+
 #define AVAIL_RING_SIZE(x) (sizeof(virtq_avail) + x * sizeof(uint16_t))
-  
+
 /* Used ring stuff */
 #define VIRTQ_USED_F_NO_NOTIFY 1
 #define VIRTQ_USED_F_NOTIFY    0
-  
+
 typedef struct __attribute__((packed)) {
   uint32_t id;  /* Index of start of used descriptor chain. */
   uint32_t len; /* Bytes written into the device writable potion of the buffer chain */
 } virtq_used_elem;
-  
+
 typedef struct __attribute__((packed)) {
   uint16_t flags;         /* Flags for the used ring */
   volatile uint16_t idx;  /* Flags  */
   virtq_used_elem ring[]; /* Ring of descriptors */
 } virtq_used;
-  
+
 #define USED_RING_SIZE(x) (sizeof(virtq_used) + x * sizeof(virtq_used_elem))
 
 /*
@@ -108,26 +108,25 @@ public:
   // NOTE: Expensive to use. An efficient driver reduce the # of kicks.
   // Enqueue multiple chains and then kick.
   void kick();
-  
+
   uint16_t free_desc_space() const { return _free_list.size(); };
   inline uint16_t desc_space_cap() const { return _QUEUE_SIZE; }
   bool has_processed_used() const { return _last_used_idx == _used_ring->idx; };
-  
+
   /** Methods for handling supression */
   inline void suppress() { _avail_ring->flags = VIRTQ_AVAIL_F_NO_INTERRUPT; }
   inline void unsuppress() { _avail_ring->flags = VIRTQ_AVAIL_F_INTERRUPT; }
-  
 protected:
   inline void _notify_device() { *_avail_notify = _VQUEUE_ID; }
-  
+
   virtq_desc *_desc_table;
   virtq_avail *_avail_ring;
   virtq_used *_used_ring;
-    
+
   volatile uint16_t* _avail_notify;
   uint16_t _QUEUE_SIZE;
   uint16_t _last_used_idx;
-  
+
 private:
   vector<uint16_t> _free_list;
   Virtio_control& _virtio_dev;
