@@ -36,7 +36,6 @@ typedef struct __attribute__((packed)) {
 #define VIRTIO_PCI_NOT_CAP_LEN sizeof(virtio_pci_notify_cap)
 
 #define VIRTIO_PCI_CAP_BAR        offsetof(virtio_pci_cap, bar)
-#define VIRTIO_PCI_CAP_ID         offsetof(virtio_pci_cap, id)
 #define VIRTIO_PCI_CAP_BAROFF     offsetof(virtio_pci_cap, offset)
 #define VIRTIO_PCI_CAP_LENGTH     offsetof(virtio_pci_cap, length)
 #define VIRTIO_PCI_CAP_BAROFF64   offsetof(virtio_pci_cap64, offset_hi)
