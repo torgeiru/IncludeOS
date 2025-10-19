@@ -47,6 +47,8 @@ public:
   off_t lseek(uint64_t fh, off_t offset, int whence) override;
   ssize_t write(uint64_t fh, void *buf, uint32_t count) override;
   ssize_t read(uint64_t fh, void *buf, uint32_t count)  override;
+  // void setup_gphys_map(uint64_t fh);
+  // void remove_gphys_map(uint64_t fh);
   int close(uint64_t fh) override;
 private:
   Split_queue _req;
