@@ -344,7 +344,7 @@ void* VirtioFS_device::smap_gphys(uint64_t fh, uint64_t moffset, uint64_t length
   if (not _fh_info_map.contains(fh)) return nullptr;
   fuse_ino_t ino = _fh_info_map[fh].ino;
 
-  virtio_fs_smap_req smap_req(fh, 0, moffset, length, 0, _unique_counter++, ino);
+  virtio_fs_smap_req smap_req(fh, 0, length, 0, moffset, _unique_counter++, ino);
   virtio_fs_smap_res smap_res{};
 
   VirtTokens smap_tokens;
@@ -375,9 +375,7 @@ void* VirtioFS_device::smap_gphys(uint64_t fh, uint64_t moffset, uint64_t length
       smap_out.coffset[i], smap_out.len[i]);
   }
 
-  /* NON REACHABLE */
-  Expects(false);
-  return nullptr;
+  return reinterpret_cast<void*>(&shm.addr[smap_out.coffset[0]]);
 }
 
 int VirtioFS_device::close(uint64_t fh) {

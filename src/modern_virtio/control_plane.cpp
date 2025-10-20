@@ -111,7 +111,7 @@ void Virtio_control::_find_cap_cfgs() {
           uint64_t reglen_hi = static_cast<uint64_t>(_pcidev.read32(offset + VIRTIO_PCI_CAP_LENGTH64));
           _shm_regions.emplace_back(
             cap_id,
-            reinterpret_cast<void*>(cfg_addr),
+            reinterpret_cast<uint8_t*>(cfg_addr),
             (reglen_hi << 32) | reglen_lo
           );
           break;

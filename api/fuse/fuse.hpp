@@ -264,7 +264,7 @@ typedef struct __attribute__((packed)) fuse_release_in {
 	: fh(f), flags(flag), release_flags(release_flag) {}
 } fuse_release_in;
 
-/* Copied DAX stuff directly from the c-virtiofsd in virtio-fs gitlab qemu */
+/* Ported DAX stuff directly from the c-virtiofsd in virtio-fs gitlab qemu */
 #define FUSE_SMAP_ENTRIES 8
 #define FUSE_SMAP_FLAG_WRITE (1ull << 0)
 

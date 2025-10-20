@@ -72,7 +72,7 @@ typedef struct __attribute__((packed)) {
 
 typedef struct {
   uint8_t id;
-  void *addr;
+  uint8_t *addr;
   uint64_t size;
 } shm_region;
 
