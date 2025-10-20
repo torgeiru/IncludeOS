@@ -307,6 +307,27 @@ ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
   return read_count;
 }
 
+int VirtioFS_device::munmap(uint64_t fh) {
+  if (not _fh_info_map.contains(fh)) return -1;
+  
+  VirtTokens rmap_tokens;
+  rmap_tokens.reserve(2);
+
+  virtio_fs_rmap_req rmap_req {};
+  virtio_fs_rmap_res rmap_res {};
+}
+
+void* VirtioFS_device::mmap(uint64_t fh, void *fixed_addr) {
+  if (not _fh_info_map.contains(fh)) return nullptr;
+  fuse_ino_t ino = _fh_info_map[fh].ino;
+
+  VirtTokens smap_tokens;
+  smap_tokens.reserve(2);
+
+  virtio_fs_smap_req smap_req {};
+  virtio_fs_smap_res smap_res {};
+}
+
 int VirtioFS_device::close(uint64_t fh) {
   if (not _fh_info_map.contains(fh)) return -1;
   fuse_ino_t ino = _fh_info_map[fh].ino;

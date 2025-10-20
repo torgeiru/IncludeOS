@@ -215,7 +215,7 @@ typedef struct __attribute__((packed)) fuse_creat_in {
 	uint32_t umask;
 	uint32_t padding;
 
-	fuse_creat_in(uint32_t flag, uint32_t mod) 
+	fuse_creat_in(uint32_t flag, uint32_t mod)
 	: flags(flag), mode(mod), umask(0), padding(0) {}
 } fuse_creat_in;
 
@@ -228,7 +228,7 @@ typedef struct __attribute__((packed)) fuse_read_in {
 	uint32_t flags;
 	uint32_t padding;
 
-	fuse_read_in(uint64_t f, uint64_t offse, uint32_t siz, 
+	fuse_read_in(uint64_t f, uint64_t offse, uint32_t siz,
 		uint32_t read_flag, uint32_t flag)
 	: fh(f), offset(offse), size(siz), read_flags(read_flag),
 	  lock_owner(0), flags(flag), padding(0) {}
@@ -243,7 +243,7 @@ typedef struct __attribute__((packed)) fuse_write_in {
   uint32_t flags;
   uint32_t padding;
 
-	fuse_write_in(uint64_t f, uint64_t offse, uint32_t siz, 
+	fuse_write_in(uint64_t f, uint64_t offse, uint32_t siz,
 		uint32_t write_flag, uint32_t flag)
 	: fh(f), offset(offse), size(siz), write_flags(write_flag),
 	  lock_owner(0), flags(flag), padding(0) {}
@@ -259,8 +259,40 @@ typedef struct __attribute__((packed)) fuse_release_in {
 	uint32_t flags;
 	uint32_t release_flags;
 	uint64_t lock_owner;
-	fuse_release_in(uint64_t f, uint32_t flag, uint32_t release_flag) 
+
+	fuse_release_in(uint64_t f, uint32_t flag, uint32_t release_flag)
 	: fh(f), flags(flag), release_flags(release_flag) {}
 } fuse_release_in;
+
+/* Copied DAX stuff directly from the c-virtiofsd in virtio-fs gitlab qemu */
+#define FUSE_SMAP_ENTRIES 8
+#define FUSE_SMAP_FLAG_WRITE (1ull << 0)
+
+typedef struct __attribute__((packed)) fuse_smap_in {
+	uint64_t fh;
+  uint64_t foffset; /* Offset into the file to start the mapping */
+  uint64_t len;     /* Length of mapping required */
+  uint64_t flags;   /* Flags, FUSE_SMAP_FLAG_* */
+  uint64_t moffset; /* Memory offset in to dax window */
+
+	fuse_smap_in(uint64_t f, uint64_t foffse, uint64_t le, 
+		uint64_t flag, uint64_t moffse) 
+	: fh(f), foffset(foffse),
+		len(le), flags(flag), moffset(moffse) {}
+} fuse_smap_in;
+
+typedef struct __attribute__((packed)) fuse_smap_out {
+  uint64_t coffset[FUSE_SMAP_ENTRIES]; /* Offsets into the cache of mappings */
+  uint64_t len[FUSE_SMAP_ENTRIES];     /* Lengths of each mapping */
+} fuse_smap_out;
+
+typedef struct __attribute__((packed)) fuse_rmap_in {
+	uint64_t fh;      /* An already open handle */
+  uint64_t moffset; /* Offset into the dax to start the unmapping */
+  uint64_t len;     /* Length of mapping required */
+
+	fuse_rmap_in(uint64_t f, uint64_t moffse, uint64_t le) 
+	: fh(f), moffset(moffse), len(le) {}
+} fuse_rmap_in;
 
 #endif // FILESYSTEM_IN_USERPSACE_HPP

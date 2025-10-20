@@ -47,8 +47,10 @@ public:
   off_t lseek(uint64_t fh, off_t offset, int whence) override;
   ssize_t write(uint64_t fh, void *buf, uint32_t count) override;
   ssize_t read(uint64_t fh, void *buf, uint32_t count)  override;
-  // void setup_gphys_map(uint64_t fh);
-  // void remove_gphys_map(uint64_t fh);
+  
+  // NOTE: Read only VirtioFS DAX is supported
+  void* mmap(void *fixed_addr, uint64_t fh); // Memory map the entire file
+  int munmap(uint64_t fh); // Memory unmap the entire file
   int close(uint64_t fh) override;
 private:
   Split_queue _req;
@@ -149,6 +151,34 @@ typedef struct __attribute__((packed)) virtio_fs_write_res {
   fuse_out_header out_header;
   fuse_write_out write_out;
 } virtio_fs_write_res;
+
+typedef struct __attribute__((packed)) virtio_fs_smap_req {
+  fuse_in_header in_header;
+  fuse_smap_in smap_in;
+
+  virtio_fs_smap_req(uint64_t f, uint64_t foffse, uint64_t le, 
+		uint64_t flag, uint64_t moffse, uint64_t uniqu, uint64_t nodei)
+  : in_header(sizeof(fuse_smap_in), FUSE_SETUPMAPPING, uniqu, nodei), 
+    smap_in(f, foffse, le, flag, moffse) {}
+};
+
+typedef struct __attribute__((packed)) virtio_fs_smap_res {
+  fuse_out_header out_header;
+  fuse_smap_out smap_out;
+};
+
+typedef struct __attribute__((packed)) virtio_fs_rmap_req {
+  fuse_in_header in_header;
+  fuse_rmap_in rmap_in;
+
+  virtio_fs_rmap_req(uint64_t f, uint64_t moffse, uint64_t le, uint64_t uniqu, uint64_t nodei)
+  : in_header(sizeof(fuse_rmap_in), FUSE_REMOVEMAPPING, uniqu, nodei),
+    rmap_in(f, moffse, le) {}
+};
+
+typedef struct __attribute__((packed)) virtio_fs_rmap_res {
+  fuse_out_header out_header;
+};
 
 typedef struct __attribute__((packed)) virtio_fs_close_req {
   fuse_in_header in_header;
