@@ -298,7 +298,7 @@ ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
   while(_req.has_processed_used());
   _req.dequeue();
 
-  if (read_res.out_header.error != 0) return -1;
+  if (read_res.out_header.error != 0) return -1;
 
   /* Updating seek offset and returning */
   ssize_t read_count = read_res.out_header.len - sizeof(fuse_out_header);
@@ -307,25 +307,77 @@ ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
   return read_count;
 }
 
-int VirtioFS_device::munmap(uint64_t fh) {
+int VirtioFS_device::rmap_gphys(uint64_t fh) {
   if (not _fh_info_map.contains(fh)) return -1;
-  
+
+  /*
+  virtio_fs_rmap_req rmap_req();
+  virtio_fs_rmap_res rmap_res{};
+
   VirtTokens rmap_tokens;
   rmap_tokens.reserve(2);
+  rmap_tokens.emplace_back(
+    VIRTQ_DESC_F_NOFLAGS,
+    reinterpret_cast<uint8_t*>(&rmap_req),
+    sizeof(virtio_fs_rmap_req)
+  );
+  rmap_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(&rmap_res),
+    sizeof(virtio_fs_rmap_res)
+  );
 
-  virtio_fs_rmap_req rmap_req {};
-  virtio_fs_rmap_res rmap_res {};
+  _req.enqueue(rmap_tokens);
+  _req.kick();
+
+  while(_req.has_processed_used());
+  _req.dequeue();
+  */
+
+  return -1;
 }
 
-void* VirtioFS_device::mmap(uint64_t fh, void *fixed_addr) {
+void* VirtioFS_device::smap_gphys(uint64_t fh, uint64_t moffset, uint64_t length) {
+  Expects(_shm_regions.size() == 1);
+  shm_region& shm = _shm_regions[0];
+  
   if (not _fh_info_map.contains(fh)) return nullptr;
   fuse_ino_t ino = _fh_info_map[fh].ino;
 
+  virtio_fs_smap_req smap_req(fh, 0, moffset, length, 0, _unique_counter++, ino);
+  virtio_fs_smap_res smap_res{};
+
   VirtTokens smap_tokens;
   smap_tokens.reserve(2);
+  smap_tokens.emplace_back(
+    VIRTQ_DESC_F_NOFLAGS,
+    reinterpret_cast<uint8_t*>(&smap_req),
+    sizeof(virtio_fs_smap_req)
+  );
+  smap_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(&smap_res),
+    sizeof(virtio_fs_smap_res)
+  );
 
-  virtio_fs_smap_req smap_req {};
-  virtio_fs_smap_res smap_res {};
+  _req.enqueue(rmap_tokens);
+  _req.kick();
+
+  while(_req.has_processed_used());
+  _req.dequeue();
+
+  if (smap_res.out_header.error != 0) return nullptr;
+
+  /* Checking that the allocated physical region is contiguous */
+  fuse_smap_out& smap_out = smap_res.smap_out;
+  for (int i = 0; i < FUSE_SMAP_ENTRIES; ++i) {
+    INFO2("Setup mapping (%d): CACHE_offset (%zu) and len (%zu)", 
+      smap_out.coffset[i], smap_out.len[i]);
+  }
+
+  /* NON REACHABLE */
+  Expects(false);
+  return nullptr;
 }
 
 int VirtioFS_device::close(uint64_t fh) {

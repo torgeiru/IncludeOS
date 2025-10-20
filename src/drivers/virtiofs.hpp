@@ -48,9 +48,9 @@ public:
   ssize_t write(uint64_t fh, void *buf, uint32_t count) override;
   ssize_t read(uint64_t fh, void *buf, uint32_t count)  override;
   
-  // NOTE: Read only VirtioFS DAX is supported
-  void* mmap(void *fixed_addr, uint64_t fh); // Memory map the entire file
-  int munmap(uint64_t fh); // Memory unmap the entire file
+  // NOTE: ONLY RO DAX Read is supported. Cont guest physical memory
+  void* smap_gphys(uint64_t fh, uint64_t moffset, uint64_t length);
+  int rmap_gphys(uint64_t fh);
   int close(uint64_t fh) override;
 private:
   Split_queue _req;
