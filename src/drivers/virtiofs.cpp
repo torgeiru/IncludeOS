@@ -338,8 +338,8 @@ int VirtioFS_device::rmap_gphys(uint64_t fh) {
 }
 
 void* VirtioFS_device::smap_gphys(uint64_t fh, uint64_t moffset, uint64_t length) {
-  Expects(_shm_regions.size() == 1);
-  shm_region& shm = _shm_regions[0];
+  Expects(get_shm_regions().size() == 1);
+  shm_region& shm = get_shm_regions()[0];
   
   if (not _fh_info_map.contains(fh)) return nullptr;
   fuse_ino_t ino = _fh_info_map[fh].ino;
@@ -360,7 +360,7 @@ void* VirtioFS_device::smap_gphys(uint64_t fh, uint64_t moffset, uint64_t length
     sizeof(virtio_fs_smap_res)
   );
 
-  _req.enqueue(rmap_tokens);
+  _req.enqueue(smap_tokens);
   _req.kick();
 
   while(_req.has_processed_used());

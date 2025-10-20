@@ -34,6 +34,10 @@ namespace hw {
 
     /** Method for closing a file handle  */
     virtual int close(uint64_t fh) = 0;
+
+    /** DAX functionality, only available to VirtioFS */
+    virtual void* smap_gphys(uint64_t fh, uint64_t moffset, uint64_t length) { return nullptr; }
+    virtual int rmap_gphys(uint64_t fh) { return -1; }
   };
 }
 
