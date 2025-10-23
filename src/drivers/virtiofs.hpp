@@ -164,7 +164,6 @@ typedef struct __attribute__((packed)) virtio_fs_smap_req {
 
 typedef struct __attribute__((packed)) virtio_fs_smap_res {
   fuse_out_header out_header;
-  fuse_smap_out smap_out;
 };
 
 typedef struct __attribute__((packed)) virtio_fs_rmap_req {

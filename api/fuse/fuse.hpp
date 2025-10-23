@@ -281,11 +281,6 @@ typedef struct __attribute__((packed)) fuse_smap_in {
 		len(le), flags(flag), moffset(moffse) {}
 } fuse_smap_in;
 
-typedef struct __attribute__((packed)) fuse_smap_out {
-  uint64_t coffset[FUSE_SMAP_ENTRIES]; /* Offsets into the cache of mappings */
-  uint64_t len[FUSE_SMAP_ENTRIES];     /* Lengths of each mapping */
-} fuse_smap_out;
-
 typedef struct __attribute__((packed)) fuse_rmap_in {
 	uint64_t fh;      /* An already open handle */
   uint64_t moffset; /* Offset into the dax to start the unmapping */

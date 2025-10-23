@@ -340,7 +340,7 @@ int VirtioFS_device::rmap_gphys(uint64_t fh) {
 void* VirtioFS_device::smap_gphys(uint64_t fh, uint64_t moffset, uint64_t length) {
   Expects(get_shm_regions().size() == 1);
   shm_region& shm = get_shm_regions()[0];
-  
+
   if (not _fh_info_map.contains(fh)) return nullptr;
   fuse_ino_t ino = _fh_info_map[fh].ino;
 
@@ -368,14 +368,7 @@ void* VirtioFS_device::smap_gphys(uint64_t fh, uint64_t moffset, uint64_t length
 
   if (smap_res.out_header.error != 0) return nullptr;
 
-  /* Checking that the allocated physical region is contiguous */
-  fuse_smap_out& smap_out = smap_res.smap_out;
-  for (int i = 0; i < FUSE_SMAP_ENTRIES; ++i) {
-    INFO2("Setup mapping (%d): CACHE_offset (%zu) and len (%zu)", 
-      smap_out.coffset[i], smap_out.len[i]);
-  }
-
-  return reinterpret_cast<void*>(&shm.addr[smap_out.coffset[0]]);
+  return reinterpret_cast<void*>(&shm.addr[moffset]);
 }
 
 int VirtioFS_device::close(uint64_t fh) {
