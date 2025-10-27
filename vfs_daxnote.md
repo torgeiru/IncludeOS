@@ -29,7 +29,7 @@ on host page cache pages without copying!
 {
   "virtiofs_dax" : {
     "shared" : "<path-to-the-folder-you-want-to-share>",
-    "cache_size" : 2G,
+    "cache_size" : 2,
     "qemu_path" : "<path-to-qemu>",
     "virtiofsd_path" : "<path-to-the-virtiofsd>"
   }
