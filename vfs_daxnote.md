@@ -12,7 +12,7 @@ on host page cache pages without copying!
 ## Guide on building QEMU and VirtioFSD
 
 1. Clone the [virtiofs-qemu](https://gitlab.com/virtio-fs/qemu) and checkout commit hash `32006c66f2578af4121d7effaccae4aa4fa12e46`.  
-2. Download dependencies: `libseccomp-dev`, `libcapstone-dev`, `libfdt-dev` etc (debian). Resolve as build or configuration fails (repro not my problem).  
+2. Download dependencies: `pkg-config`, `libglib2.0-dev`, `libpixman-1-dev`, `libseccomp-dev`, `libcapstone-dev`, `libfdt-dev` etc (debian). Resolve as build or configuration fails (repro not my problem).  
 3. Goto repository root, create a build directory and type the following:  
   `./configure --python=<path-to-your-python> --disable-werror --target-list="x86_64-softmmu"`.  
 4. Stub the setrlimit-thingy and seccomp-thingy for VirtioFSD. Build using the `build-qemu.sh`.  
