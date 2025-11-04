@@ -1,5 +1,8 @@
 #include "virtiofs.hpp"
 
+#include <os>
+#include <kernel/events.hpp>
+
 #include <memory>
 #include <string>
 #include <cstring>
@@ -9,11 +12,17 @@
 #include <info>
 
 VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) : 
-Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
+Virtio_control(d), _req(*this, 1, false, 0), _unique_counter(0)
 {
   static int id_count = 0;
   _id = id_count++;
   negotiate_features(0, 0);
+
+  /* Enabling MSIX interrupts and callbacks */
+  enable_msix(1);
+  auto event_num = Events::get().subscribe({this, &VirtioFS_device::dequeue});
+  d.setup_msix_vector(0, IRQ_BASE + event_num);
+
   set_driver_ok_bit();
 
   /* Negotiate FUSE version */
@@ -49,6 +58,10 @@ Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
 
   /* Finalizing initialization */
   INFO("VirtioFS", "Device initialization is now complete");
+}
+
+void VirtioFS_device::dequeue() {
+
 }
 
 void VirtioFS_device::deactivate() {
@@ -98,10 +111,6 @@ fuse_ino_t VirtioFS_device::_lookup_inode(char *pathname, size_t pathname_len) {
   _req.enqueue(lookup_tokens);
   _req.kick();
 
-  while(_req.has_processed_used());
-  uint32_t device_written_len;
-  _req.dequeue(&device_written_len);
-
   if (lookup_res.out_header.error != 0) {
     return -1;
   }
@@ -132,9 +141,6 @@ uint64_t VirtioFS_device::_open_exist(char *pathname, size_t pathname_len, uint3
 
   _req.enqueue(open_tokens);
   _req.kick();
-
-  while(_req.has_processed_used());
-  _req.dequeue();
 
   if (open_res.out_header.error != 0) {
     return -1;
@@ -176,9 +182,6 @@ uint64_t VirtioFS_device::_open_creat(
 
   _req.enqueue(creat_tokens);
   _req.kick();
-
-  while(_req.has_processed_used());
-  _req.dequeue();
 
   if (creat_res.out_header.error != 0) return -1;
   
@@ -250,9 +253,6 @@ ssize_t VirtioFS_device::write(uint64_t fh, void *buf, uint32_t count) {
   _req.enqueue(write_tokens);
   _req.kick();
 
-  while(_req.has_processed_used());
-  _req.dequeue();
-
   if (write_res.out_header.error != 0) return -1;
 
   /* Updating seek offset and returning */
@@ -294,9 +294,6 @@ ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
   _req.enqueue(read_tokens);
   _req.kick();
 
-  while(_req.has_processed_used());
-  _req.dequeue();
-
   if (read_res.out_header.error != 0) return -1;
 
   /* Updating seek offset and returning */
@@ -330,9 +327,6 @@ int VirtioFS_device::close(uint64_t fh) {
 
   _req.enqueue(close_tokens);
   _req.kick();
-
-  while(_req.has_processed_used());
-  _req.dequeue();
 
   if (close_res.out_header.error != 0) {
     return -1;

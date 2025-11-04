@@ -54,6 +54,9 @@ private:
   uint64_t _unique_counter;
   int _id;
 
+  /* Dequeue helper */
+  void dequeue();
+
   /** Helper methods for open */
   fuse_ino_t _lookup_inode(char *pathname, size_t pathname_len);
   
