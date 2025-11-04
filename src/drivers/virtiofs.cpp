@@ -1,5 +1,6 @@
 #include "virtiofs.hpp"
 
+#include <os>
 #include <memory>
 #include <string>
 #include <cstring>
@@ -347,7 +348,7 @@ int VirtioFS_device::close(uint64_t fh) {
   return 0;
 }
 
-int VirtioFS_device::async_read_enqueue(
+uint64_t VirtioFS_device::async_read_enqueue(
   uint64_t fh, void *buf, uint32_t count, off_t offset
 ) {
   if (not _fh_info_map.contains(fh)) return -1;
@@ -384,7 +385,8 @@ int VirtioFS_device::async_read_enqueue(
   while(_req.has_processed_used());
   _req.dequeue();
 
-  if (read_res.out_header.error != 0) return -1;
+  if (read_res.out_header.error != 0)
+    os::panic("Should not error on async_read!");
 
   /* Updating seek offset and returning */
   ssize_t read_count = read_res.out_header.len - sizeof(fuse_out_header);
@@ -397,7 +399,7 @@ uint64_t VirtioFS_device::async_read_dequeue() {
   /* Dequeue and return the identifier of the processed request */
 }
 
-int VirtioFS_device::async_write_enqueue(
+uint64_t VirtioFS_device::async_write_enqueue(
   uint64_t fh, void *buf, uint32_t count, off_t offset
 ) {
   if (not _fh_info_map.contains(fh)) return -1;
@@ -434,7 +436,8 @@ int VirtioFS_device::async_write_enqueue(
   while(_req.has_processed_used());
   _req.dequeue();
 
-  if (write_res.out_header.error != 0) return -1;
+  if (write_res.out_header.error != 0)
+    os::panic("Should not error on async_read!");
 
   /* Updating seek offset and returning */
   ssize_t write_count = write_res.write_out.size;

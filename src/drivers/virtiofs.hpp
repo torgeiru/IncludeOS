@@ -50,17 +50,20 @@ public:
   int close(uint64_t fh) override;
 
   /** Functions used for sending multiple read requests */
-  int async_read_enqueue(uint64_t fh, void *buf, uint32_t count, off_t offset);
+  uint64_t async_read_enqueue(uint64_t fh, void *buf, uint32_t count, off_t offset);
   uint64_t async_read_dequeue();
 
   /** Functions used for sending multiple write requests */
-  int async_write_enqueue(uint64_t fh, void *buf, uint32_t count, off_t offset);
+  uint64_t async_write_enqueue(uint64_t fh, void *buf, uint32_t count, off_t offset);
   uint64_t async_write_dequeue();
 private:
   Split_queue _req;
   std::unordered_map<uint64_t, fh_info> _fh_info_map;
   uint64_t _unique_counter;
   int _id;
+
+  uint64_t async_read_counter;
+  uint64_t async_write_counter;
 
   /** Helper methods for open */
   fuse_ino_t _lookup_inode(char *pathname, size_t pathname_len);
