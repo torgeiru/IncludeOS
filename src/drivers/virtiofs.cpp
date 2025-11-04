@@ -20,9 +20,10 @@ Virtio_control(d), _req(*this, 1, false, 0), _unique_counter(0)
 
   /* Enabling MSIX interrupts and callbacks */
   enable_msix(1);
-  auto event_num = Events::get().subscribe({this, &VirtioFS_device::dequeue});
+  auto event_num = Events::get().subscribe(
+    {this, &VirtioFS_device::log_fuse_reply}
+  );
   d.setup_msix_vector(0, IRQ_BASE + event_num);
-
   set_driver_ok_bit();
 
   /* Negotiate FUSE version */
@@ -42,11 +43,7 @@ Virtio_control(d), _req(*this, 1, false, 0), _unique_counter(0)
     sizeof(virtio_fs_init_res)
   );
 
-  _req.enqueue(init_req_tokens);
-  _req.kick();
-
-  while(_req.has_processed_used());
-  _req.dequeue();
+  fuse_send_and_wait(init_req_tokens);
 
   bool compatible_major_version = (FUSE_MAJOR_VERSION == init_res.init_out.major);
   CHECK(compatible_major_version, "Daemon and driver major FUSE version matches");
@@ -60,8 +57,21 @@ Virtio_control(d), _req(*this, 1, false, 0), _unique_counter(0)
   INFO("VirtioFS", "Device initialization is now complete");
 }
 
-void VirtioFS_device::dequeue() {
+void VirtioFS_device::fuse_send_and_wait(VirtToken& tokens) {
+  /* Enqueue buffer chain and kick device  */
+  _req.enqueue(tokens);
+  _req.kick();
 
+  /* Blocking waiting for request to have been processed */
+  while(_req.has_processed_used())
+    os::block();
+
+  /* Dequeue the buffer chain from the Virtio ring */
+  _req.dequeue();
+}
+
+void VirtioFS_device::fuse_log_reply() {
+  INFO("VirtioFS", "Received a FUSE response!");
 }
 
 void VirtioFS_device::deactivate() {
@@ -108,7 +118,7 @@ fuse_ino_t VirtioFS_device::_lookup_inode(char *pathname, size_t pathname_len) {
     sizeof(virtio_fs_lookup_res)
   );
 
-  request();
+  fuse_send_and_wait(lookup_tokens);
 
   if (lookup_res.out_header.error != 0) {
     return -1;
@@ -138,7 +148,7 @@ uint64_t VirtioFS_device::_open_exist(char *pathname, size_t pathname_len, uint3
     sizeof(virtio_fs_open_res)
   );
 
-  request();
+  fuse_send_and_wait(open_tokens);
 
   if (open_res.out_header.error != 0) {
     return -1;
@@ -178,7 +188,7 @@ uint64_t VirtioFS_device::_open_creat(
     sizeof(creat_res)
   );
 
-  request();
+  fuse_send_and_wait(creat_tokens);
 
   if (creat_res.out_header.error != 0) return -1;
   
@@ -247,7 +257,7 @@ ssize_t VirtioFS_device::write(uint64_t fh, void *buf, uint32_t count) {
     sizeof(virtio_fs_write_res)
   );
 
-  request();
+  fuse_send_and_wait(write_tokens);
 
   if (write_res.out_header.error != 0) return -1;
 
@@ -287,7 +297,7 @@ ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
     count
   );
 
-  request();
+  fuse_send_and_wait(read_tokens);
 
   if (read_res.out_header.error != 0) return -1;
 
@@ -320,7 +330,7 @@ int VirtioFS_device::close(uint64_t fh) {
     sizeof(virtio_fs_close_res)
   );
 
-  request();
+  fuse_send_and_wait(close_tokens);
 
   if (close_res.out_header.error != 0) {
     return -1;

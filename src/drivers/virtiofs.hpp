@@ -54,9 +54,8 @@ private:
   uint64_t _unique_counter;
   int _id;
 
-  /* Dequeue helper */
-  void request();
-  void dequeue();
+  void fuse_send_and_wait(VirtTokens& tokens);
+  void fuse_log_reply();
 
   /** Helper methods for open */
   fuse_ino_t _lookup_inode(char *pathname, size_t pathname_len);
