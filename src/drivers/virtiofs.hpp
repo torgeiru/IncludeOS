@@ -55,6 +55,7 @@ private:
   int _id;
 
   /* Dequeue helper */
+  void request();
   void dequeue();
 
   /** Helper methods for open */

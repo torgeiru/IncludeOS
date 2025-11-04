@@ -108,8 +108,7 @@ fuse_ino_t VirtioFS_device::_lookup_inode(char *pathname, size_t pathname_len) {
     sizeof(virtio_fs_lookup_res)
   );
 
-  _req.enqueue(lookup_tokens);
-  _req.kick();
+  request();
 
   if (lookup_res.out_header.error != 0) {
     return -1;
@@ -139,8 +138,7 @@ uint64_t VirtioFS_device::_open_exist(char *pathname, size_t pathname_len, uint3
     sizeof(virtio_fs_open_res)
   );
 
-  _req.enqueue(open_tokens);
-  _req.kick();
+  request();
 
   if (open_res.out_header.error != 0) {
     return -1;
@@ -180,8 +178,7 @@ uint64_t VirtioFS_device::_open_creat(
     sizeof(creat_res)
   );
 
-  _req.enqueue(creat_tokens);
-  _req.kick();
+  request();
 
   if (creat_res.out_header.error != 0) return -1;
   
@@ -250,8 +247,7 @@ ssize_t VirtioFS_device::write(uint64_t fh, void *buf, uint32_t count) {
     sizeof(virtio_fs_write_res)
   );
 
-  _req.enqueue(write_tokens);
-  _req.kick();
+  request();
 
   if (write_res.out_header.error != 0) return -1;
 
@@ -291,8 +287,7 @@ ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
     count
   );
 
-  _req.enqueue(read_tokens);
-  _req.kick();
+  request();
 
   if (read_res.out_header.error != 0) return -1;
 
@@ -325,8 +320,7 @@ int VirtioFS_device::close(uint64_t fh) {
     sizeof(virtio_fs_close_res)
   );
 
-  _req.enqueue(close_tokens);
-  _req.kick();
+  request();
 
   if (close_res.out_header.error != 0) {
     return -1;
