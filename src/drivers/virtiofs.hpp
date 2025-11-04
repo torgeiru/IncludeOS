@@ -48,6 +48,14 @@ public:
   ssize_t write(uint64_t fh, void *buf, uint32_t count) override;
   ssize_t read(uint64_t fh, void *buf, uint32_t count)  override;
   int close(uint64_t fh) override;
+
+  /** Functions used for sending multiple read requests */
+  int async_read_enqueue(uint64_t fh, void *buf, uint32_t count, off_t offset);
+  uint64_t async_read_dequeue();
+
+  /** Functions used for sending multiple write requests */
+  int async_write_enqueue(uint64_t fh, void *buf, uint32_t count, off_t offset);
+  uint64_t async_write_dequeue();
 private:
   Split_queue _req;
   std::unordered_map<uint64_t, fh_info> _fh_info_map;
