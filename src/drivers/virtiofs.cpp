@@ -21,7 +21,7 @@ Virtio_control(d), _req(*this, 1, false, 0), _unique_counter(0)
   /* Enabling MSIX interrupts and callbacks */
   enable_msix(1);
   auto event_num = Events::get().subscribe(
-    {this, &VirtioFS_device::log_fuse_reply}
+    {this, &VirtioFS_device::fuse_log_reply}
   );
   d.setup_msix_vector(0, IRQ_BASE + event_num);
   set_driver_ok_bit();
@@ -57,7 +57,7 @@ Virtio_control(d), _req(*this, 1, false, 0), _unique_counter(0)
   INFO("VirtioFS", "Device initialization is now complete");
 }
 
-void VirtioFS_device::fuse_send_and_wait(VirtToken& tokens) {
+void VirtioFS_device::fuse_send_and_wait(VirtTokens& tokens) {
   /* Enqueue buffer chain and kick device  */
   _req.enqueue(tokens);
   _req.kick();
@@ -71,7 +71,7 @@ void VirtioFS_device::fuse_send_and_wait(VirtToken& tokens) {
 }
 
 void VirtioFS_device::fuse_log_reply() {
-  INFO("VirtioFS", "Received a FUSE response!");
+  // INFO("VirtioFS", "Received a FUSE response!");
 }
 
 void VirtioFS_device::deactivate() {
