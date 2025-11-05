@@ -14,14 +14,10 @@ Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
 {
   static int id_count = 0;
   _id = id_count++;
-  negotiate_features(0, 0);
+  negotiate_features(VIRTIO_F_EVENT_IDX_LO, 0);
   set_driver_ok_bit();
 
   /* Negotiate FUSE version */
-  /* TODO: Add some more features here like 
-   * 1) FUSE_ASYNC_READ
-   * 2) FUSE_ASYNC_DIO
-   */
   virtio_fs_init_req init_req(FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION_MIN, _unique_counter++, FUSE_ROOT_ID);
   virtio_fs_init_res init_res {};
 

@@ -22,15 +22,7 @@ typedef struct VirtToken {
     uint16_t flag, 
     uint8_t *buff, 
     size_t bufl
-  ) : flags(flag), buffer(buff, bufl) {
-    //INFO2("Constructing a VirtToken!");
-  }
-
-  /* Used simply for testing that C++ NRVO is working */
-  // VirtToken(const VirtToken &token) : flags(token.flags), buffer(token.buffer.data(), token.buffer.size())
-  // {
-  //   // INFO2("Called copy constructor for VirtToken!");
-  // }
+  ) : flags(flag), buffer(buff, bufl) {}
 } VirtToken;
   
 using std::vector;
@@ -96,8 +88,10 @@ typedef struct __attribute__((packed)) {
  */
 class Split_queue {
 public:
-  Split_queue(Virtio_control& virtio_dev, int vqueue_id, 
-    bool use_polling, uint8_t msix_vector = 0);
+  Split_queue(Virtio_control& virtio_dev, int vqueue_id,
+    bool use_polling, uint8_t msix_vector = 0,
+    bool event_idx_suppression = false
+  );
   void deactivate_split_queue();
 
   /** Interface methods for virtqueues */
@@ -105,9 +99,7 @@ public:
   // guest physical addresses
   void enqueue(VirtTokens& tokens);
   VirtTokens dequeue(uint32_t *device_written_len = nullptr);
-  // NOTE: Expensive to use. An efficient driver reduce the # of kicks.
-  // Enqueue multiple chains and then kick.
-  // Alternatively, use the EVENT_IDX feature.
+  // NOTE: Expensive to use. An efficient driver reduce the # of kicks
   void kick();
   
   uint16_t free_desc_space() const { return _free_list.size(); };
@@ -132,6 +124,7 @@ protected:
 private:
   vector<uint16_t> _free_list;
   Virtio_control& _virtio_dev;
+  bool _event_idx_suppression;
   int _VQUEUE_ID;
 };
 

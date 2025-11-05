@@ -10,8 +10,9 @@
 
 using util::bits::is_aligned;
 Split_queue::Split_queue(Virtio_control& virtio_dev, int vqueue_id, 
-  bool use_polling, uint8_t msix_vector)
-: _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id), _last_used_idx(0)
+  bool use_polling, uint8_t msix_vector, bool event_idx_suppression)
+: _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id), _last_used_idx(0),
+  _event_idx_suppression(event_idx_suppression)
 {
   /* Selecting specific virtqueue */
   auto& cfg = _virtio_dev.common_cfg();
@@ -45,13 +46,15 @@ Split_queue::Split_queue(Virtio_control& virtio_dev, int vqueue_id,
   std::memset(_desc_table, 0, desc_table_size);
   cfg.queue_desc = reinterpret_cast<uint64_t>(_desc_table);
   
-  size_t avail_ring_size = AVAIL_RING_SIZE(queue_size);
+  size_t avail_ring_size = AVAIL_RING_SIZE(queue_size) + 
+    (event_idx_suppression ? sizeof(uint16_t) : 0);
   _avail_ring = reinterpret_cast<virtq_avail*>(aligned_alloc(AVAIL_RING_ALIGN, avail_ring_size));
   Expects((_avail_ring != NULL) && is_aligned<AVAIL_RING_ALIGN>(reinterpret_cast<uintptr_t>(_avail_ring)));
   std::memset(_avail_ring, 0, avail_ring_size);
   cfg.queue_driver = reinterpret_cast<uint64_t>(_avail_ring);
   
-  size_t used_ring_size = USED_RING_SIZE(queue_size);
+  size_t used_ring_size = USED_RING_SIZE(queue_size) + 
+    (event_idx_suppression ? sizeof(uint16_t) : 0);
   _used_ring  = reinterpret_cast<virtq_used*>(aligned_alloc(USED_RING_ALIGN, used_ring_size));
   Expects((_used_ring != NULL) && is_aligned<USED_RING_ALIGN>(reinterpret_cast<uintptr_t>(_used_ring)));
   std::memset(_used_ring, 0, used_ring_size);
@@ -169,7 +172,9 @@ void Split_queue::kick() {
 
   /* Checking for the notification mechanism */
   if (LIKELY(_event_idx_suppression)) {
-    if (_avail_ring->idx != _avail_ring->avail_event)
+    if (
+      _avail_ring->idx != *(reinterpret_cast<uint16_t*>(&_used_ring->ring[_QUEUE_SIZE])) // Ugly I know. Virtio is ugly.
+    )
       return;
   } else {
     if (_used_ring->flags == VIRTQ_USED_F_NO_NOTIFY)

@@ -52,6 +52,7 @@ public:
 
   /** NOTE: Buggy to use async functions together with non-async functions at the same time */
   /** NOTE: It is fine to use async read and write interop */
+  /** NOTE: Support batched IO. */
 
   /** Functions used for sending multiple read requests async */
   void async_init_read() { _async_read_waitlist.resize(0); }
