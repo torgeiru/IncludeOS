@@ -2,6 +2,7 @@
 #ifndef VIRTIO_FILESYSTEM_HPP
 #define VIRTIO_FILESYSTEM_HPP
 
+#include <vector>
 #include <string>
 #include <unordered_map>
 
@@ -49,21 +50,29 @@ public:
   ssize_t read(uint64_t fh, void *buf, uint32_t count)  override;
   int close(uint64_t fh) override;
 
-  /** Functions used for sending multiple read requests */
-  uint64_t async_read_enqueue(uint64_t fh, void *buf, uint32_t count, off_t offset);
-  uint64_t async_read_dequeue();
+  /** NOTE: Buggy to use async functions together with other functions at the same time */
 
-  /** Functions used for sending multiple write requests */
-  uint64_t async_write_enqueue(uint64_t fh, void *buf, uint32_t count, off_t offset);
-  uint64_t async_write_dequeue();
+  /** Functions used for sending multiple read requests async */
+  void async_init_read() { _async_read_waitlist.resize(0); }
+  uint64_t async_read_req(uint64_t fh, void *buf, uint32_t count, off_t offset);
+  ssize async_sync_read();
+
+  /** Functions used for sending multiple write requests async */
+  void async_init_write() { _async_write_waitlist.resize(0); }
+  uint64_t async_write_req(uint64_t fh, void *buf, uint32_t count, off_t offset);
+  ssize_t async_sync_write();
 private:
   Split_queue _req;
   std::unordered_map<uint64_t, fh_info> _fh_info_map;
   uint64_t _unique_counter;
   int _id;
 
-  uint64_t async_read_counter;
-  uint64_t async_write_counter;
+  /** Async function variables */
+  std::vector<uint64_t> _async_read_waitlist;
+  std::vector<uint64_t> _async_read_dequeued;
+
+  std::vector<uint64_t> _async_write_waitlist;
+  std::vector<uint64_t> _async_write_dequeued;  
 
   /** Helper methods for open */
   fuse_ino_t _lookup_inode(char *pathname, size_t pathname_len);

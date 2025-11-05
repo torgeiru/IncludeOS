@@ -357,6 +357,8 @@ uint64_t VirtioFS_device::async_read_enqueue(
   off_t offset = _fh_info_map[fh].offset;
 
   /* FUSE read request */
+  uint64_t request_identifier = _unique_counter++;
+
   virtio_fs_read_req read_req(fh, offset, count, _unique_counter++, ino);
   virtio_fs_read_res read_res{};
 
