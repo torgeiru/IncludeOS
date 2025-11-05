@@ -107,6 +107,7 @@ public:
   VirtTokens dequeue(uint32_t *device_written_len = nullptr);
   // NOTE: Expensive to use. An efficient driver reduce the # of kicks.
   // Enqueue multiple chains and then kick.
+  // Alternatively, use the EVENT_IDX feature.
   void kick();
   
   uint16_t free_desc_space() const { return _free_list.size(); };
