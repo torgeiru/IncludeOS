@@ -57,7 +57,7 @@ public:
   /** Functions used for sending multiple read requests async */
   void async_init_read() { _async_read_waitlist.resize(0); }
   uint64_t async_read_req(uint64_t fh, void *buf, uint32_t count, off_t offset);
-  ssize async_sync_read();
+  ssize_t async_sync_read();
 
   /** Functions used for sending multiple write requests async */
   void async_init_write() { _async_write_waitlist.resize(0); }

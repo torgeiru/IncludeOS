@@ -10,9 +10,10 @@
 
 using util::bits::is_aligned;
 Split_queue::Split_queue(Virtio_control& virtio_dev, int vqueue_id, 
-  bool use_polling, uint8_t msix_vector, bool event_idx_suppression)
-: _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id), _last_used_idx(0),
-  _event_idx_suppression(event_idx_suppression)
+  bool use_polling, uint8_t msix_vector, bool event_idx_suppression
+)
+: _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id),
+  _last_used_idx(0), _event_idx_suppression(event_idx_suppression)
 {
   /* Selecting specific virtqueue */
   auto& cfg = _virtio_dev.common_cfg();
@@ -172,14 +173,11 @@ void Split_queue::kick() {
 
   /* Checking for the notification mechanism */
   if (LIKELY(_event_idx_suppression)) {
-    if (
-      _avail_ring->idx != *(reinterpret_cast<uint16_t*>(&_used_ring->ring[_QUEUE_SIZE])) // Ugly I know. Virtio is ugly.
-    )
+    if (_avail_ring->idx != *(reinterpret_cast<uint16_t*>(&_used_ring->ring[_QUEUE_SIZE]))) // Ugly I know. Virtio is ugly.
       return;
   } else {
     if (_used_ring->flags == VIRTQ_USED_F_NO_NOTIFY)
       return;
-    } 
   }
 
   _notify_device();

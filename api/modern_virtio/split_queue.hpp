@@ -106,7 +106,7 @@ public:
   inline uint16_t desc_space_cap() const { return _QUEUE_SIZE; }
   bool has_processed_used() const { return _last_used_idx == _used_ring->idx; };
   
-  /** Methods for handling supression */
+  /** Methods for event supression */
   inline void suppress() { _avail_ring->flags = VIRTQ_AVAIL_F_NO_INTERRUPT; }
   inline void unsuppress() { _avail_ring->flags = VIRTQ_AVAIL_F_INTERRUPT; }
   

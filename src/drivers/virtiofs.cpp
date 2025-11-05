@@ -10,7 +10,7 @@
 #include <info>
 
 VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) : 
-Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
+Virtio_control(d), _req(*this, 1, true, 0, true), _unique_counter(0)
 {
   static int id_count = 0;
   _id = id_count++;
@@ -18,7 +18,12 @@ Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
   set_driver_ok_bit();
 
   /* Negotiate FUSE version */
-  virtio_fs_init_req init_req(FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION_MIN, _unique_counter++, FUSE_ROOT_ID);
+  virtio_fs_init_req init_req(
+    FUSE_MAJOR_VERSION,
+    FUSE_MINOR_VERSION_MIN,
+    _unique_counter++,
+    FUSE_ROOT_ID
+  );
   virtio_fs_init_res init_res {};
 
   VirtTokens init_req_tokens;
@@ -344,15 +349,16 @@ int VirtioFS_device::close(uint64_t fh) {
   return 0;
 }
 
-uint64_t VirtioFS_device::async_read_enqueue(
+uint64_t VirtioFS_device::async_read_req(
   uint64_t fh, void *buf, uint32_t count, off_t offset
 ) {
+  return 0;
+  /*
   if (not _fh_info_map.contains(fh)) return -1;
 
   fuse_ino_t ino = _fh_info_map[fh].ino;
   off_t offset = _fh_info_map[fh].offset;
 
-  /* FUSE read request */
   uint64_t request_identifier = _unique_counter++;
 
   virtio_fs_read_req read_req(fh, offset, count, _unique_counter++, ino);
@@ -386,26 +392,25 @@ uint64_t VirtioFS_device::async_read_enqueue(
   if (read_res.out_header.error != 0)
     os::panic("Should not error on async_read!");
 
-  /* Updating seek offset and returning */
   ssize_t read_count = read_res.out_header.len - sizeof(fuse_out_header);
   _fh_info_map[fh].offset += read_count;
 
   return read_count;
+  */
 }
 
-uint64_t VirtioFS_device::async_read_dequeue() {
-  /* Dequeue and return the identifier of the processed request */
-}
+ssize_t VirtioFS_device::async_sync_read() {}
 
-uint64_t VirtioFS_device::async_write_enqueue(
+uint64_t VirtioFS_device::async_write_req(
   uint64_t fh, void *buf, uint32_t count, off_t offset
 ) {
+  return 0;
+  /*
   if (not _fh_info_map.contains(fh)) return -1;
 
   fuse_ino_t ino = _fh_info_map[fh].ino;
   off_t offset = _fh_info_map[fh].offset;
 
-  /* FUSE write request */
   virtio_fs_write_req write_req(fh, offset, count, _unique_counter++, ino);
   virtio_fs_write_res write_res{};
 
@@ -437,16 +442,14 @@ uint64_t VirtioFS_device::async_write_enqueue(
   if (write_res.out_header.error != 0)
     os::panic("Should not error on async_read!");
 
-  /* Updating seek offset and returning */
   ssize_t write_count = write_res.write_out.size;
   _fh_info_map[fh].offset += write_count;
 
   return write_count;
+  */
 }
 
-uint64_t VirtioFS_device::async_write_dequeue() {
-  /* Dequeue and return the identifier of the processed request */
-}
+ssize_t VirtioFS_device::async_sync_write() {}
 
 __attribute__((constructor))
 void autoreg_virtiofs() {
