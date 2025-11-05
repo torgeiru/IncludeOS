@@ -15,15 +15,15 @@
 #include <modern_virtio/split_queue.hpp>
 #include <fuse/fuse.hpp>
 
-// #define FUSE_ASYNC_READ      (1 << 0)
-// #define FUSE_ASYNC_DIO       (1 << 15)
-// #define FUSE_WRITEBACK_CACHE (1 << 16)
-// TODO: Implement ability to async IO
-
 typedef struct {
   fuse_ino_t ino;
   off_t offset;
 } fh_info;
+
+typedef struct {
+  uint64_t identifier;
+  uint32_t bytes_processed;
+} async_res_dequeued;
 
 class VirtioFS_device : 
   public Virtio_control, 
@@ -50,7 +50,8 @@ public:
   ssize_t read(uint64_t fh, void *buf, uint32_t count)  override;
   int close(uint64_t fh) override;
 
-  /** NOTE: Buggy to use async functions together with other functions at the same time */
+  /** NOTE: Buggy to use async functions together with non-async functions at the same time */
+  /** NOTE: It is fine to use async read and write interop */
 
   /** Functions used for sending multiple read requests async */
   void async_init_read() { _async_read_waitlist.resize(0); }
@@ -69,10 +70,10 @@ private:
 
   /** Async function variables */
   std::vector<uint64_t> _async_read_waitlist;
-  std::vector<uint64_t> _async_read_dequeued;
+  std::vector<async_res_dequeued> _async_read_dequeued; // Use for out of order
 
   std::vector<uint64_t> _async_write_waitlist;
-  std::vector<uint64_t> _async_write_dequeued;  
+  std::vector<async_res_dequeued> _async_write_dequeued; // Use for out of order
 
   /** Helper methods for open */
   fuse_ino_t _lookup_inode(char *pathname, size_t pathname_len);
