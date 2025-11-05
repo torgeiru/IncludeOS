@@ -165,14 +165,17 @@ VirtTokens Split_queue::dequeue(uint32_t *device_written_len) {
 
 void Split_queue::kick() {
   /* Memory fence before checking for notification suppression according §2.7.13.4.1 (Virtio 1.3) */
-  std::atomic_thread_fence(std:: memory_order_seq_cst);
+  std::atomic_thread_fence(std::memory_order_seq_cst);
 
   /* Checking for the notification mechanism */
   if (LIKELY(_event_idx_suppression)) {
-
+    if (_avail_ring->idx != _avail_ring->avail_event)
+      return;
   } else {
-    if (_used_ring->flags == VIRTQ_USED_F_NOTIFY) {
-      _notify_device();
+    if (_used_ring->flags == VIRTQ_USED_F_NO_NOTIFY)
+      return;
     } 
   }
+
+  _notify_device();
 }
