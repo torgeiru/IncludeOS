@@ -71,13 +71,13 @@ public:
 
   /** Functions used for having multiple read requests in flight (async) */
   int async_init_read(uint64_t fh, int max_reqs_in_flight);
-  int async_destroy_read(uint64_t fh);
+  int async_fini_read(uint64_t fh);
   uint64_t async_read_req(uint64_t fh, void *buf, uint32_t count, off_t offset);
   ssize_t async_sync_read();
 
   /** Functions used for having multiple write requests in flight (async) */
   int async_init_write(uint64_t fh, int max_reqs_in_flight);
-  int async_destroy_write(uint64_t fh);
+  int async_fini_write(uint64_t fh);
   uint64_t async_write_req(uint64_t fh, void *buf, uint32_t count, off_t offset);
   ssize_t async_sync_write();
 private:

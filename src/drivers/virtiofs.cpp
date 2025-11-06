@@ -354,12 +354,39 @@ int async_init_read(uint64_t fh, int max_reqs_in_flight) {
   if (max_reqs_in_flight == 0) return -1;
 
   /* Checking that async is not initialized anywhere for the file handle */
-  _fh_info_map[fh].
+  fh_info& info = _fh_info_map[fh];
+  async_read_info& read_info = info.read_info;
 
+  if (
+    read_info.read_req_bodies.capacity() != 0 || 
+    info.write_info.write_req_bodies.capacity() != 0)
+  {
+    return -1;
+  }
+
+  /* Reserving space for request headers */
+  read_info.read_req_bodies.reserve(max_reqs_in_flight);
+  read_info.read_res_bodies.reserve(max_reqs_in_flight);
+
+  return 0;
 }
-int async_destroy_read(uint64_t fh) {
+int async_fini_read(uint64_t fh) {
   if (not _fh_info_map.contains(fh)) return -1;
+  fh_info& info = _fh_info_map[fh];
+  async_read_info& read_info = info.read_info;
 
+  /* Checking that async is initialized anywhere for the file handle */
+  if (read_info.read_req_bodies.capacity() == 0)
+  {
+    return -1;
+  }
+
+  /* Empty the vectors and deque */
+  std::vector<virtio_fs_read_req>().swap(read_info.read_req_bodies);
+  std::vector<virtio_fs_read_res>().swap(read_info.read_res_bodies);
+  read_info.async_read_dequeued.clear();
+
+  return 0;
 }
 uint64_t VirtioFS_device::async_read_req(
   uint64_t fh, void *buf, uint32_t count, off_t offset
@@ -417,9 +444,41 @@ ssize_t VirtioFS_device::async_sync_read() {}
 int async_init_write(uint64_t fh, int max_reqs_in_flight) {
   if (not _fh_info_map.contains(fh)) return -1;
   if (max_reqs_in_flight == 0) return -1;
+
+  /* Checking that async is not initialized anywhere for the file handle */
+  fh_info& info = _fh_info_map[fh];
+  async_write_info& write_info = info.write_info;
+
+  if (
+    info.read_info.read_req_bodies.capacity() != 0 || 
+    write_info.write_req_bodies.capacity() != 0)
+  {
+    return -1;
+  }
+
+  /* Reserving space for request headers */
+  write_info.read_req_bodies.reserve(max_reqs_in_flight);
+  write_info.read_res_bodies.reserve(max_reqs_in_flight);
+
+  return 0;
 }
-int async_destroy_write(uint64_t fh) {
+int async_fini_write(uint64_t fh) {
   if (not _fh_info_map.contains(fh)) return -1;
+  fh_info& info = _fh_info_map[fh];
+  async_write_info& write_info = info.write_info;
+
+  /* Checking that async is initialized anywhere for the file handle */
+  if (write_info.write_req_bodies.capacity() == 0)
+  {
+    return -1;
+  }
+
+  /* Empty the vectors and deque */
+  std::vector<virtio_fs_write_req>().swap(write_info.write_req_bodies);
+  std::vector<virtio_fs_write_res>().swap(write_info.write_res_bodies);
+  write_info.async_write_dequeued.clear();
+
+  return 0;
 }
 uint64_t VirtioFS_device::async_write_req(
   uint64_t fh, void *buf, uint32_t count, off_t offset
