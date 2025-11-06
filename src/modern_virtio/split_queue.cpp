@@ -47,15 +47,13 @@ Split_queue::Split_queue(Virtio_control& virtio_dev, int vqueue_id,
   std::memset(_desc_table, 0, desc_table_size);
   cfg.queue_desc = reinterpret_cast<uint64_t>(_desc_table);
   
-  size_t avail_ring_size = AVAIL_RING_SIZE(queue_size) + 
-    (event_idx_suppression ? sizeof(uint16_t) : 0);
+  size_t avail_ring_size = AVAIL_RING_SIZE(queue_size) + (event_idx_suppression ? sizeof(uint16_t) : 0);
   _avail_ring = reinterpret_cast<virtq_avail*>(aligned_alloc(AVAIL_RING_ALIGN, avail_ring_size));
   Expects((_avail_ring != NULL) && is_aligned<AVAIL_RING_ALIGN>(reinterpret_cast<uintptr_t>(_avail_ring)));
   std::memset(_avail_ring, 0, avail_ring_size);
   cfg.queue_driver = reinterpret_cast<uint64_t>(_avail_ring);
   
-  size_t used_ring_size = USED_RING_SIZE(queue_size) + 
-    (event_idx_suppression ? sizeof(uint16_t) : 0);
+  size_t used_ring_size = USED_RING_SIZE(queue_size) + (event_idx_suppression ? sizeof(uint16_t) : 0);
   _used_ring  = reinterpret_cast<virtq_used*>(aligned_alloc(USED_RING_ALIGN, used_ring_size));
   Expects((_used_ring != NULL) && is_aligned<USED_RING_ALIGN>(reinterpret_cast<uintptr_t>(_used_ring)));
   std::memset(_used_ring, 0, used_ring_size);

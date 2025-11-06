@@ -349,9 +349,23 @@ int VirtioFS_device::close(uint64_t fh) {
   return 0;
 }
 
+int async_init_read(uint64_t fh, int max_reqs_in_flight) {
+  if (not _fh_info_map.contains(fh)) return -1;
+  if (max_reqs_in_flight == 0) return -1;
+
+  /* Checking that async is not initialized anywhere for the file handle */
+  _fh_info_map[fh].
+
+}
+int async_destroy_read(uint64_t fh) {
+  if (not _fh_info_map.contains(fh)) return -1;
+
+}
 uint64_t VirtioFS_device::async_read_req(
   uint64_t fh, void *buf, uint32_t count, off_t offset
 ) {
+  if (not _fh_info_map.contains(fh)) return -1;
+
   return 0;
   /*
   if (not _fh_info_map.contains(fh)) return -1;
@@ -398,13 +412,20 @@ uint64_t VirtioFS_device::async_read_req(
   return read_count;
   */
 }
-
 ssize_t VirtioFS_device::async_sync_read() {}
 
+int async_init_write(uint64_t fh, int max_reqs_in_flight) {
+  if (not _fh_info_map.contains(fh)) return -1;
+  if (max_reqs_in_flight == 0) return -1;
+}
+int async_destroy_write(uint64_t fh) {
+  if (not _fh_info_map.contains(fh)) return -1;
+}
 uint64_t VirtioFS_device::async_write_req(
   uint64_t fh, void *buf, uint32_t count, off_t offset
 ) {
-  return 0;
+  if (not _fh_info_map.contains(fh)) return -1;
+
   /*
   if (not _fh_info_map.contains(fh)) return -1;
 
@@ -448,7 +469,6 @@ uint64_t VirtioFS_device::async_write_req(
   return write_count;
   */
 }
-
 ssize_t VirtioFS_device::async_sync_write() {}
 
 __attribute__((constructor))
