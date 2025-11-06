@@ -457,8 +457,8 @@ int async_init_write(uint64_t fh, int max_reqs_in_flight) {
   }
 
   /* Reserving space for request headers */
-  write_info.read_req_bodies.reserve(max_reqs_in_flight);
-  write_info.read_res_bodies.reserve(max_reqs_in_flight);
+  write_info.write_req_bodies.reserve(max_reqs_in_flight);
+  write_info.write_res_bodies.reserve(max_reqs_in_flight);
 
   return 0;
 }
