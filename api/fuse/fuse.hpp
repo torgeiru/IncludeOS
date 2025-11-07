@@ -123,16 +123,25 @@ typedef struct __attribute__((packed)) fuse_in_header {
 	uint32_t pid;       /* PID of the requesting process */
 	uint32_t padding;
 
+    fuse_in_header()
+        : len(0), opcode(0), unique(0), nodeid(0),
+          uid(0), gid(0), pid(0), padding(0)
+    {}
+
 	fuse_in_header(uint32_t plen, uint32_t opcod, uint64_t uniqu, uint64_t nodei)
 	: len(sizeof(fuse_in_header) + plen), opcode(opcod), unique(uniqu), nodeid(nodei),
 	  uid(0), gid(0), pid(0), padding(0)
 	{}
 } fuse_in_header;
 
-typedef struct __attribute__((packed)) {
+typedef struct __attribute__((packed)) fuse_out_header {
 	uint32_t len;       /* Total size of data written to the file descriptor */
 	int32_t  error;     /* Any error that occurred (0 if none) */
 	uint64_t unique;    /* The value from the corresponding request */
+
+    fuse_out_header()
+        : len(sizeof(fuse_out_header)), error(0), unique(0)
+    {}
 } fuse_out_header;
 
 typedef struct __attribute__((packed)) fuse_init_in {
@@ -227,6 +236,11 @@ typedef struct __attribute__((packed)) fuse_read_in {
 	uint64_t lock_owner;
 	uint32_t flags;
 	uint32_t padding;
+
+    fuse_read_in()
+        : fh(0), offset(0), size(0), read_flags(0),
+          lock_owner(0), flags(0), padding(0)
+    {}
 
 	fuse_read_in(uint64_t f, uint64_t offse, uint32_t siz, 
 		uint32_t read_flag, uint32_t flag)

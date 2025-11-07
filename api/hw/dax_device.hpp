@@ -9,8 +9,6 @@
 namespace hw {
   class DAX_device : public Device {
   public:
-    virtual ~DAX_device() = 0;
-
     /** Method to get the type of device */
     Device::Type device_type() const noexcept override
     { return Device::Type::Dax; }

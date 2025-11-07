@@ -10,8 +10,6 @@
 namespace hw {
   class VFS_device : public Device {
   public:
-    virtual ~VFS_device() = 0;
-
     /** Method to get the type of device */
     Device::Type device_type() const noexcept override
     { return Device::Type::Vfs; }
@@ -36,6 +34,12 @@ namespace hw {
 
     /** Method for closing a file handle  */
     virtual int close(uint64_t fh) = 0;
+
+    /** Functions for having multiple read requests in flight */
+    virtual int sliding_read_init(uint64_t fh, int max_reqs_in_flight) = 0;
+    virtual int sliding_read_fini(uint64_t fh) = 0;
+    virtual int sliding_read_req(uint64_t fh, void *buf, uint32_t count, off_t offset) = 0;
+    virtual ssize_t sliding_read_complete(uint64_t fh) = 0;
   };
 }
 

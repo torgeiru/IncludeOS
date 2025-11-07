@@ -360,6 +360,8 @@ int VirtioFS_device::sliding_read_init(uint64_t fh, int max_reqs_in_flight) {
   async_read_info& read_info = info.read_info;
   auto& read_req_bodies = read_info.read_req_bodies;
   auto& read_res_bodies = read_info.read_res_bodies;
+  Expects(read_req_bodies.capacity() == 0);
+  Expects(read_res_bodies.capacity() == 0);
 
   if (
     read_req_bodies.capacity() != 0 || 
@@ -371,10 +373,13 @@ int VirtioFS_device::sliding_read_init(uint64_t fh, int max_reqs_in_flight) {
   /* Allocating request and response bodies */
   read_req_bodies.reserve(max_reqs_in_flight);
   read_res_bodies.reserve(max_reqs_in_flight);
-  // for (int i = 0; i < max_reqs_in_flight; ++i) {
-  //   read_req_bodies[i] = {};
-  //   read_res_bodies[i] = {};
-  // }
+  Expects(read_req_bodies.capacity() == max_reqs_in_flight);
+  Expects(read_res_bodies.capacity() == max_reqs_in_flight);
+
+  for (int i = 0; i < max_reqs_in_flight; ++i) {
+    read_req_bodies.emplace_back();
+    read_res_bodies.emplace_back();
+  }
 
   info.expected_unique = _unique_counter;
   info.next_avail = 0;

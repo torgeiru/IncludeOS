@@ -79,10 +79,10 @@ public:
   /** NOTE: Only one direction is allowed async */
 
   /** Functions for having multiple read requests in flight */
-  int sliding_read_init(uint64_t fh, int max_reqs_in_flight);
-  int sliding_read_fini(uint64_t fh);
-  int sliding_read_req(uint64_t fh, void *buf, uint32_t count, off_t offset);
-  ssize_t sliding_read_complete(uint64_t fh);
+  int sliding_read_init(uint64_t fh, int max_reqs_in_flight) override;
+  int sliding_read_fini(uint64_t fh) override;
+  int sliding_read_req(uint64_t fh, void *buf, uint32_t count, off_t offset) override;
+  ssize_t sliding_read_complete(uint64_t fh) override;
 
   /** Functions for having multiple write requests in flight */
   int sliding_write_init(uint64_t fh, int max_reqs_in_flight);
