@@ -117,7 +117,23 @@ void Split_queue::enqueue(VirtTokens& tokens) {
   
   /* Memory fence before incrementing idx according to §2.7.13 (Virtio 1.3) */
   std::atomic_thread_fence(std::memory_order_release);
-  ++_avail_ring->idx;
+  uint16_t prev_avail_idx = _avail_ring->idx++;
+
+  /* Memory fence before checking for notification suppression according §2.7.13.4.1 (Virtio 1.3) */
+  std::atomic_thread_fence(std::memory_order_seq_cst);
+
+  /* Checking for the notification mechanism */
+  if (LIKELY(_event_idx_suppression)) {
+    uint16_t &event_idx = *reinterpret_cast<uint16_t*>(&_used_ring->ring[_QUEUE_SIZE]);
+
+    if (prev_avail_idx != event_idx)
+      return;
+  } else {
+    if (_used_ring->flags == VIRTQ_USED_F_NO_NOTIFY)
+      return;
+  }
+
+  _notify_device();
 }
   
 VirtTokens Split_queue::dequeue(uint32_t *device_written_len) {
@@ -163,20 +179,4 @@ VirtTokens Split_queue::dequeue(uint32_t *device_written_len) {
   /* Incrementing last used idx and return tokens */
   ++_last_used_idx;
   return tokens;
-}
-
-void Split_queue::kick() {
-  /* Memory fence before checking for notification suppression according §2.7.13.4.1 (Virtio 1.3) */
-  std::atomic_thread_fence(std::memory_order_seq_cst);
-
-  /* Checking for the notification mechanism */
-  if (LIKELY(_event_idx_suppression)) {
-    if (_avail_ring->idx != *(reinterpret_cast<uint16_t*>(&_used_ring->ring[_QUEUE_SIZE]))) // Ugly I know. Virtio is ugly.
-      return;
-  } else {
-    if (_used_ring->flags == VIRTQ_USED_F_NO_NOTIFY)
-      return;
-  }
-
-  _notify_device();
 }

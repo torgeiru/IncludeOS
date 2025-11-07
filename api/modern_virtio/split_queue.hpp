@@ -99,8 +99,6 @@ public:
   // guest physical addresses
   void enqueue(VirtTokens& tokens);
   VirtTokens dequeue(uint32_t *device_written_len = nullptr);
-  // NOTE: Expensive to use. An efficient driver reduce the # of kicks
-  void kick();
   
   uint16_t free_desc_space() const { return _free_list.size(); };
   inline uint16_t desc_space_cap() const { return _QUEUE_SIZE; }

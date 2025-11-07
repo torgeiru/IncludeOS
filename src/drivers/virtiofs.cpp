@@ -41,7 +41,6 @@ Virtio_control(d), _req(*this, 1, true, 0, true), _unique_counter(0)
   );
 
   _req.enqueue(init_req_tokens);
-  _req.kick();
 
   while(_req.has_processed_used());
   _req.dequeue();
@@ -105,7 +104,6 @@ fuse_ino_t VirtioFS_device::_lookup_inode(char *pathname, size_t pathname_len) {
   );
 
   _req.enqueue(lookup_tokens);
-  _req.kick();
 
   while(_req.has_processed_used());
   uint32_t device_written_len;
@@ -140,7 +138,6 @@ uint64_t VirtioFS_device::_open_exist(char *pathname, size_t pathname_len, uint3
   );
 
   _req.enqueue(open_tokens);
-  _req.kick();
 
   while(_req.has_processed_used());
   _req.dequeue();
@@ -184,7 +181,6 @@ uint64_t VirtioFS_device::_open_creat(
   );
 
   _req.enqueue(creat_tokens);
-  _req.kick();
 
   while(_req.has_processed_used());
   _req.dequeue();
@@ -257,7 +253,6 @@ ssize_t VirtioFS_device::write(uint64_t fh, void *buf, uint32_t count) {
   );
 
   _req.enqueue(write_tokens);
-  _req.kick();
 
   while(_req.has_processed_used());
   _req.dequeue();
@@ -301,7 +296,6 @@ ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
   );
 
   _req.enqueue(read_tokens);
-  _req.kick();
 
   while(_req.has_processed_used());
   _req.dequeue();
@@ -338,7 +332,6 @@ int VirtioFS_device::close(uint64_t fh) {
   );
 
   _req.enqueue(close_tokens);
-  _req.kick();
 
   while(_req.has_processed_used());
   _req.dequeue();
@@ -376,10 +369,10 @@ int VirtioFS_device::sliding_read_init(uint64_t fh, int max_reqs_in_flight) {
   Expects(read_req_bodies.capacity() == max_reqs_in_flight);
   Expects(read_res_bodies.capacity() == max_reqs_in_flight);
 
-  for (int i = 0; i < max_reqs_in_flight; ++i) {
-    read_req_bodies.emplace_back();
-    read_res_bodies.emplace_back();
-  }
+  // for (int i = 0; i < max_reqs_in_flight; ++i) {
+  //   read_req_bodies.emplace_back();
+  //   read_res_bodies.emplace_back();
+  // }
 
   info.expected_unique = _unique_counter;
   info.next_avail = 0;
@@ -458,7 +451,6 @@ int VirtioFS_device::sliding_read_req(
   );
 
   _req.enqueue(read_tokens);
-  _req.kick();
 
   ++info.in_flight;
   info.next_avail = (info.next_avail + 1) & read_req_bodies.capacity();
