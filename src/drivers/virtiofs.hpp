@@ -23,9 +23,9 @@ typedef struct async_res {
 
   async_res(
     uint64_t uniqu, 
-    uin32_t bytes_processe, 
-    in32_t erro
-  ) unique(uniqu), bytes_processed(bytes_processe), error(erro) {}
+    uint32_t bytes_processe, 
+    int32_t erro
+  ) : unique(uniqu), bytes_processed(bytes_processe), error(erro) {}
 } async_res;
 
 typedef struct {
@@ -41,10 +41,10 @@ typedef struct {
 } async_write_info;
 
 typedef struct {
-  fuse_ino_t ino;
-  off_t offset;
   async_read_info read_info;
   async_write_info write_info;
+  fuse_ino_t ino;
+  off_t offset;
   uint64_t expected_unique;
   int next_avail, in_flight; // READ XOR WRITE when async active
 } fh_info;

@@ -152,7 +152,7 @@ uint64_t VirtioFS_device::_open_exist(char *pathname, size_t pathname_len, uint3
   /* Inserting into fh_ino mapping */
   uint64_t fh = open_res.open_out.fh;
   
-  _fh_info_map[fh] = {ino, 0};
+  _fh_info_map[fh] = {{}, {}, ino};
 
   return fh;
 }
@@ -194,7 +194,7 @@ uint64_t VirtioFS_device::_open_creat(
   fuse_ino_t ino = creat_res.entry_param.ino;
   uint64_t fh = creat_res.open_out.fh;
   
-  _fh_info_map[fh] = {ino, 0};
+  _fh_info_map[fh] = {{}, {}, ino};
 
   return fh;
 }
@@ -350,7 +350,7 @@ int VirtioFS_device::close(uint64_t fh) {
   return 0;
 }
 
-int sliding_read_init(uint64_t fh, int max_reqs_in_flight) {
+int VirtioFS_device::sliding_read_init(uint64_t fh, int max_reqs_in_flight) {
   if (not _fh_info_map.contains(fh)) return -1;
   if (max_reqs_in_flight == 0) return -1;
   if ((max_reqs_in_flight & (max_reqs_in_flight - 1))) return -1;
@@ -371,10 +371,10 @@ int sliding_read_init(uint64_t fh, int max_reqs_in_flight) {
   /* Allocating request and response bodies */
   read_req_bodies.reserve(max_reqs_in_flight);
   read_res_bodies.reserve(max_reqs_in_flight);
-  for (int i = 0; i < max_reqs_in_flight; ++i) {
-    read_req_bodies[i] = virtio_fs_read_req {};
-    read_res_bodies[i] = virtio_fs_read_res {};
-  }
+  // for (int i = 0; i < max_reqs_in_flight; ++i) {
+  //   read_req_bodies[i] = {};
+  //   read_res_bodies[i] = {};
+  // }
 
   info.expected_unique = _unique_counter;
   info.next_avail = 0;
@@ -383,7 +383,7 @@ int sliding_read_init(uint64_t fh, int max_reqs_in_flight) {
   return 0;
 }
 
-int sliding_read_fini(uint64_t fh) {
+int VirtioFS_device::sliding_read_fini(uint64_t fh) {
   if (not _fh_info_map.contains(fh)) return -1;
 
   fh_info& info = _fh_info_map[fh];
@@ -470,14 +470,11 @@ ssize_t VirtioFS_device::sliding_read_complete(uint64_t fh) {
 
   /* Search through the dequeued list to begin with */
   uint64_t expected_unique = info.expected_unique;
-
-  auto it = std::find(
-    dequeued_items.begin(),
-    dequeued_items.end(),
-    [expected_unique](const async_res& res) {
-      return res.unique == expected_unique;
-    }
-  );
+  std::deque<async_res>::iterator it;
+  for (it = dequeued_items.begin(); it != dequeued_items.end(); ++it) {
+    if (it->unique == expected_unique)
+      break;
+  }
 
   if (it != dequeued_items.end()) {
     int32_t error = it->error;
@@ -493,7 +490,7 @@ ssize_t VirtioFS_device::sliding_read_complete(uint64_t fh) {
   while(not _req.has_processed_used()) {
     /* Grabbing read response */
     VirtTokens read_tokens = _req.dequeue();
-    virtio_fs_read_res& read_res = *reinterpret_cast<virtio_fs_read_res*>(read_tokens[1].buffer);
+    virtio_fs_read_res& read_res = *reinterpret_cast<virtio_fs_read_res*>(read_tokens[1].buffer.data());
 
     /* Hit the expected value return negative or the read size */
     if (read_res.out_header.unique == info.expected_unique) {
@@ -503,7 +500,7 @@ ssize_t VirtioFS_device::sliding_read_complete(uint64_t fh) {
       ++info.expected_unique;
       
       return ((error == 0) ?
-        read_res.out_header.len - sizeof(fuse_out_header) : -1;
+        read_res.out_header.len - sizeof(fuse_out_header) : -1);
     }
 
     /* Storing dequeued out of order items for later */
@@ -517,11 +514,11 @@ ssize_t VirtioFS_device::sliding_read_complete(uint64_t fh) {
   return 0; // Nothing read completed for now
 }
 
-int sliding_write_init(uint64_t fh, int max_reqs_in_flight) {
+int VirtioFS_device::sliding_write_init(uint64_t fh, int max_reqs_in_flight) {
   return -1;
 }
 
-int sliding_write_fini(uint64_t fh) {
+int VirtioFS_device::sliding_write_fini(uint64_t fh) {
   return -1;
 }
 

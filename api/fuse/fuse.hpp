@@ -179,7 +179,7 @@ typedef struct __attribute__((packed)) {
 
 
 /* Ported from VirtioFSD daemon start */
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint64_t ino;
   uint64_t size;
   uint64_t blocks;
@@ -198,7 +198,7 @@ typedef struct {
   uint32_t flags;
 } stat;
 
-typedef struct {
+typedef struct __attribute__((packed)) {
 	fuse_ino_t ino;
 	uint64_t generation;
 	uint64_t entry_valid;
@@ -247,12 +247,12 @@ typedef struct __attribute__((packed)) fuse_write_in {
 		uint32_t write_flag, uint32_t flag)
 	: fh(f), offset(offse), size(siz), write_flags(write_flag),
 	  lock_owner(0), flags(flag), padding(0) {}
-};
+} fuse_write_in;
 
-typedef struct __attribute__((packed)) fuse_write_out {
+typedef struct __attribute__((packed)) {
 	uint32_t size;
 	uint32_t padding;
-};
+} fuse_write_out;
 
 typedef struct __attribute__((packed)) fuse_release_in {
 	uint64_t fh;
