@@ -1,6 +1,7 @@
 #include "virtiofs.hpp"
 
 #include <os>
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <cstring>
@@ -349,29 +350,42 @@ int VirtioFS_device::close(uint64_t fh) {
   return 0;
 }
 
-int async_init_read(uint64_t fh, int max_reqs_in_flight) {
+int sliding_read_init(uint64_t fh, int max_reqs_in_flight) {
   if (not _fh_info_map.contains(fh)) return -1;
   if (max_reqs_in_flight == 0) return -1;
+  if ((max_reqs_in_flight & (max_reqs_in_flight - 1))) return -1;
 
   /* Checking that async is not initialized anywhere for the file handle */
   fh_info& info = _fh_info_map[fh];
   async_read_info& read_info = info.read_info;
+  auto& read_req_bodies = read_info.read_req_bodies;
+  auto& read_res_bodies = read_info.read_res_bodies;
 
   if (
-    read_info.read_req_bodies.capacity() != 0 || 
+    read_req_bodies.capacity() != 0 || 
     info.write_info.write_req_bodies.capacity() != 0)
   {
     return -1;
   }
 
-  /* Reserving space for request headers */
-  read_info.read_req_bodies.reserve(max_reqs_in_flight);
-  read_info.read_res_bodies.reserve(max_reqs_in_flight);
+  /* Allocating request and response bodies */
+  read_req_bodies.reserve(max_reqs_in_flight);
+  read_res_bodies.reserve(max_reqs_in_flight);
+  for (int i = 0; i < max_reqs_in_flight; ++i) {
+    read_req_bodies[i] = virtio_fs_read_req {};
+    read_res_bodies[i] = virtio_fs_read_res {};
+  }
+
+  info.expected_unique = _unique_counter;
+  info.next_avail = 0;
+  info.in_flight = 0;
 
   return 0;
 }
-int async_fini_read(uint64_t fh) {
+
+int sliding_read_fini(uint64_t fh) {
   if (not _fh_info_map.contains(fh)) return -1;
+
   fh_info& info = _fh_info_map[fh];
   async_read_info& read_info = info.read_info;
 
@@ -384,42 +398,56 @@ int async_fini_read(uint64_t fh) {
   /* Empty the vectors and deque */
   std::vector<virtio_fs_read_req>().swap(read_info.read_req_bodies);
   std::vector<virtio_fs_read_res>().swap(read_info.read_res_bodies);
-  read_info.async_read_dequeued.clear();
+  read_info.dequeued_items.clear();
 
   return 0;
 }
-uint64_t VirtioFS_device::async_read_req(
+
+int VirtioFS_device::sliding_read_req(
   uint64_t fh, void *buf, uint32_t count, off_t offset
 ) {
   if (not _fh_info_map.contains(fh)) return -1;
 
-  return 0;
-  /*
-  if (not _fh_info_map.contains(fh)) return -1;
-
   fuse_ino_t ino = _fh_info_map[fh].ino;
-  off_t offset = _fh_info_map[fh].offset;
+  fh_info& info = _fh_info_map[fh];
+  async_read_info& read_info = info.read_info;
 
-  uint64_t request_identifier = _unique_counter++;
+  auto& read_req_bodies = read_info.read_req_bodies;
+  auto& read_res_bodies = read_info.read_res_bodies;
+  auto& dequeued_items = read_info.dequeued_items;
 
-  virtio_fs_read_req read_req(fh, offset, count, _unique_counter++, ino);
-  virtio_fs_read_res read_res{};
+  /* Checking for available slot */
+  if ((info.in_flight + dequeued_items.size()) == read_req_bodies.capacity())
+  {
+    return -1;
+  }
 
+  /* Initializing FUSE body buffers */
+  auto& req_body = read_req_bodies[info.next_avail];
+  auto& res_body = read_res_bodies[info.next_avail];
+
+  read_req_bodies.emplace(
+    read_req_bodies.begin() + info.next_avail,
+    fh, offset, count, _unique_counter++, ino
+  );
+  std::memset(&read_req_bodies, 0, sizeof(virtio_fs_read_res));
+
+  /* Create read tokens, enqueue and kick VirtioFSD */
   VirtTokens read_tokens;
   read_tokens.reserve(3);
 
   read_tokens.emplace_back(
     VIRTQ_DESC_F_NOFLAGS, 
-    reinterpret_cast<uint8_t*>(&read_req),
+    reinterpret_cast<uint8_t*>(&req_body),
     sizeof(virtio_fs_read_req)
   );
   read_tokens.emplace_back(
     VIRTQ_DESC_F_WRITE, 
-    reinterpret_cast<uint8_t*>(&read_res),
+    reinterpret_cast<uint8_t*>(&res_body),
     sizeof(virtio_fs_read_res)
   );
   read_tokens.emplace_back(
-    VIRTQ_DESC_F_WRITE, 
+    VIRTQ_DESC_F_WRITE,
     reinterpret_cast<uint8_t*>(buf),
     count
   );
@@ -427,108 +455,86 @@ uint64_t VirtioFS_device::async_read_req(
   _req.enqueue(read_tokens);
   _req.kick();
 
-  while(_req.has_processed_used());
-  _req.dequeue();
-
-  if (read_res.out_header.error != 0)
-    os::panic("Should not error on async_read!");
-
-  ssize_t read_count = read_res.out_header.len - sizeof(fuse_out_header);
-  _fh_info_map[fh].offset += read_count;
-
-  return read_count;
-  */
-}
-ssize_t VirtioFS_device::async_sync_read() {}
-
-int async_init_write(uint64_t fh, int max_reqs_in_flight) {
-  if (not _fh_info_map.contains(fh)) return -1;
-  if (max_reqs_in_flight == 0) return -1;
-
-  /* Checking that async is not initialized anywhere for the file handle */
-  fh_info& info = _fh_info_map[fh];
-  async_write_info& write_info = info.write_info;
-
-  if (
-    info.read_info.read_req_bodies.capacity() != 0 || 
-    write_info.write_req_bodies.capacity() != 0)
-  {
-    return -1;
-  }
-
-  /* Reserving space for request headers */
-  write_info.write_req_bodies.reserve(max_reqs_in_flight);
-  write_info.write_res_bodies.reserve(max_reqs_in_flight);
+  ++info.in_flight;
+  info.next_avail = (info.next_avail + 1) & read_req_bodies.capacity();
 
   return 0;
 }
-int async_fini_write(uint64_t fh) {
+
+ssize_t VirtioFS_device::sliding_read_complete(uint64_t fh) {
   if (not _fh_info_map.contains(fh)) return -1;
   fh_info& info = _fh_info_map[fh];
-  async_write_info& write_info = info.write_info;
+  if (info.in_flight == 0) return -1;
 
-  /* Checking that async is initialized anywhere for the file handle */
-  if (write_info.write_req_bodies.capacity() == 0)
-  {
-    return -1;
+  auto& dequeued_items = info.read_info.dequeued_items;
+
+  /* Search through the dequeued list to begin with */
+  uint64_t expected_unique = info.expected_unique;
+
+  auto it = std::find(
+    dequeued_items.begin(),
+    dequeued_items.end(),
+    [expected_unique](const async_res& res) {
+      return res.unique == expected_unique;
+    }
+  );
+
+  if (it != dequeued_items.end()) {
+    int32_t error = it->error;
+    uint32_t bytes_processed = it->bytes_processed;
+
+    dequeued_items.erase(it);
+    --info.in_flight;
+    ++info.expected_unique;
+    return ((error == 0) ? bytes_processed : -1);
   }
 
-  /* Empty the vectors and deque */
-  std::vector<virtio_fs_write_req>().swap(write_info.write_req_bodies);
-  std::vector<virtio_fs_write_res>().swap(write_info.write_res_bodies);
-  write_info.async_write_dequeued.clear();
+  /* Dequeue until finding or not available */
+  while(not _req.has_processed_used()) {
+    /* Grabbing read response */
+    VirtTokens read_tokens = _req.dequeue();
+    virtio_fs_read_res& read_res = *reinterpret_cast<virtio_fs_read_res*>(read_tokens[1].buffer);
 
-  return 0;
+    /* Hit the expected value return negative or the read size */
+    if (read_res.out_header.unique == info.expected_unique) {
+      int32_t error = read_res.out_header.error;
+
+      --info.in_flight;
+      ++info.expected_unique;
+      
+      return ((error == 0) ?
+        read_res.out_header.len - sizeof(fuse_out_header) : -1;
+    }
+
+    /* Storing dequeued out of order items for later */
+    dequeued_items.emplace_back(
+      read_res.out_header.unique,
+      read_res.out_header.len - sizeof(fuse_out_header),
+      read_res.out_header.error
+    );
+  }
+
+  return 0; // Nothing read completed for now
 }
-uint64_t VirtioFS_device::async_write_req(
+
+int sliding_write_init(uint64_t fh, int max_reqs_in_flight) {
+  return -1;
+}
+
+int sliding_write_fini(uint64_t fh) {
+  return -1;
+}
+
+int VirtioFS_device::sliding_write_req(
   uint64_t fh, void *buf, uint32_t count, off_t offset
-) {
-  if (not _fh_info_map.contains(fh)) return -1;
-
-  /*
-  if (not _fh_info_map.contains(fh)) return -1;
-
-  fuse_ino_t ino = _fh_info_map[fh].ino;
-  off_t offset = _fh_info_map[fh].offset;
-
-  virtio_fs_write_req write_req(fh, offset, count, _unique_counter++, ino);
-  virtio_fs_write_res write_res{};
-
-  VirtTokens write_tokens;
-  write_tokens.reserve(3);
-
-  write_tokens.emplace_back(
-    VIRTQ_DESC_F_NOFLAGS,
-    reinterpret_cast<uint8_t*>(&write_req),
-    sizeof(virtio_fs_write_req)
-  );
-  write_tokens.emplace_back(
-    VIRTQ_DESC_F_NOFLAGS,
-    reinterpret_cast<uint8_t*>(buf),
-    count
-  );
-  write_tokens.emplace_back(
-    VIRTQ_DESC_F_WRITE,
-    reinterpret_cast<uint8_t*>(&write_res),
-    sizeof(virtio_fs_write_res)
-  );
-
-  _req.enqueue(write_tokens);
-  _req.kick();
-
-  while(_req.has_processed_used());
-  _req.dequeue();
-
-  if (write_res.out_header.error != 0)
-    os::panic("Should not error on async_read!");
-
-  ssize_t write_count = write_res.write_out.size;
-  _fh_info_map[fh].offset += write_count;
-
-  return write_count;
-  */
+) 
+{
+  return -1;
 }
-ssize_t VirtioFS_device::async_sync_write() {}
+
+ssize_t VirtioFS_device::sliding_write_complete(uint64_t fh) {
+  return -1;  
+}
 
 __attribute__((constructor))
 void autoreg_virtiofs() {
