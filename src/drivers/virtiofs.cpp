@@ -369,10 +369,12 @@ int VirtioFS_device::sliding_read_init(uint64_t fh, int max_reqs_in_flight) {
   Expects(read_req_bodies.capacity() == max_reqs_in_flight);
   Expects(read_res_bodies.capacity() == max_reqs_in_flight);
 
-  // for (int i = 0; i < max_reqs_in_flight; ++i) {
-  //   read_req_bodies.emplace_back();
-  //   read_res_bodies.emplace_back();
-  // }
+  for (int i = 0; i < max_reqs_in_flight; ++i) {
+    read_req_bodies.emplace_back();
+    read_res_bodies.emplace_back();
+  }
+  Expects(read_res_bodies.size() == max_reqs_in_flight);
+  Expects(read_res_bodies.size() == max_reqs_in_flight);
 
   info.expected_unique = _unique_counter;
   info.next_avail = 0;
@@ -397,6 +399,9 @@ int VirtioFS_device::sliding_read_fini(uint64_t fh) {
   std::vector<virtio_fs_read_req>().swap(read_info.read_req_bodies);
   std::vector<virtio_fs_read_res>().swap(read_info.read_res_bodies);
   read_info.dequeued_items.clear();
+  Expects(read_info.read_req_bodies.size() == 0 && read_info.read_req_bodies.capacity() == 0);
+  Expects(read_info.read_res_bodies.size() == 0 && read_info.read_res_bodies.capacity() == 0);
+  Expects(read_info.dequeued_items.size() == 0);
 
   return 0;
 }
@@ -421,14 +426,12 @@ int VirtioFS_device::sliding_read_req(
   }
 
   /* Initializing FUSE body buffers */
-  auto& req_body = read_req_bodies[info.next_avail];
-  auto& res_body = read_res_bodies[info.next_avail];
-
+  void* res_body = &read_res_bodies[info.next_avail];
   read_req_bodies.emplace(
     read_req_bodies.begin() + info.next_avail,
     fh, offset, count, _unique_counter++, ino
   );
-  std::memset(&read_req_bodies, 0, sizeof(virtio_fs_read_res));
+  std::memset(res_body, 0, sizeof(virtio_fs_read_res));
 
   /* Create read tokens, enqueue and kick VirtioFSD */
   VirtTokens read_tokens;
@@ -436,12 +439,12 @@ int VirtioFS_device::sliding_read_req(
 
   read_tokens.emplace_back(
     VIRTQ_DESC_F_NOFLAGS, 
-    reinterpret_cast<uint8_t*>(&req_body),
+    reinterpret_cast<uint8_t*>(&read_req_bodies[info.next_avail]),
     sizeof(virtio_fs_read_req)
   );
   read_tokens.emplace_back(
     VIRTQ_DESC_F_WRITE, 
-    reinterpret_cast<uint8_t*>(&res_body),
+    reinterpret_cast<uint8_t*>(res_body),
     sizeof(virtio_fs_read_res)
   );
   read_tokens.emplace_back(

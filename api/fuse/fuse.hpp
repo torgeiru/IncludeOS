@@ -123,10 +123,10 @@ typedef struct __attribute__((packed)) fuse_in_header {
 	uint32_t pid;       /* PID of the requesting process */
 	uint32_t padding;
 
-    // fuse_in_header()
-    //     : len(0), opcode(0), unique(0), nodeid(0),
-    //       uid(0), gid(0), pid(0), padding(0)
-    // {}
+    fuse_in_header()
+        : len(0), opcode(0), unique(0), nodeid(0),
+          uid(0), gid(0), pid(0), padding(0)
+    {}
 
 	fuse_in_header(uint32_t plen, uint32_t opcod, uint64_t uniqu, uint64_t nodei)
 	: len(sizeof(fuse_in_header) + plen), opcode(opcod), unique(uniqu), nodeid(nodei),
@@ -139,9 +139,9 @@ typedef struct __attribute__((packed)) fuse_out_header {
 	int32_t  error;     /* Any error that occurred (0 if none) */
 	uint64_t unique;    /* The value from the corresponding request */
 
-    // fuse_out_header()
-    //     : len(sizeof(fuse_out_header)), error(0), unique(0)
-    // {}
+    fuse_out_header()
+        : len(sizeof(fuse_out_header)), error(0), unique(0)
+    {}
 } fuse_out_header;
 
 typedef struct __attribute__((packed)) fuse_init_in {

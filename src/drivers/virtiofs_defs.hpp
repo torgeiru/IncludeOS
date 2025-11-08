@@ -70,8 +70,8 @@ typedef struct __attribute__((packed)) virtio_fs_read_req {
   fuse_in_header in_header;
   fuse_read_in read_in;
 
-  // virtio_fs_read_req() 
-  //   : in_header(), read_in() {}
+  virtio_fs_read_req() 
+    : in_header(), read_in() {}
 
   virtio_fs_read_req(uint64_t f, uint64_t offse, uint32_t siz, uint64_t uniqu, uint64_t nodei)
   : in_header(sizeof(fuse_read_in), FUSE_READ, uniqu, nodei),
