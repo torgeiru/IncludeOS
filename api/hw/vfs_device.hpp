@@ -10,6 +10,8 @@
 namespace hw {
   class VFS_device : public Device {
   public:
+    virtual ~VFS_device() {}
+
     /** Method to get the type of device */
     Device::Type device_type() const noexcept override
     { return Device::Type::Vfs; }
