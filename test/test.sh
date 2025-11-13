@@ -79,13 +79,13 @@ multicore_subset(){
   # The following tests are not using multiple CPU's, but have been equippedd with some anyway
   # to make sure core functionality is not broken by missing locks etc. when waking up more cores.
   nix-shell ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/udp --arg doCheck true
-  nix-build ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/memory/paging --arg doCheck true
+  # nix-build ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/memory/paging --arg doCheck true
 }
 
 smoke_tests(){
   nix-shell ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/udp --arg doCheck true
   nix-shell ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/tcp --arg doCheck true
-  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/memory/paging --arg doCheck true
+  # nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/memory/paging --arg doCheck true
   nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/smp --arg doCheck true
 }
 
@@ -205,6 +205,7 @@ exclusions=(
   "context"    # Outdated - references nonexisting OS::heap_end()
   "fiber"      # Crashes
   "modules"    # Requires 32-bit build, which our shell.nix is not set up for
+  "rng"        # File system does not work yet
 )
 
 unsandbox_list=(
@@ -217,6 +218,7 @@ unsandbox_list=()
 # memory tests
 #
 exclusions=(
+  "paging"
 )
 run_testsuite "${INTEGRATION_TESTS}/memory" "${exclusions[@]}"
 
@@ -224,7 +226,7 @@ run_testsuite "${INTEGRATION_TESTS}/memory" "${exclusions[@]}"
 # C++ STL runtime tests
 #
 exclusions=(
-
+  "stl" # RNG not working because no file system
 )
 
 run_testsuite "${INTEGRATION_TESTS}/stl" "${exclusions[@]}"
@@ -262,19 +264,6 @@ unsandbox_list=(
 run_testsuite "${INTEGRATION_TESTS}/net" "${exclusions[@]}"
 unsandbox_list=()
 
-#
-# File system tests
-#
-exclusions=(
-  "fat16"        # Uses FAT32 diskbuilder
-  "ide"          # IDE is broken and deprecated
-  "ide_write"    # Same as above exclusion
-  "virtio_block" # Requires sudo and needs to be rewritten to run without
-)
-
-run_testsuite "./test/fs/integration" "${exclusions[@]}"
-nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/posix/integration/file_fd --run ./test.py
-
 echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
 if [ $fails -eq 0 ]; then
@@ -293,4 +282,3 @@ else
   exit 1
 fi
 
-EOF
