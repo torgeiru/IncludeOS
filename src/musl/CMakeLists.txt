@@ -51,6 +51,8 @@ set(MUSL_OBJECTS
   umask.cpp
   uname.cpp
   utimensat.cpp
+  link.cpp
+  symlink.cpp
   unlink.cpp
   sigaltstack.cpp
   sched_setscheduler.cpp
