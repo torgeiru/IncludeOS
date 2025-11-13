@@ -3,10 +3,7 @@
 
 static long sys_fcntl(int fd, int cmd, va_list va)
 {
-  if(auto* fildes = FD_map::_get(fd); fildes)
-    return fildes->fcntl(cmd, va);
-
-  return -EBADF;
+  return -ENOSYS;
 }
 
 extern "C"

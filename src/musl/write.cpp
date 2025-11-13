@@ -11,9 +11,6 @@ static long sys_write(int fd, char* str, size_t len) {
     return len;
   }
 
-  if(auto* fildes = FD_map::_get(fd); fildes)
-    return fildes->write(str, len);
-
   return -EBADF;
 }
 

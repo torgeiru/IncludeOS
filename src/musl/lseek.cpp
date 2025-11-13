@@ -7,10 +7,7 @@
 
 static off_t sys_lseek(int fd, off_t offset, int whence)
 {
-  if(auto* fildes = FD_map::_get(fd); fildes)
-    return fildes->lseek(offset, whence);
-
-  return -EBADF;
+  return -ENOSYS;
 }
 
 static off_t sys__llseek(unsigned int /*fd*/, unsigned long /*offset_high*/,

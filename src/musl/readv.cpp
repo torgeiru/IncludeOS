@@ -4,10 +4,7 @@
 
 static ssize_t sys_readv(int fd, const struct iovec* iov, int iovcnt)
 {
-  if(auto* fildes = FD_map::_get(fd); fildes)
-    return fildes->readv(iov, iovcnt);
-
-  return -EBADF;
+  return -ENOSYS;
 }
 
 extern "C"

@@ -4,10 +4,7 @@
 
 static long sys_getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
 {
-  if(auto* fildes = FD_map::_get(fd); fildes)
-    return fildes->getdents(dirp, count);
-
-  return -EBADF;
+  return -ENOSYS;
 }
 
 extern "C"
