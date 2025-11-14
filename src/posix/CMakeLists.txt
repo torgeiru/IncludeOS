@@ -1,6 +1,5 @@
 ﻿SET(SRCS
       fd.cpp
-
     )
 if (NOT CMAKE_TESTING_ENABLED)
   list(APPEND SRCS
