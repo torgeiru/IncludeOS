@@ -96,7 +96,7 @@ private:
   int dflags;
   union {
     struct {
-      int   non_blocking : 1;
+      int non_blocking : 1;
     };
     int fflags;
   };
