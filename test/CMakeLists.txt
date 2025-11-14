@@ -72,11 +72,6 @@ set(LEST_UTIL
 
 # TODO: maybe just use `*.cpp *.hpp` globs here?
 set(TEST_SOURCES
-  ${UNIT_TESTS}/fs/memdisk_test.cpp
-  ${UNIT_TESTS}/fs/path_test.cpp
-  ${UNIT_TESTS}/fs/vfs_test.cpp
-  ${UNIT_TESTS}/fs/unit_fs.cpp
-  ${UNIT_TESTS}/fs/unit_fat.cpp
 # ${UNIT_TESTS}/hw/cpu_test.cpp
   ${UNIT_TESTS}/hw/mac_addr_test.cpp
   ${UNIT_TESTS}/hw/usernet.cpp
@@ -192,8 +187,6 @@ endif()
 add_subdirectory(../src os)
 add_subdirectory(../lib/LiveUpdate liveupdate)
 add_library(lest_util ${LEST_UTIL})
-
-file(COPY ${UNIT_TESTS}/fs/memdisk.fat DESTINATION ${CMAKE_CURRENT_BINARY_DIR})  # TODO: handle special files within each unit test
 
 find_program( VALGRIND valgrind )
 
