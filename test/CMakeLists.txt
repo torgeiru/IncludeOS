@@ -67,7 +67,6 @@ include_directories(
 set(LEST_UTIL
   ${TESTS_DEPS}/lest_util/lestmain.cxx
   ${TESTS_DEPS}/lest_util/os_mock.cpp
-  ${TESTS_DEPS}/lest_util/mock_fs.cpp
   ${TESTS_DEPS}/lest_util/random.cpp
 )
 

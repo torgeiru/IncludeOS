@@ -1,7 +1,6 @@
 #include "common.hpp"
 #include <sys/stat.h>
 
-#include <fs/vfs.hpp>
 #include <util/bitops.hpp> // roundto
 
 long sys_stat(const char *path, struct stat *buf)

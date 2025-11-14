@@ -1,6 +1,5 @@
 #include "common.hpp"
 #include <sys/types.h>
-#include <fs/vfs.hpp>
 #include <posix/fd_map.hpp>
 #include <posix/file_fd.hpp>
 

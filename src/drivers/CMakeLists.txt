@@ -8,19 +8,6 @@
 # make LiveUpdate visible to drivers systemlog.. yet another DEP!!
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 
-#TODO delete (including sources)
-#add_library(ide_readwrite STATIC ide.cpp)
-#set_target_properties(ide_readwrite PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ -DIDE_ENABLE_WRITE")
-
-#add_library(ide_readonly STATIC ide.cpp)
-#set_target_properties(ide_readonly PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ")
-
-#add_library(ide_writeonly STATIC ide.cpp)
-#set_target_properties(ide_writeonly PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_WRITE")
-
-#delete heap_debugging.cpp
-#END TODO
-
 set(DRIVER_SRCS
   ip4_reassembly.cpp
   stdout/timestamps.cpp
@@ -65,8 +52,6 @@ install(TARGETS ${DRIVERS} DESTINATION drivers)
 # Simple stuff
 add_library(vga_output STATIC stdout/vgaout.cpp)
 add_library(default_stdout STATIC stdout/default_stdout.cpp)
-# TODO DELETE
-#add_library(vga_emergency STATIC vga_emergency.cpp)
 
 set_target_properties(vga_output default_stdout
   PROPERTIES

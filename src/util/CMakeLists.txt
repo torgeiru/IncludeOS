@@ -1,5 +1,4 @@
 set(SRCS
-    async.cpp
     statman.cpp
     logger.cpp
     sha1.cpp
