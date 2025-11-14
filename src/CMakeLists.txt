@@ -31,7 +31,6 @@ set(LIBRARIES
     util
     net
     fs
-    posix
     virtio
     modern_virtio
     hw
