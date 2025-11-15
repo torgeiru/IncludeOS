@@ -53,8 +53,7 @@ inline uint64_t rng_extract_uint64()
   return x;
   }
 
-#include <fs/fd_compatible.hpp>
-class RNG : public FD_compatible {
+class RNG {
 public:
   static RNG& get()
   {
