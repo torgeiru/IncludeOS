@@ -5,6 +5,8 @@
 #include <cstring>
 #include <fcntl.h>
 
+#include <fs/vfs.hpp>
+#include <fs/filesystem.hpp>
 #include <hw/pci_manager.hpp>
 #include <info>
 
@@ -48,6 +50,15 @@ Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
   Expects(compatible_minor_version);
 
   /* Finalizing initialization */
+  fs::Filesystem fs {
+    {this, &VirtioFS_device::open},
+    {this, &VirtioFS_device::read},
+    {this, &VirtioFS_device::lseek},
+    {this, &VirtioFS_device::write},
+    {this, &VirtioFS_device::close}
+  };
+  fs::VFS::register_filesystem(fs);
+
   INFO("VirtioFS", "Device initialization is now complete");
 }
 
@@ -72,9 +83,9 @@ std::string VirtioFS_device::device_name() const {
   return "VirtioFS" + std::to_string(_id);
 }
 
-fuse_ino_t VirtioFS_device::_lookup_inode(char *pathname, size_t pathname_len) {
+fuse_ino_t VirtioFS_device::_lookup_inode(const char *path, size_t pathlen) {
   /* FUSE lookup */
-  virtio_fs_lookup_req lookup_req(pathname_len + 1, _unique_counter++, FUSE_ROOT_ID);
+  virtio_fs_lookup_req lookup_req(pathlen + 1, _unique_counter++, FUSE_ROOT_ID);
   virtio_fs_lookup_res lookup_res {};
 
   VirtTokens lookup_tokens;
@@ -86,8 +97,8 @@ fuse_ino_t VirtioFS_device::_lookup_inode(char *pathname, size_t pathname_len) {
   );
   lookup_tokens.emplace_back(
     VIRTQ_DESC_F_NOFLAGS,
-    reinterpret_cast<uint8_t*>(pathname),
-    pathname_len + 1
+    reinterpret_cast<uint8_t*>(path),
+    pathlen + 1
   );
   lookup_tokens.emplace_back(
     VIRTQ_DESC_F_WRITE,
@@ -109,8 +120,10 @@ fuse_ino_t VirtioFS_device::_lookup_inode(char *pathname, size_t pathname_len) {
   return lookup_res.entry_param.ino;
 }
 
-uint64_t VirtioFS_device::_open_exist(char *pathname, size_t pathname_len, uint32_t flags) {
-  fuse_ino_t ino = _lookup_inode(pathname, pathname_len);
+uint64_t VirtioFS_device::_open_exist(int fd, const char *path, 
+  size_t pathlen, int flags)
+{
+  fuse_ino_t ino = _lookup_inode(path, pathlen);
   if (ino == -1) return -1;
 
   /* Creating a file handle from existing file */
@@ -148,12 +161,11 @@ uint64_t VirtioFS_device::_open_exist(char *pathname, size_t pathname_len, uint3
   return fh;
 }
 
-uint64_t VirtioFS_device::_open_creat(
-  char *pathname, size_t pathname_len, 
-  uint32_t flags, mode_t mode)
+uint64_t VirtioFS_device::_open_creat(int fd, const char *path,
+  size_t pathlen, uint32_t flags, mode_t mode)
 {
   /* Creating a file handle from newly created file */
-  virtio_fs_creat_req creat_req(pathname_len, flags, mode, _unique_counter++, FUSE_ROOT_ID);
+  virtio_fs_creat_req creat_req(pathlen, flags, mode, _unique_counter++, FUSE_ROOT_ID);
   virtio_fs_creat_res creat_res {};
 
   VirtTokens creat_tokens;
@@ -165,8 +177,8 @@ uint64_t VirtioFS_device::_open_creat(
   );
   creat_tokens.emplace_back(
     VIRTQ_DESC_F_NOFLAGS,
-    reinterpret_cast<uint8_t*>(pathname),
-    pathname_len + 1
+    reinterpret_cast<uint8_t*>(path),
+    pathlen + 1
   );
   creat_tokens.emplace_back(
     VIRTQ_DESC_F_WRITE,
@@ -190,14 +202,14 @@ uint64_t VirtioFS_device::_open_creat(
   return fh;
 }
 
-uint64_t VirtioFS_device::open(char *pathname, uint32_t flags, mode_t mode = 0) {
-  size_t pathname_len = std::strlen(pathname);
+int VirtioFS_device::open(int fd, const char *path, int flags, mode_t mode) {
+  size_t pathlen = std::strlen(path);
   if (flags & O_CREAT) 
-    return _open_creat(pathname, pathname_len, flags, mode);
-  return _open_exist(pathname, pathname_len, flags);
+    return _open_creat(fd, path, pathlen, flags, mode);
+  return _open_exist(fd, path, pathlen, flags);
 }
 
-off_t VirtioFS_device::lseek(uint64_t fh, off_t offset, int whence) {
+off_t VirtioFS_device::lseek(int fd, off_t offset, int whence) {
   if (not _fh_info_map.contains(fh)) return -1;
   
   // TODO: Find ways to avoid integer overflows
@@ -218,7 +230,7 @@ off_t VirtioFS_device::lseek(uint64_t fh, off_t offset, int whence) {
   return new_offset;
 }
 
-ssize_t VirtioFS_device::write(uint64_t fh, void *buf, uint32_t count) {
+ssize_t VirtioFS_device::write(int fd, const void *buf, size_t count) {
   if (not _fh_info_map.contains(fh)) return -1;
 
   fuse_ino_t ino = _fh_info_map[fh].ino;
@@ -262,7 +274,7 @@ ssize_t VirtioFS_device::write(uint64_t fh, void *buf, uint32_t count) {
   return write_count;
 }
 
-ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
+ssize_t VirtioFS_device::read(int fd, void *buf, size_t count) {
   if (not _fh_info_map.contains(fh)) return -1;
 
   fuse_ino_t ino = _fh_info_map[fh].ino;

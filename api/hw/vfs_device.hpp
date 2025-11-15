@@ -23,19 +23,22 @@ namespace hw {
     virtual int id() const noexcept = 0;
 
     /** Method for creating a file handle */
-    virtual uint64_t open(char *pathname, uint32_t flags, mode_t mode) = 0;
+    // virtual int open(char *pathname, uint32_t flags, mode_t mode) = 0;
+    virtual int open(int fd, const char *path, int flags, mode_t mode) = 0;
 
     /** Method for moving offset to read from without invoking read */
-    virtual off_t lseek(uint64_t fh, off_t offset, int whence) = 0;
+    virtual off_t lseek(int fd, off_t offset, int whence) = 0;
 
     /** Method for writing to a file handle */
-    virtual ssize_t write(uint64_t fh, void *buf, uint32_t count) = 0;
+    // virtual ssize_t write(int fd, void *buf, uint32_t count) = 0;
+    virtual ssize_t write(int fd, const void *buf, size_t count) = 0;
 
     /** Method for reading from a file handle */
-    virtual ssize_t read(uint64_t fh, void *buf, uint32_t count) = 0;
+    // virtual ssize_t read(int fd, void *buf, uint32_t count) = 0;
+    virtual ssize_t read(int fd, void *buf, size_t count) = 0;
 
     /** Method for closing a file handle  */
-    virtual int close(uint64_t fh) = 0;
+    virtual int close(int fd) = 0;
   };
 }
 

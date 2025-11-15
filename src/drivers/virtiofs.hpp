@@ -15,6 +15,7 @@
 #include <fuse/fuse.hpp>
 
 typedef struct {
+  uint64_t fh;
   fuse_ino_t ino;
   off_t offset;
 } fh_info;
@@ -38,25 +39,26 @@ public:
   std::string device_name() const override;
 
   /** Implemented VFS operations */
-  uint64_t open(char *pathname, uint32_t flags, mode_t mode) override;
-  off_t lseek(uint64_t fh, off_t offset, int whence) override;
-  ssize_t write(uint64_t fh, void *buf, uint32_t count) override;
-  ssize_t read(uint64_t fh, void *buf, uint32_t count)  override;
-  int close(uint64_t fh) override;
+  int open(int fd, const char *path, int flags, mode_t mode) override;
+  off_t lseek(int fd, off_t offset, int whence) override;
+  ssize_t write(int fd, const void *buf, uint32_t count) override;
+  ssize_t read(int fd, void *buf, uint32_t count)  override;
+  int close(int fd) override;
 private:
   Split_queue _req;
-  std::unordered_map<uint64_t, fh_info> _fh_info_map;
+  std::unordered_map<int, fh_info> _fh_info_map;
   uint64_t _unique_counter;
   int _id;
 
   /** Helper methods for open */
-  fuse_ino_t _lookup_inode(char *pathname, size_t pathname_len);
+  fuse_ino_t _lookup_inode(int fd, const char *pathname,
+    size_t pathlen);
   
-  uint64_t _open_exist(char *pathname, size_t 
-    pathname_len, uint32_t flags);
+  int _open_exist(int fd, const char *path,
+    size_t pathlen, int flags);
   
-  uint64_t _open_creat(char *pathname, size_t pathname_len, 
-    uint32_t flags, mode_t mode);
+  int _open_creat(int fd, const char *path,
+    size_t pathlen, int flags, mode_t mode);
 };
 
 #define FUSE_MAJOR_VERSION 7

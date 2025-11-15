@@ -11,6 +11,10 @@ fs::VFS& fs::VFS::instance() {
     return vfs;
 }
 
+void fs::VFS::register_filesystem(std::string& mount_name, fs::Filesystem& fs) {
+    get_mounts()[mount_name] = fs;
+}
+
 int fs::VFS::vfs_open(Path& path, int flags, mode_t mode) {
     FD_map::id_t fd = 0;
 
