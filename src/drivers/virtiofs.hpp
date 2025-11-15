@@ -14,11 +14,6 @@
 #include <modern_virtio/split_queue.hpp>
 #include <fuse/fuse.hpp>
 
-// #define FUSE_ASYNC_READ      (1 << 0)
-// #define FUSE_ASYNC_DIO       (1 << 15)
-// #define FUSE_WRITEBACK_CACHE (1 << 16)
-// TODO: Implement ability to async IO
-
 typedef struct {
   fuse_ino_t ino;
   off_t offset;
