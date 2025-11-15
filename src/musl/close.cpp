@@ -1,9 +1,9 @@
 #include "common.hpp"
-#include <posix/fd_map.hpp>
+#include <fs/vfs.hpp>
 
 static long sys_close(int fd)
 {
-  return -ENOSYS;
+  return fs::vfs_close(fd);
 }
 
 extern "C"

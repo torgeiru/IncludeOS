@@ -1,9 +1,9 @@
 #include "common.hpp"
-#include <posix/fd_map.hpp>
+#include <fs/vfs.hpp>
 
-static long sys_read(int fd, void* buf, size_t len)
+static long sys_read(int fd, void* buf, size_t count)
 {
-  return -ENOSYS;
+  return fs::vfs_read(fd, buf, count);
 }
 
 extern "C"

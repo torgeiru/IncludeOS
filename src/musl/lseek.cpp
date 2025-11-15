@@ -1,13 +1,9 @@
 #include "common.hpp"
-#include <fcntl.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#include <posix/fd_map.hpp>
+#include <fs/vfs.hpp>
 
 static off_t sys_lseek(int fd, off_t offset, int whence)
 {
-  return -ENOSYS;
+  return fs::vfs_lseek(fd, offset, whence);
 }
 
 static off_t sys__llseek(unsigned int /*fd*/, unsigned long /*offset_high*/,

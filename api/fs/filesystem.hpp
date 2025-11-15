@@ -13,11 +13,11 @@ namespace fs {
     using close_func = delegate<int(int)>;
 
     struct Filesystem {
-        open_func fs_open;
-        read_func fs_read;
-        lseek_func fs_lseek;
-        write_func fs_write;
-        close_func fs_close;
+        open_func open;
+        read_func read;
+        lseek_func lseek;
+        write_func write;
+        close_func close;
     };
 }
 

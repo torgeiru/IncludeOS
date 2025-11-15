@@ -10,7 +10,7 @@
 #include "filesystem.hpp"
 
 namespace fs {
-    static std::unordered_map<std::string, Filesystem> fs_mounts;
+    std::unordered_map<std::string, Filesystem> fs_mounts; // Used for open
 
     int vfs_open(Path& path, int flags, mode_t mode);
     ssize_t vfs_read(int fd, void *buf, size_t count);
