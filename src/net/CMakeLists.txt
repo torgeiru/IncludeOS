@@ -17,9 +17,6 @@ if(${ARCH} STREQUAL "x86_64")
   )
 endif()
 
-set(BOTAN_MODULES
-  https/botan_server.cpp
-)
 
 SET(ETH_SRCS
      ethernet/ethernet.cpp
@@ -135,7 +132,6 @@ if (NOT ${PLATFORM} STREQUAL "nano")
   list(APPEND OBJLIST ${HTTP_SRCS})
   if (NOT CMAKE_TESTING_ENABLED)
     list(APPEND OBJLIST
-      ${BOTAN_MODULES}
       # ${OPENSSL_MODULES}
     )
     list(APPEND SRCS

@@ -17,7 +17,7 @@ if (${PLATFORM} STREQUAL "default")
   list(APPEND DRIVER_SRCS
       vga_emergency.cpp
     virtiocon.cpp
-    virtioblk.cpp
+    #virtioblk.cpp
     virtionet.cpp
     virtiopmem.cpp
     virtiofs.cpp

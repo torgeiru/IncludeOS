@@ -1,7 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
+// Copyright 2018 IncludeOS AS, Oslo, Norway
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,35 +14,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <posix/file_fd.hpp>
-#include <errno.h>
-#include <limits.h>
-#include <sys/uio.h>
+#pragma once
+#ifndef POSIX_UNIX_FD_IMPL_HPP
+#define POSIX_UNIX_FD_IMPL_HPP
 
-ssize_t File_FD::read(void* p, size_t n)
-{
-  return 0;
-}
+#include <sys/socket.h>
+class Unix_FD_impl {
+public:
+  virtual long    connect(const struct sockaddr *, socklen_t) = 0;
+  virtual ssize_t sendto(const void* buf, size_t, int fl,
+                         const struct sockaddr* addr, socklen_t addrlen) = 0;
+  virtual int     close() = 0;
+  virtual ~Unix_FD_impl() = default;
+};
 
-ssize_t File_FD::readv(const struct iovec* iov, int iovcnt)
-{
-  return 0;
-}
-
-int File_FD::write(const void*, size_t) {
-  return 0;
-}
-
-int File_FD::close() {
-  return 0;
-}
-
-off_t File_FD::lseek(off_t offset, int whence)
-{
-  return 0;
-}
-
-long File_FD::getdents(struct dirent *dirp, unsigned int count)
-{
-  return 0;
-}
+#endif

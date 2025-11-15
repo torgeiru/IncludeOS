@@ -15,35 +15,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <posix/file_fd.hpp>
-#include <errno.h>
-#include <limits.h>
-#include <sys/uio.h>
+#pragma once
+#ifndef INCLUDE_SOCKFD_HPP
+#define INCLUDE_SOCKFD_HPP
 
-ssize_t File_FD::read(void* p, size_t n)
-{
-  return 0;
-}
+#include <sys/socket.h>
+#include <net/inet>
+#include "fd.hpp"
 
-ssize_t File_FD::readv(const struct iovec* iov, int iovcnt)
-{
-  return 0;
-}
+class SockFD : public FD {
+public:
+  explicit SockFD(const int id)
+      : FD(id)
+  {}
 
-int File_FD::write(const void*, size_t) {
-  return 0;
-}
+  bool is_socket() override { return true; }
+};
 
-int File_FD::close() {
-  return 0;
-}
+struct sockaddr;
+typedef uint32_t socklen_t;
+extern bool validate_sockaddr_in(const struct sockaddr*, socklen_t);
 
-off_t File_FD::lseek(off_t offset, int whence)
-{
-  return 0;
-}
-
-long File_FD::getdents(struct dirent *dirp, unsigned int count)
-{
-  return 0;
-}
+#endif

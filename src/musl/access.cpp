@@ -1,7 +1,5 @@
 #include "common.hpp"
 
-#include <fs/vfs.hpp>
-
 static long sys_access(const char *pathname, int mode) {
   return -ENOSYS;
 }
