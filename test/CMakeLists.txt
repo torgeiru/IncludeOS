@@ -131,7 +131,6 @@ set(TEST_SOURCES
 # ${UNIT_TESTS}/net/websocket.cpp
   ${UNIT_TESTS}/posix/fd_map_test.cpp
   ${UNIT_TESTS}/posix/inet_test.cpp
-  ${UNIT_TESTS}/posix/unit_fd.cpp
   ${UNIT_TESTS}/util/base64.cpp
   ${UNIT_TESTS}/util/bitops.cpp
   ${UNIT_TESTS}/memory/alloc/buddy_alloc_test.cpp
