@@ -11,7 +11,6 @@ fs::VFS& fs::VFS::instance() {
     return vfs;
 }
 
-// TODO: -ENOSYS if delegate is not implemented
 int fs::VFS::vfs_open(Path& path, int flags, mode_t mode) {
     FD_map::id_t fd = 0;
 
@@ -44,7 +43,9 @@ ssize_t fs::VFS::vfs_read(int fd, void *buf, size_t count) {
         if (fde != nullptr) {
             return fde->read(buf, count);
         }
-    } catch(...) {}
+    } catch(...) {
+        return -ENOSYS;
+    }
     return -EBADF;
 }
 
@@ -54,7 +55,9 @@ off_t fs::VFS::vfs_lseek(int fd, off_t offset, int whence) {
         if (fde != nullptr) {
             return fde->lseek(offset, whence);
         }
-    } catch(...) {}
+    } catch(...) {
+        return -ENOSYS;
+    }
     return -EBADF;
 }
 
@@ -64,7 +67,9 @@ ssize_t fs::VFS::vfs_write(int fd, const void *buf, size_t count) {
         if (fde != nullptr) {
             return fde->write(buf, count);
         }
-    } catch(...) {}
+    } catch(...) {
+        return -ENOSYS;
+    }
     return -EBADF;
 }
 
