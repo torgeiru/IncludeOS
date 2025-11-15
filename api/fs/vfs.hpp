@@ -5,18 +5,25 @@
 #include <unordered_map>
 #include <fcntl.h>
 
-#include <posix/fd_map.hpp>
 #include "path.hpp"
 #include "filesystem.hpp"
 
 namespace fs {
-    std::unordered_map<std::string, Filesystem> fs_mounts; // Used for open
+    using VFS_mounts = std::unordered_map<std::string, Filesystem>;
 
-    int vfs_open(Path& path, int flags, mode_t mode);
-    ssize_t vfs_read(int fd, void *buf, size_t count);
-    off_t vfs_lseek(int fd, off_t offset, int whence);
-    ssize_t vfs_write(int fd, void *buf, size_t count);
-    int vfs_close(int fd);
+    class VFS {
+    public:
+        static VFS& instance();
+        static VFS_mounts& get_mounts() { return instance()._mounts; }
+        
+        static int vfs_open(Path& path, int flags, mode_t mode);
+        static ssize_t vfs_read(int fd, void *buf, size_t count);
+        static off_t vfs_lseek(int fd, off_t offset, int whence);
+        static ssize_t vfs_write(int fd, const void *buf, size_t count);
+        static int vfs_close(int fd);
+    private:
+        VFS_mounts _mounts;
+    };
 }
 
 #endif // FS_VFS_HPP

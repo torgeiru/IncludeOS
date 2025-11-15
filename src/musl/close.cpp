@@ -3,7 +3,7 @@
 
 static long sys_close(int fd)
 {
-  return fs::vfs_close(fd);
+  return fs::VFS::vfs_close(fd);
 }
 
 extern "C"

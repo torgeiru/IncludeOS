@@ -20,30 +20,20 @@
 #include <limits.h>
 #include <sys/uio.h>
 
-ssize_t File_FD::read(void* p, size_t n)
+ssize_t File_FD::read(void* buf, size_t count)
 {
-  return 0;
-}
-
-ssize_t File_FD::readv(const struct iovec* iov, int iovcnt)
-{
-  return 0;
-}
-
-int File_FD::write(const void*, size_t) {
-  return 0;
-}
-
-int File_FD::close() {
-  return 0;
+  return _fs.read(get_id(), buf, count);
 }
 
 off_t File_FD::lseek(off_t offset, int whence)
 {
-  return 0;
+  return _fs.lseek(get_id(), offset, whence);
 }
 
-long File_FD::getdents(struct dirent *dirp, unsigned int count)
-{
-  return 0;
+int File_FD::write(const void* buf, size_t count) {
+  return _fs.write(get_id(), buf, count);
+}
+
+int File_FD::close() {
+  return _fs.close(get_id());
 }

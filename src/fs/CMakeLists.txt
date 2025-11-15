@@ -1,5 +1,6 @@
 ﻿
 SET(SRCS
+    path.cpp
     vfs.cpp
     )
 

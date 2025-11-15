@@ -3,7 +3,7 @@
 
 static off_t sys_lseek(int fd, off_t offset, int whence)
 {
-  return fs::vfs_lseek(fd, offset, whence);
+  return fs::VFS::vfs_lseek(fd, offset, whence);
 }
 
 static off_t sys__llseek(unsigned int /*fd*/, unsigned long /*offset_high*/,

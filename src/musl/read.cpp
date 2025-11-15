@@ -3,7 +3,7 @@
 
 static long sys_read(int fd, void* buf, size_t count)
 {
-  return fs::vfs_read(fd, buf, count);
+  return fs::VFS::vfs_read(fd, buf, count);
 }
 
 extern "C"

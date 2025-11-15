@@ -3,8 +3,8 @@
 #include <fs/vfs.hpp>
 
 static long sys_open(const char *path, int flags, mode_t mode = 0) {
-  fs::Path p{path};
-  return fs::vfs_open(p, flags, mode);
+  fs::Path p{std::string(path)};
+  return fs::VFS::vfs_open(p, flags, mode);
 }
 
 extern "C"
