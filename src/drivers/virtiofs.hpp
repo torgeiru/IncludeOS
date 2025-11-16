@@ -51,8 +51,7 @@ private:
   int _id;
 
   /** Helper methods for open */
-  fuse_ino_t _lookup_inode(int fd, const char *pathname,
-    size_t pathlen);
+  fuse_ino_t _lookup_inode( const char *path, size_t pathlen);
 
   int _open_exist(int fd, const char *path,
     size_t pathlen, int flags);

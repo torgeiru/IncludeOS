@@ -57,7 +57,7 @@ Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
     {this, &VirtioFS_device::write},
     {this, &VirtioFS_device::close}
   };
-  fs::VFS::register_filesystem(fs);
+  fs::VFS::register_filesystem(device_name(), fs);
 
   INFO("VirtioFS", "Device initialization is now complete");
 }
@@ -84,6 +84,8 @@ std::string VirtioFS_device::device_name() const {
 }
 
 fuse_ino_t VirtioFS_device::_lookup_inode(const char *path, size_t pathlen) {
+  INFO("VirtioFS", "We are in the in the _lookup_inode function!");
+
   /* FUSE lookup */
   virtio_fs_lookup_req lookup_req(pathlen + 1, _unique_counter++, FUSE_ROOT_ID);
   virtio_fs_lookup_res lookup_res {};
@@ -97,7 +99,7 @@ fuse_ino_t VirtioFS_device::_lookup_inode(const char *path, size_t pathlen) {
   );
   lookup_tokens.emplace_back(
     VIRTQ_DESC_F_NOFLAGS,
-    reinterpret_cast<uint8_t*>(path),
+    (uint8_t*)path,
     pathlen + 1
   );
   lookup_tokens.emplace_back(
@@ -120,8 +122,12 @@ fuse_ino_t VirtioFS_device::_lookup_inode(const char *path, size_t pathlen) {
 int VirtioFS_device::_open_exist(int fd, const char *path,
   size_t pathlen, int flags)
 {
+  INFO("VirtioFS", "We are in the _open_exist function!");
+
   fuse_ino_t ino = _lookup_inode(path, pathlen);
   if (ino == -1) return -ENOENT;
+
+  INFO("VirtioFS", "We are past _lookup_inode in the _open_exist function!");
 
   /* Creating a file handle from existing file */
   virtio_fs_open_req open_req(flags, 0, _unique_counter++, ino);
@@ -158,7 +164,7 @@ int VirtioFS_device::_open_exist(int fd, const char *path,
 }
 
 int VirtioFS_device::_open_creat(int fd, const char *path,
-  size_t pathlen, uint32_t flags, mode_t mode)
+  size_t pathlen, int flags, mode_t mode)
 {
   /* Creating a file handle from newly created file */
   virtio_fs_creat_req creat_req(pathlen, flags, mode, _unique_counter++, FUSE_ROOT_ID);
@@ -173,7 +179,7 @@ int VirtioFS_device::_open_creat(int fd, const char *path,
   );
   creat_tokens.emplace_back(
     VIRTQ_DESC_F_NOFLAGS,
-    reinterpret_cast<uint8_t*>(path),
+    (uint8_t*)path,
     pathlen + 1
   );
   creat_tokens.emplace_back(
@@ -200,6 +206,8 @@ int VirtioFS_device::_open_creat(int fd, const char *path,
 }
 
 int VirtioFS_device::open(int fd, const char *path, int flags, mode_t mode) {
+  INFO("VirtioFS", "We are in the open function!");
+
   size_t pathlen = std::strlen(path);
   if (flags & O_CREAT)
     return _open_creat(fd, path, pathlen, flags, mode);
@@ -252,7 +260,7 @@ ssize_t VirtioFS_device::write(int fd, const void *buf, size_t count) {
   );
   write_tokens.emplace_back(
     VIRTQ_DESC_F_NOFLAGS,
-    reinterpret_cast<uint8_t*>(buf),
+    (uint8_t*)buf,
     count
   );
   write_tokens.emplace_back(
@@ -333,7 +341,7 @@ int VirtioFS_device::close(int fd) {
   }
 
   uint64_t fh = _fd_info_map[fd].fh;
-  fuse_ino_t ino = _fh_info_map[fd].ino;
+  fuse_ino_t ino = _fd_info_map[fd].ino;
   _fd_info_map.erase(fd);
 
   /* FUSE close request */

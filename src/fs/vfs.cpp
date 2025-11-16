@@ -11,7 +11,7 @@ fs::VFS& fs::VFS::instance() {
     return vfs;
 }
 
-void fs::VFS::register_filesystem(std::string& mount_name, fs::Filesystem& fs) {
+void fs::VFS::register_filesystem(const std::string& mount_name, fs::Filesystem& fs) {
     get_mounts()[mount_name] = fs;
 }
 
