@@ -18,10 +18,10 @@ typedef struct {
   uint64_t fh;
   fuse_ino_t ino;
   off_t offset;
-} fh_info;
+} fd_info;
 
-class VirtioFS_device : 
-  public Virtio_control, 
+class VirtioFS_device :
+  public Virtio_control,
   public hw::VFS_device
 {
 public:
@@ -41,22 +41,22 @@ public:
   /** Implemented VFS operations */
   int open(int fd, const char *path, int flags, mode_t mode) override;
   off_t lseek(int fd, off_t offset, int whence) override;
-  ssize_t write(int fd, const void *buf, uint32_t count) override;
-  ssize_t read(int fd, void *buf, uint32_t count)  override;
+  ssize_t write(int fd, const void *buf, size_t count) override;
+  ssize_t read(int fd, void *buf, size_t count)  override;
   int close(int fd) override;
 private:
   Split_queue _req;
-  std::unordered_map<int, fh_info> _fh_info_map;
+  std::unordered_map<int, fd_info> _fd_info_map;
   uint64_t _unique_counter;
   int _id;
 
   /** Helper methods for open */
   fuse_ino_t _lookup_inode(int fd, const char *pathname,
     size_t pathlen);
-  
+
   int _open_exist(int fd, const char *path,
     size_t pathlen, int flags);
-  
+
   int _open_creat(int fd, const char *path,
     size_t pathlen, int flags, mode_t mode);
 };
@@ -81,7 +81,7 @@ typedef struct __attribute__((packed)) {
 typedef struct __attribute__((packed)) virtio_fs_lookup_req {
   fuse_in_header in_header;
 
-  virtio_fs_lookup_req(uint32_t plen, uint64_t uniqu, uint64_t nodei) 
+  virtio_fs_lookup_req(uint32_t plen, uint64_t uniqu, uint64_t nodei)
   : in_header(plen, FUSE_LOOKUP, uniqu, nodei) {}
 } virtio_fs_lookup_req;
 
@@ -95,7 +95,7 @@ typedef struct __attribute__((packed)) virtio_fs_open_req {
   fuse_open_in open_in;
 
   virtio_fs_open_req(uint32_t flag, uint32_t open_flag, uint64_t uniqu, uint64_t nodei)
-  : in_header(sizeof(fuse_open_in), FUSE_OPEN, uniqu, nodei), 
+  : in_header(sizeof(fuse_open_in), FUSE_OPEN, uniqu, nodei),
     open_in(flag, open_flag) {}
 } virtio_fs_open_req;
 
@@ -108,7 +108,7 @@ typedef struct __attribute__((packed)) virtio_fs_creat_req {
   fuse_in_header in_header;
   fuse_creat_in create_in;
 
-  virtio_fs_creat_req(uint32_t pathname_len,uint32_t flag, uint32_t mod, uint64_t uniqu, uint64_t nodei) 
+  virtio_fs_creat_req(uint32_t pathname_len,uint32_t flag, uint32_t mod, uint64_t uniqu, uint64_t nodei)
   : in_header(sizeof(fuse_creat_in) + pathname_len + 1, FUSE_CREATE, uniqu, nodei), create_in(flag, mod) {}
 } virtio_fs_creat_req;
 
@@ -124,7 +124,7 @@ typedef struct __attribute__((packed)) virtio_fs_read_req {
 
   virtio_fs_read_req(uint64_t f, uint64_t offse, uint32_t siz, uint64_t uniqu, uint64_t nodei)
   : in_header(sizeof(fuse_read_in), FUSE_READ, uniqu, nodei),
-    read_in(f, offse, siz, 0, 0) {} 
+    read_in(f, offse, siz, 0, 0) {}
 } virtio_fs_read_req;
 
 typedef struct __attribute__((packed)) {
@@ -135,7 +135,7 @@ typedef struct __attribute__((packed)) virtio_fs_write_req {
   fuse_in_header in_header;
   fuse_write_in write_in;
 
-  virtio_fs_write_req(uint64_t f, uint64_t offse, uint32_t siz, uint64_t uniqu, uint64_t nodei) 
+  virtio_fs_write_req(uint64_t f, uint64_t offse, uint32_t siz, uint64_t uniqu, uint64_t nodei)
   : in_header(sizeof(fuse_write_in) + siz, FUSE_WRITE, uniqu, nodei),
     write_in(f, offse, siz, 0, 0) {}
 } virtio_fs_write_req;
@@ -150,7 +150,7 @@ typedef struct __attribute__((packed)) virtio_fs_close_req {
   fuse_release_in release_in;
 
   virtio_fs_close_req(uint64_t f, uint32_t flag, uint32_t release_flag, uint64_t uniqu, uint64_t nodei)
-  : in_header(sizeof(fuse_release_in), FUSE_RELEASE, uniqu, nodei), 
+  : in_header(sizeof(fuse_release_in), FUSE_RELEASE, uniqu, nodei),
     release_in(f, flag, release_flag) {}
 } virtio_fs_close_req;
 

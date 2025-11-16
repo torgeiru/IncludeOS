@@ -17,6 +17,7 @@ void fs::VFS::register_filesystem(std::string& mount_name, fs::Filesystem& fs) {
 
 int fs::VFS::vfs_open(Path& path, int flags, mode_t mode) {
     FD_map::id_t fd = 0;
+    int result = 0;
 
     try {
         std::string prefix = path.front();
@@ -28,17 +29,23 @@ int fs::VFS::vfs_open(Path& path, int flags, mode_t mode) {
         Filesystem& fs = get_mounts()[prefix];
         File_FD& fde = FD_map::_open<File_FD>(fs);
         fd = fde.get_id();
-        int result = fs.open(fd, path.to_string().c_str(), flags, mode);
+        result = fs.open(fd, path.to_string().c_str(), flags, mode);
 
         if (result == 0) {
             return fd;
         }
-    } catch(...) {}
+    } catch(...) {
+        /* We know that open_func delegate is not implemented if fd is modified */
+        if (fd != 0) {
+            result = -ENOSYS;
+        }
+    }
 
+    /* Cleaning up if something failed but file descriptor is allocated */
     if (fd != 0) {
         FD_map::close(fd);
     }
-    return -1;
+    return result;
 }
 
 ssize_t fs::VFS::vfs_read(int fd, void *buf, size_t count) {
@@ -85,7 +92,7 @@ int fs::VFS::vfs_close(int fd) {
 
     int result = fde->close();
     if (result != 0) {
-        os::panic("Unrecoverable failure when closing file descriptor for filesystem!");
+        os::panic("Unrecoverable failure when closing file descriptor for filesystem!\nProbably a bug in the file system driver");
     }
 
     FD_map::close(fd);
