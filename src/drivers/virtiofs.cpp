@@ -53,8 +53,10 @@ Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
   fs::Filesystem fs {
     {this, &VirtioFS_device::open},
     {this, &VirtioFS_device::read},
-    {this, &VirtioFS_device::lseek},
+    {this, &VirtioFS_device::readv},
     {this, &VirtioFS_device::write},
+    {this, &VirtioFS_device::writev},
+    {this, &VirtioFS_device::lseek},
     {this, &VirtioFS_device::close}
   };
   fs::VFS::register_filesystem(device_name(), fs);
@@ -84,8 +86,6 @@ std::string VirtioFS_device::device_name() const {
 }
 
 fuse_ino_t VirtioFS_device::_lookup_inode(const char *path, size_t pathlen) {
-  INFO("VirtioFS", "We are in the in the _lookup_inode function!");
-
   /* FUSE lookup */
   virtio_fs_lookup_req lookup_req(pathlen + 1, _unique_counter++, FUSE_ROOT_ID);
   virtio_fs_lookup_res lookup_res {};
@@ -109,6 +109,8 @@ fuse_ino_t VirtioFS_device::_lookup_inode(const char *path, size_t pathlen) {
   );
 
   _req.enqueue(lookup_tokens);
+  _req.kick();
+
   while(_req.has_processed_used());
   _req.dequeue();
 
@@ -122,12 +124,8 @@ fuse_ino_t VirtioFS_device::_lookup_inode(const char *path, size_t pathlen) {
 int VirtioFS_device::_open_exist(int fd, const char *path,
   size_t pathlen, int flags)
 {
-  INFO("VirtioFS", "We are in the _open_exist function!");
-
   fuse_ino_t ino = _lookup_inode(path, pathlen);
   if (ino == -1) return -ENOENT;
-
-  INFO("VirtioFS", "We are past _lookup_inode in the _open_exist function!");
 
   /* Creating a file handle from existing file */
   virtio_fs_open_req open_req(flags, 0, _unique_counter++, ino);
@@ -206,8 +204,6 @@ int VirtioFS_device::_open_creat(int fd, const char *path,
 }
 
 int VirtioFS_device::open(int fd, const char *path, int flags, mode_t mode) {
-  INFO("VirtioFS", "We are in the open function!");
-
   size_t pathlen = std::strlen(path);
   if (flags & O_CREAT)
     return _open_creat(fd, path, pathlen, flags, mode);
@@ -286,6 +282,66 @@ ssize_t VirtioFS_device::write(int fd, const void *buf, size_t count) {
   return write_count;
 }
 
+ssize_t VirtioFS_device::writev(int fd, const struct iovec *iov, int iovcnt) {
+  if (not _fd_info_map.contains(fd)) {
+    os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
+  }
+
+  uint64_t fh = _fd_info_map[fd].fh;
+  fuse_ino_t ino = _fd_info_map[fd].ino;
+  off_t offset = _fd_info_map[fd].offset;
+
+  /* Calculating the number of bytes to read */
+  size_t count = 0;
+  for (int i = 0; i < iovcnt; ++i) {
+    count += iov[i].iov_len;
+  }
+
+  /* FUSE read request */
+  virtio_fs_write_req write_req(fh, offset, count, _unique_counter++, ino); // TODO: Do a static cast here
+  virtio_fs_write_res write_res{};
+
+  VirtTokens write_tokens;
+  write_tokens.reserve(2 + iovcnt);
+
+  write_tokens.emplace_back(
+    VIRTQ_DESC_F_NOFLAGS,
+    reinterpret_cast<uint8_t*>(&write_req),
+    sizeof(virtio_fs_write_req)
+  );
+
+  for (int i = 0; i < iovcnt; ++i) {
+    const struct iovec& io = iov[i];
+    write_tokens.emplace_back(
+      VIRTQ_DESC_F_NOFLAGS,
+      reinterpret_cast<uint8_t*>(io.iov_base),
+      io.iov_len
+    );
+  }
+
+  write_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(&write_res),
+    sizeof(virtio_fs_write_res)
+  );
+
+  _req.enqueue(write_tokens);
+  _req.kick();
+
+  while(_req.has_processed_used());
+  _req.dequeue();
+
+  if (write_res.out_header.error != 0) {
+    return write_res.out_header.error;
+  }
+
+  /* Updating seek offset and returning */
+  ssize_t write_count = write_res.write_out.size;
+  _fd_info_map[fd].offset += write_count;
+
+  return write_count;
+}
+
 ssize_t VirtioFS_device::read(int fd, void *buf, size_t count) {
   if (not _fd_info_map.contains(fd)) {
     os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
@@ -317,6 +373,65 @@ ssize_t VirtioFS_device::read(int fd, void *buf, size_t count) {
     reinterpret_cast<uint8_t*>(buf),
     count
   );
+
+  _req.enqueue(read_tokens);
+  _req.kick();
+
+  while(_req.has_processed_used());
+  _req.dequeue();
+
+  if (read_res.out_header.error != 0) {
+    return read_res.out_header.error;
+  }
+
+  /* Updating seek offset and returning */
+  ssize_t read_count = read_res.out_header.len - sizeof(fuse_out_header);
+  _fd_info_map[fd].offset += read_count;
+
+  return read_count;
+}
+
+ssize_t VirtioFS_device::readv(int fd, const struct iovec *iov, int iovcnt) {
+  if (not _fd_info_map.contains(fd)) {
+    os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
+  }
+
+  uint64_t fh = _fd_info_map[fd].fh;
+  fuse_ino_t ino = _fd_info_map[fd].ino;
+  off_t offset = _fd_info_map[fd].offset;
+
+  /* Calculating the number of bytes to read */
+  size_t count = 0;
+  for (int i = 0; i < iovcnt; ++i) {
+    count += iov[i].iov_len;
+  }
+
+  /* FUSE read request */
+  virtio_fs_read_req read_req(fh, offset, count, _unique_counter++, ino);
+  virtio_fs_read_res read_res{};
+
+  VirtTokens read_tokens;
+  read_tokens.reserve(2 + iovcnt);
+
+  read_tokens.emplace_back(
+    VIRTQ_DESC_F_NOFLAGS,
+    reinterpret_cast<uint8_t*>(&read_req),
+    sizeof(virtio_fs_read_req)
+  );
+  read_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(&read_res),
+    sizeof(virtio_fs_read_res)
+  );
+
+  for (int i = 0; i < iovcnt; ++i) {
+    const struct iovec& io = iov[i];
+    read_tokens.emplace_back(
+      VIRTQ_DESC_F_WRITE,
+      reinterpret_cast<uint8_t*>(io.iov_base),
+      io.iov_len
+    );
+  }
 
   _req.enqueue(read_tokens);
   _req.kick();

@@ -1,5 +1,6 @@
 #include "common.hpp"
 #include <sys/uio.h>
+#include <fs/vfs.hpp>
 
 static long sys_writev(int fd, const struct iovec *iov, int iovcnt)
 {
@@ -15,7 +16,8 @@ static long sys_writev(int fd, const struct iovec *iov, int iovcnt)
     }
     return res;
   }
-  return 0;
+
+  return fs::VFS::vfs_writev(fd, iov, iovcnt);
 }
 
 extern "C"

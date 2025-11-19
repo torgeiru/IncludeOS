@@ -43,6 +43,7 @@ public:
   virtual ssize_t read(void*, size_t) { return -DEFAULT_ERR; }
   virtual ssize_t readv(const struct iovec*, int) { return -DEFAULT_ERR; }
   virtual int     write(const void*, size_t) { return -DEFAULT_ERR; }
+  virtual ssize_t writev(const struct iovec*, int) { return -DEFAULT_ERR; }
   virtual int     close() = 0;
   virtual int     fcntl(int, va_list);
   virtual int     ioctl(int, void*);

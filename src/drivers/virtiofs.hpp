@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <sys/uio.h>
 #include <sys/types.h>
 #include <cstring>
 
@@ -39,18 +40,20 @@ public:
   std::string device_name() const override;
 
   /** Implemented VFS operations */
-  int open(int fd, const char *path, int flags, mode_t mode) override;
-  off_t lseek(int fd, off_t offset, int whence) override;
-  ssize_t write(int fd, const void *buf, size_t count) override;
-  ssize_t read(int fd, void *buf, size_t count)  override;
-  int close(int fd) override;
+  int open(int fd, const char *path, int flags, mode_t mode);
+  off_t lseek(int fd, off_t offset, int whence);
+  ssize_t write(int fd, const void *buf, size_t count);
+  ssize_t writev(int fd, const struct iovec *iov, int iovcnt);
+  ssize_t read(int fd, void *buf, size_t count);
+  ssize_t readv(int fd, const struct iovec *iov, int iovcnt);
+  int close(int fd);
 private:
   Split_queue _req;
   std::unordered_map<int, fd_info> _fd_info_map;
   uint64_t _unique_counter;
   int _id;
 
-  /** Helper methods for open */
+  /** Helper methods for open and creat */
   fuse_ino_t _lookup_inode( const char *path, size_t pathlen);
 
   int _open_exist(int fd, const char *path,

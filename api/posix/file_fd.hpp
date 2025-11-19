@@ -11,7 +11,9 @@ public:
     : FD(id), _fs(fs) {}
 
   ssize_t read(void*, size_t) override;
+  ssize_t readv(const struct iovec*, int) override;
   int write(const void*, size_t) override;
+  ssize_t writev(const struct iovec*, int) override;
   int close() override;
   off_t lseek(off_t, int) override;
 

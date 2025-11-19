@@ -22,22 +22,25 @@ int fs::VFS::vfs_open(Path& path, int flags, mode_t mode) {
     try {
         std::string prefix = path.front();
         if (not get_mounts().contains(prefix)) {
-            return -1;
+            return -ENOENT;
         }
         path.pop_front();
+        std::string path_to_string = path.to_string();
+        path_to_string.pop_back();
 
         Filesystem& fs = get_mounts()[prefix];
         File_FD& fde = FD_map::_open<File_FD>(fs);
         fd = fde.get_id();
-        result = fs.open(fd, path.to_string().c_str(), flags, mode);
+        result = fs.open(fd, path_to_string.c_str(), flags, mode);
 
         if (result == 0) {
             return fd;
         }
     } catch(...) {
-        /* We know that open_func delegate is not implemented if fd is modified */
-        if (fd != 0) {
-            result = -ENOSYS;
+        if (fd == 0) {
+            result = -ENOENT;
+        } else {
+            result = -ENOSYS; // open_func not implemented if fd is modified
         }
     }
 
@@ -53,6 +56,18 @@ ssize_t fs::VFS::vfs_read(int fd, void *buf, size_t count) {
         auto *fde = FD_map::_get(fd);
         if (fde != nullptr) {
             return fde->read(buf, count);
+        }
+    } catch(...) {
+        return -ENOSYS;
+    }
+    return -EBADF;
+}
+
+ssize_t fs::VFS::vfs_readv(int fd, const struct iovec* iov, int iovcnt) {
+    try {
+        auto *fde = FD_map::_get(fd);
+        if (fde != nullptr) {
+            return fde->readv(iov, iovcnt);
         }
     } catch(...) {
         return -ENOSYS;
@@ -82,6 +97,18 @@ ssize_t fs::VFS::vfs_write(int fd, const void *buf, size_t count) {
         return -ENOSYS;
     }
     return -EBADF;
+}
+
+ssize_t fs::VFS::vfs_writev(int fd, const struct iovec* iov, int iovcnt) {
+    try {
+        auto *fde = FD_map::_get(fd);
+        if (fde != nullptr) {
+            return fde->writev(iov, iovcnt);
+        }
+    } catch(...) {
+        return -ENOSYS;
+    }
+    return -EBADF;    
 }
 
 int fs::VFS::vfs_close(int fd) {

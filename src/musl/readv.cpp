@@ -1,10 +1,10 @@
 #include "common.hpp"
-
-#include <posix/fd_map.hpp>
+#include <sys/uio.h>
+#include <fs/vfs.hpp>
 
 static ssize_t sys_readv(int fd, const struct iovec* iov, int iovcnt)
 {
-  return -ENOSYS;
+  return fs::VFS::vfs_readv(fd, iov, iovcnt);
 }
 
 extern "C"

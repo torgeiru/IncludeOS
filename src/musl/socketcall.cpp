@@ -9,6 +9,7 @@
 
 static long sock_socket(int domain, int type, int protocol)
 {
+  /*
   if(domain == AF_UNIX)
     return FD_map::_open<Unix_FD>(type).get_id();
   // currently only support for AF_INET (IPv4, no local/unix or IP6)
@@ -32,6 +33,8 @@ static long sock_socket(int domain, int type, int protocol)
         return -EINVAL;
     }
   }(type);
+  */
+  return -ENOSYS;
 }
 
 static long sock_connect(int sockfd, const struct sockaddr *addr,
@@ -105,7 +108,8 @@ static long sock_shutdown(int sockfd, int how)
 extern "C" {
 long socketcall_socket(int domain, int type, int protocol)
 {
-  return strace(sock_socket, "socket", domain, type, protocol);
+  //return strace(sock_socket, "socket", domain, type, protocol);
+  return -ENOSYS;
 }
 
 long socketcall_getsockopt(int /* sockfd */,

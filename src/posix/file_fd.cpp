@@ -25,6 +25,10 @@ ssize_t File_FD::read(void* buf, size_t count)
   return _fs.read(get_id(), buf, count);
 }
 
+ssize_t File_FD::readv(const struct iovec* iov, int iovcnt) {
+  return _fs.readv(get_id(), iov, iovcnt);
+}
+
 off_t File_FD::lseek(off_t offset, int whence)
 {
   return _fs.lseek(get_id(), offset, whence);
@@ -32,6 +36,10 @@ off_t File_FD::lseek(off_t offset, int whence)
 
 int File_FD::write(const void* buf, size_t count) {
   return _fs.write(get_id(), buf, count);
+}
+
+ssize_t File_FD::writev(const struct iovec* iov, int iovcnt) {
+  return _fs.writev(get_id(), iov, iovcnt);
 }
 
 int File_FD::close() {
