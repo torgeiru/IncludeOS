@@ -14,6 +14,7 @@ namespace fs {
     using writev_func = delegate<ssize_t(int, const struct iovec*, int)>;
     using lseek_func = delegate<off_t(int, off_t, int)>;
     using close_func = delegate<int(int)>;
+    using unlink_func = delegate<int(const char*)>;
 
     struct Filesystem {
         open_func open;
@@ -23,6 +24,7 @@ namespace fs {
         writev_func writev;
         lseek_func lseek;
         close_func close;
+        unlink_func unlink;
     };
 }
 

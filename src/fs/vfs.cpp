@@ -125,3 +125,25 @@ int fs::VFS::vfs_close(int fd) {
     FD_map::close(fd);
     return 0;
 }
+
+int fs::VFS::vfs_unlink(Path& path) {
+    bool submount_exists = false;
+    try {
+        std::string prefix = path.front();
+        if (not get_mounts().contains(prefix)) {
+            return -ENOENT;
+        }
+        path.pop_front();
+        std::string path_to_string = path.to_string();
+        path_to_string.pop_back();
+        submount_exists = true;
+
+        return get_mounts()[prefix].unlink(path_to_string.c_str());
+    } catch(...) {}
+
+    if (submount_exists) {
+        return -ENOENT;
+    }
+    
+    return -ENOSYS;
+}

@@ -26,6 +26,7 @@ namespace fs {
         static ssize_t vfs_write(int fd, const void *buf, size_t count);
         static ssize_t vfs_writev(int fd, const struct iovec* iov, int iovcnt);
         static int vfs_close(int fd);
+        static int vfs_unlink(Path& path);
     private:
         VFS_mounts _mounts;
     };

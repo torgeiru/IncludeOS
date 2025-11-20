@@ -1,10 +1,11 @@
 #include "common.hpp"
 #include <unistd.h>
+#include <fs/vfs.hpp>
 
-static long sys_unlink(const char* /*pathname*/)
+static long sys_unlink(const char *pathname)
 {
-  /* technically path needs to be verified first */
-  return -EROFS;
+  fs::Path path{pathname};
+  return fs::VFS::vfs_unlink(path);
 }
 
 extern "C"

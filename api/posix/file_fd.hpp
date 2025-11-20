@@ -16,6 +16,7 @@ public:
   ssize_t writev(const struct iovec*, int) override;
   int close() override;
   off_t lseek(off_t, int) override;
+  int unlink(const char *pathname) override;
 
   bool is_file() override { return true; }
 private:

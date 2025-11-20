@@ -57,7 +57,8 @@ Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
     {this, &VirtioFS_device::write},
     {this, &VirtioFS_device::writev},
     {this, &VirtioFS_device::lseek},
-    {this, &VirtioFS_device::close}
+    {this, &VirtioFS_device::close},
+    {this, &VirtioFS_device::unlink}
   };
   fs::VFS::register_filesystem(device_name(), fs);
 
@@ -484,6 +485,44 @@ int VirtioFS_device::close(int fd) {
 
   if (close_res.out_header.error != 0) {
     return close_res.out_header.error;
+  }
+
+  return 0;
+}
+
+int VirtioFS_device::unlink(const char *pathname) {
+  size_t pathlen = std::strlen(pathname);
+
+  /* FUSE unlink request */
+  virtio_fs_unlink_req unlink_req(pathlen, _unique_counter++, FUSE_ROOT_ID);
+  virtio_fs_unlink_res unlink_res {};
+
+  VirtTokens unlink_tokens;
+  unlink_tokens.reserve(3);
+  unlink_tokens.emplace_back(
+    VIRTQ_DESC_F_NOFLAGS,
+    reinterpret_cast<uint8_t*>(&unlink_req),
+    sizeof(virtio_fs_unlink_req)
+  );
+  unlink_tokens.emplace_back(
+    VIRTQ_DESC_F_NOFLAGS,
+    (uint8_t*)(pathname + 1),
+    pathlen
+  );
+  unlink_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(&unlink_res),
+    sizeof(virtio_fs_unlink_res)
+  );
+
+  _req.enqueue(unlink_tokens);
+  _req.kick();
+
+  while(_req.has_processed_used());
+  _req.dequeue();
+
+  if (unlink_res.out_header.error != 0) {
+    return unlink_res.out_header.error;
   }
 
   return 0;

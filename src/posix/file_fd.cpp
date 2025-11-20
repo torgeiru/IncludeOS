@@ -45,3 +45,7 @@ ssize_t File_FD::writev(const struct iovec* iov, int iovcnt) {
 int File_FD::close() {
   return _fs.close(get_id());
 }
+
+int File_FD::unlink(const char *pathname) {
+  return _fs.unlink(pathname);
+}

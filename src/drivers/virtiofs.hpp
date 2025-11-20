@@ -47,15 +47,17 @@ public:
   ssize_t read(int fd, void *buf, size_t count);
   ssize_t readv(int fd, const struct iovec *iov, int iovcnt);
   int close(int fd);
+  int unlink(const char *pathname);
 private:
   Split_queue _req;
   std::unordered_map<int, fd_info> _fd_info_map;
   uint64_t _unique_counter;
   int _id;
 
-  /** Helper methods for open and creat */
+
   fuse_ino_t _lookup_inode( const char *path, size_t pathlen);
 
+  /** Helper methods for open and creat */
   int _open_exist(int fd, const char *path,
     size_t pathlen, int flags);
 
@@ -159,5 +161,15 @@ typedef struct __attribute__((packed)) virtio_fs_close_req {
 typedef struct __attribute__((packed)) {
   fuse_out_header out_header;
 } virtio_fs_close_res;
+
+typedef struct __attribute__((packed)) virtio_fs_unlink_req {
+  fuse_in_header in_header;
+
+  virtio_fs_unlink_req(size_t pathlen, uint64_t uniqu, uint64_t nodei)
+  : in_header(pathlen, FUSE_UNLINK, uniqu, nodei) {}
+};
+typedef struct __attribute__((packed)) virtio_fs_unlink_res {
+  fuse_out_header out_header;
+};
 
 #endif
