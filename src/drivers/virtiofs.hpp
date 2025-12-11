@@ -49,11 +49,10 @@ public:
   int close(int fd);
   int unlink(const char *pathname);
 private:
-  Split_queue _req;
+  Split_queue _hiprio, _req;
   std::unordered_map<int, fd_info> _fd_info_map;
   uint64_t _unique_counter;
   int _id;
-
 
   fuse_ino_t _lookup_inode( const char *path, size_t pathlen);
 
@@ -168,8 +167,18 @@ typedef struct __attribute__((packed)) virtio_fs_unlink_req {
   virtio_fs_unlink_req(size_t pathlen, uint64_t uniqu, uint64_t nodei)
   : in_header(pathlen, FUSE_UNLINK, uniqu, nodei) {}
 };
+
 typedef struct __attribute__((packed)) virtio_fs_unlink_res {
   fuse_out_header out_header;
+};
+
+typedef struct __attribute__((packed)) virtio_fs_forget_req {
+  fuse_in_header in_header;
+  fuse_forget_in forget_in;
+
+  virtio_fs_forget_req(uint64_t nlookup, uint64_t uniqu, uint64_t nodei)
+  : in_header(sizeof(fuse_forget_in), FUSE_FORGET, uniqu, nodei),
+    forget_in(nlookup) {}
 };
 
 #endif

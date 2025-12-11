@@ -215,7 +215,7 @@ typedef struct __attribute__((packed)) fuse_creat_in {
 	uint32_t umask;
 	uint32_t padding;
 
-	fuse_creat_in(uint32_t flag, uint32_t mod) 
+	fuse_creat_in(uint32_t flag, uint32_t mod)
 	: flags(flag), mode(mod), umask(0), padding(0) {}
 } fuse_creat_in;
 
@@ -228,7 +228,7 @@ typedef struct __attribute__((packed)) fuse_read_in {
 	uint32_t flags;
 	uint32_t padding;
 
-	fuse_read_in(uint64_t f, uint64_t offse, uint32_t siz, 
+	fuse_read_in(uint64_t f, uint64_t offse, uint32_t siz,
 		uint32_t read_flag, uint32_t flag)
 	: fh(f), offset(offse), size(siz), read_flags(read_flag),
 	  lock_owner(0), flags(flag), padding(0) {}
@@ -243,7 +243,7 @@ typedef struct __attribute__((packed)) fuse_write_in {
   uint32_t flags;
   uint32_t padding;
 
-	fuse_write_in(uint64_t f, uint64_t offse, uint32_t siz, 
+	fuse_write_in(uint64_t f, uint64_t offse, uint32_t siz,
 		uint32_t write_flag, uint32_t flag)
 	: fh(f), offset(offse), size(siz), write_flags(write_flag),
 	  lock_owner(0), flags(flag), padding(0) {}
@@ -259,8 +259,13 @@ typedef struct __attribute__((packed)) fuse_release_in {
 	uint32_t flags;
 	uint32_t release_flags;
 	uint64_t lock_owner;
-	fuse_release_in(uint64_t f, uint32_t flag, uint32_t release_flag) 
+	fuse_release_in(uint64_t f, uint32_t flag, uint32_t release_flag)
 	: fh(f), flags(flag), release_flags(release_flag) {}
 } fuse_release_in;
+
+typedef struct __attribute__((packed)) fuse_forget_in {
+  uint64_t nlookup;
+  fuse_forget_in(uint64_t nlooku) : nlookup(nlooku) {}
+};
 
 #endif // FILESYSTEM_IN_USERPSACE_HPP

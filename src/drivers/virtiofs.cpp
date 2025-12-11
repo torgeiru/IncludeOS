@@ -11,7 +11,9 @@
 #include <info>
 
 VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
-Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
+Virtio_control(d), _unique_counter(0),
+  _hiprio(*this, 0, true),
+  _req(*this, 1, true)
 {
   static int id_count = 0;
   _id = id_count++;
@@ -486,6 +488,23 @@ int VirtioFS_device::close(int fd) {
   if (close_res.out_header.error != 0) {
     return close_res.out_header.error;
   }
+
+  /* We need to decrement the reference count */
+  virtio_fs_forget_req forget_req(1, _unique_counter++, ino);
+
+  VirtTokens forget_tokens;
+  forget_tokens.reserve(1);
+  forget_tokens.emplace_back(
+    VIRTQ_DESC_F_NOFLAGS,
+    reinterpret_cast<uint8_t*>(&forget_req),
+    sizeof(virtio_fs_forget_req)
+  );
+
+  _hiprio.enqueue(forget_tokens);
+  _hiprio.kick();
+
+  while(_hiprio.has_processed_used());
+  _hiprio.dequeue();
 
   return 0;
 }
