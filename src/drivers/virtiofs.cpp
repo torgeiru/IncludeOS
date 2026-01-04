@@ -10,15 +10,22 @@
 #include <hw/pci_manager.hpp>
 #include <info>
 
+#define VIRTIOFS_REQUIRED_FEATS 0
+#define VIRTIOFS_OPTIONAL_FEATS 0
+
+#define USE_POLLING true
+#define HIPRIO_QUEUE_ID 0
+#define REQ_QUEUE_ID 1
+
 VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
-Virtio_control(d), _unique_counter(0),
-  _hiprio(*this, 0, true),
-  _req(*this, 1, true)
+  _control(d, VIRTIOFS_REQUIRED_FEATS, VIRTIOFS_OPTIONAL_FEATS),
+  _hiprio(_control, HIPRIO_QUEUE_ID, USE_POLLING),
+  _req(_control, REQ_QUEUE_ID, USE_POLLING),
+  _unique_counter(0)
 {
   static int id_count = 0;
   _id = id_count++;
-  negotiate_features(0, 0);
-  set_driver_ok_bit();
+  _control.set_driver_ok_bit();
 
   /* Negotiate FUSE version */
   virtio_fs_init_req init_req(FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION_MIN, _unique_counter++, FUSE_ROOT_ID);
@@ -61,6 +68,7 @@ Virtio_control(d), _unique_counter(0),
     {this, &VirtioFS_device::lseek},
     {this, &VirtioFS_device::close},
     {this, &VirtioFS_device::unlink}
+    // Add IO_uring here!
   };
   fs::VFS::register_filesystem(device_name(), fs);
 
@@ -69,7 +77,7 @@ Virtio_control(d), _unique_counter(0),
 
 void VirtioFS_device::deactivate() {
   flush();
-  deactivate_virtio_control();
+  _control.deactivate_virtio_control();
 }
 
 void VirtioFS_device::flush() {}

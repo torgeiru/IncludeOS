@@ -22,7 +22,6 @@ typedef struct {
 } fd_info;
 
 class VirtioFS_device :
-  public Virtio_control,
   public hw::VFS_device
 {
 public:
@@ -49,6 +48,7 @@ public:
   int close(int fd);
   int unlink(const char *pathname);
 private:
+  Virtio_control _control;
   Split_queue _hiprio, _req;
   std::unordered_map<int, fd_info> _fd_info_map;
   uint64_t _unique_counter;

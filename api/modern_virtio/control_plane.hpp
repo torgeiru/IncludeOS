@@ -101,19 +101,12 @@ typedef struct __attribute__((packed)) {
 */
 class Virtio_control {
   public:
-    Virtio_control(hw::PCI_Device& dev);
+    Virtio_control(hw::PCI_Device& dev, uint64_t required_feats, uint64_t optional_feats);
 
     /** Called by upper level driver to disable
      *  the main Virtio control plane. Upper level
      *  needs to deactivate the queues in its own manner. */
     void deactivate_virtio_control();
-
-    /** Interface for upper layer to tell Virtio PCI about
-     *  wanted and necessary features. Used during negotiation. 
-     *  For now only features from bit 0 to 63 inclusive considered.
-     *  Returns the negotiated optional features. 
-     *  Panics if not all required features are available */
-    uint64_t negotiate_features(uint64_t required_feats, uint64_t optional_feats);
 
     /** Requests some amount of required MSIX vectors. 
      *  Panics if not satisfied. 
@@ -133,6 +126,12 @@ class Virtio_control {
     inline uint8_t *notify_region() const { return _notify_region; }
     
   private:
+    /** Tells Virtio PCI about wanted and necessary features.
+     *  For now only features from bit 0 to 63 inclusive considered.
+     *  Returns the negotiated optional features.
+     *  Panics if not all required features are available */
+    uint64_t _negotiate_features(uint64_t required_feats, uint64_t optional_feats);
+
     /** Finds the common configuration address */
     void _find_cap_cfgs();
     

@@ -1,11 +1,13 @@
 #include <modern_virtio/control_plane.hpp>
-#include <os.hpp>
+#include <kernel/memory.hpp>
 #include <info>
 #include <hw/pci.hpp>
 
 // TODO: Replace INFO with debug that can be enabled or disabled
 
-Virtio_control::Virtio_control(hw::PCI_Device& dev) :
+Virtio_control::Virtio_control(
+  hw::PCI_Device& dev, uint64_t required_feats, uint64_t optional_feats
+) :
   _pcidev(dev), _virtio_device_id(dev.product_id()), _msix_enabled(false)
 {
   INFO("Virtio","Attaching to  PCI addr 0x%x",dev.pci_addr());
@@ -33,9 +35,17 @@ Virtio_control::Virtio_control(hw::PCI_Device& dev) :
 
   CHECK(rev_id_ok, "Device Revision ID (%d) supported", dev.rev_id());
   _virtio_panic(rev_id_ok);
+  
+  // Dirty hack for 64 bit bars. TODO: Just map the entire bar region.
+  using namespace util::bitops;
+  const auto flags = os::mem::Access::read | os::mem::Access::write;
+  os::mem::map({(uintptr_t)0xda80000000, (uintptr_t)0xda80000000, flags, 0x4000}, "Virtio PCI");
 
   /* Finding Virtio structures */
   _find_cap_cfgs();
+
+  /* Negotiating features */
+  _negotiate_features(required_feats, optional_feats);
 
   /*
     Initializing the device. Virtio Std. §3.1
@@ -45,6 +55,8 @@ Virtio_control::Virtio_control(hw::PCI_Device& dev) :
 
   _set_ack_and_driver_bits();
   CHECK(true, "Setting acknowledgement and drive bits");
+
+  /* Letting device set up queues and driver OK... */
 }
 
 void Virtio_control::deactivate_virtio_control() {
@@ -83,13 +95,12 @@ void Virtio_control::_find_cap_cfgs() {
       uint64_t bar_offset = _pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF);
 
       /* Check if 64 bit bar */
-      if (cap_len > VIRTIO_PCI_NOT_CAP_LEN) {
-        uint64_t bar_hi    = static_cast<uint64_t>(_pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2)));
-        uint64_t baroff_hi = static_cast<uint64_t>(_pcidev.read32(offset + VIRTIO_PCI_CAP_BAROFF64));
-
+      if ((bar_value & 0x4) > 0) {
+        uint64_t bar_hi = static_cast<uint64_t>(_pcidev.read32(PCI::CONFIG_BASE_ADDR_0 + ((bar + 1) << 2)));
         bar_region |= (bar_hi << 32);
-        bar_offset |= (baroff_hi << 32);
       }
+
+      /* Map the bar region if not mapped */
 
       /* Determine config type and calculate config address */
       uint64_t cfg_addr = bar_region + bar_offset;
@@ -121,7 +132,7 @@ void Virtio_control::_set_ack_and_driver_bits() {
   _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER;
 }
 
-uint64_t Virtio_control::negotiate_features(
+uint64_t Virtio_control::_negotiate_features(
   uint64_t required_feats, 
   uint64_t optional_feats
 ) {
