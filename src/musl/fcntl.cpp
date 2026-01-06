@@ -1,7 +1,7 @@
 #include "common.hpp"
 #include <posix/fd_map.hpp>
 
-static long sys_fcntl(int fd, int cmd, va_list va)
+static long sys_fcntl(int /*fd*/, int /*cmd*/, va_list /*va*/)
 {
   return -ENOSYS;
 }
