@@ -167,8 +167,8 @@ class Virtio_control {
     
     /* Other */
     hw::PCI_Device& _pcidev;
+    uint16_t _virtio_device_id;
     bool _msix_enabled;
-    uint16_t _virtio_device_id = 0;
 };
 
 #endif

@@ -7,7 +7,7 @@
 #include <posix/udp_fd.hpp>
 #include <posix/unix_fd.hpp>
 
-static long sock_socket(int domain, int type, int protocol)
+static long sock_socket(int /*domain*/, int /*type*/, int /*protocol*/)
 {
   /*
   if(domain == AF_UNIX)
@@ -108,8 +108,7 @@ static long sock_shutdown(int sockfd, int how)
 extern "C" {
 long socketcall_socket(int domain, int type, int protocol)
 {
-  //return strace(sock_socket, "socket", domain, type, protocol);
-  return -ENOSYS;
+  return strace(sock_socket, "socket", domain, type, protocol);
 }
 
 long socketcall_getsockopt(int /* sockfd */,

@@ -298,6 +298,8 @@ ssize_t VirtioFS_device::writev(int fd, const struct iovec *iov, int iovcnt) {
     os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
   }
 
+  INFO("VirtioFS", "Executing writev");
+
   uint64_t fh = _fd_info_map[fd].fh;
   fuse_ino_t ino = _fd_info_map[fd].ino;
   off_t offset = _fd_info_map[fd].offset;
@@ -391,7 +393,7 @@ ssize_t VirtioFS_device::read(int fd, void *buf, size_t count) {
   while(_req.has_processed_used());
   _req.dequeue();
 
-  if (read_res.out_header.error != 0) {
+  if (read_res.out_header.error != 0) {
     return read_res.out_header.error;
   }
 
@@ -406,6 +408,8 @@ ssize_t VirtioFS_device::readv(int fd, const struct iovec *iov, int iovcnt) {
   if (not _fd_info_map.contains(fd)) {
     os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
   }
+
+  INFO("VirtioFS", "Executing readv");
 
   uint64_t fh = _fd_info_map[fd].fh;
   fuse_ino_t ino = _fd_info_map[fd].ino;
@@ -450,7 +454,7 @@ ssize_t VirtioFS_device::readv(int fd, const struct iovec *iov, int iovcnt) {
   while(_req.has_processed_used());
   _req.dequeue();
 
-  if (read_res.out_header.error != 0) {
+  if (read_res.out_header.error != 0) {
     return read_res.out_header.error;
   }
 

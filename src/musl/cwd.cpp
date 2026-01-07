@@ -1,12 +1,12 @@
 #include "common.hpp"
 #include <unistd.h>
 
-static long sys_chdir(const char* path)
+static long sys_chdir(const char* /*path*/)
 {
   return -ENOSYS;
 }
 
-long sys_getcwd(char *buf, size_t size)
+long sys_getcwd(char */*buf*/, size_t /*size*/)
 {
   return -ENOSYS;
 }

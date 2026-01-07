@@ -3,7 +3,7 @@
 
 #include <util/bitops.hpp> // roundto
 
-long sys_stat(const char *path, struct stat *buf)
+long sys_stat(const char */*path*/, struct stat */*buf*/)
 {
   return -ENOSYS;
 }

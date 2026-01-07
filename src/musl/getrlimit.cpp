@@ -2,7 +2,7 @@
 
 #include <sys/resource.h>
 
-static int sys_getrlimit(int /*resource*/, struct rlimit*) {
+static int sys_getrlimit(int /*resource*/, struct rlimit* /*rlim*/) {
   return -ENOSYS;
 }
 

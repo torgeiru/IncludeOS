@@ -130,8 +130,8 @@ protected:
   
 private:
   vector<uint16_t> _free_list;
-  Virtio_control& _virtio_dev;
   int _VQUEUE_ID;
+  Virtio_control& _virtio_dev;
 };
 
 #endif

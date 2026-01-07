@@ -2,7 +2,7 @@
 
 #include <sys/resource.h>
 
-static int sys_getrusage(int /*resource*/, struct rusage*) {
+static int sys_getrusage(int /*resource*/, struct rusage* /*usage*/) {
   return -ENOSYS;
 }
 

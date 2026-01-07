@@ -4,7 +4,7 @@
 #include <arch/x86/cpu.hpp>
 
 extern "C"
-long syscall_SYS_set_thread_area(struct user_desc *u_desc) {
+long syscall_SYS_set_thread_area(struct user_desc */*u_desc*/) {
   os::panic("Setting thread pointer on 64 bit Intel/AMD should go via arch_prctl!");
   return -ENOSYS;
 }

@@ -166,11 +166,11 @@ typedef struct __attribute__((packed)) virtio_fs_unlink_req {
 
   virtio_fs_unlink_req(size_t pathlen, uint64_t uniqu, uint64_t nodei)
   : in_header(pathlen, FUSE_UNLINK, uniqu, nodei) {}
-};
+} virtio_fs_unlink_req;
 
 typedef struct __attribute__((packed)) virtio_fs_unlink_res {
   fuse_out_header out_header;
-};
+} virtio_fs_unlink_res;
 
 typedef struct __attribute__((packed)) virtio_fs_forget_req {
   fuse_in_header in_header;
@@ -179,6 +179,6 @@ typedef struct __attribute__((packed)) virtio_fs_forget_req {
   virtio_fs_forget_req(uint64_t nlookup, uint64_t uniqu, uint64_t nodei)
   : in_header(sizeof(fuse_forget_in), FUSE_FORGET, uniqu, nodei),
     forget_in(nlookup) {}
-};
+} virtio_fs_forget_req;
 
 #endif

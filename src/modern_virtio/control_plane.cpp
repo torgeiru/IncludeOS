@@ -79,7 +79,6 @@ void Virtio_control::_find_cap_cfgs() {
   while (offset) {
     uint32_t data    = _pcidev.read32(offset);
     uint8_t cap_vndr = static_cast<uint8_t>(data & 0xff);
-    uint8_t cap_len  = static_cast<uint8_t>((data >> 16) & 0xff);
     uint8_t cfg_type = static_cast<uint8_t>(data >> 24);
 
     /* Skipping other than vendor specific capability */

@@ -247,12 +247,12 @@ typedef struct __attribute__((packed)) fuse_write_in {
 		uint32_t write_flag, uint32_t flag)
 	: fh(f), offset(offse), size(siz), write_flags(write_flag),
 	  lock_owner(0), flags(flag), padding(0) {}
-};
+} fuse_write_in;
 
 typedef struct __attribute__((packed)) fuse_write_out {
 	uint32_t size;
 	uint32_t padding;
-};
+} fuse_write_out;
 
 typedef struct __attribute__((packed)) fuse_release_in {
 	uint64_t fh;
@@ -266,6 +266,6 @@ typedef struct __attribute__((packed)) fuse_release_in {
 typedef struct __attribute__((packed)) fuse_forget_in {
   uint64_t nlookup;
   fuse_forget_in(uint64_t nlooku) : nlookup(nlooku) {}
-};
+} fuse_forget_in;
 
 #endif // FILESYSTEM_IN_USERPSACE_HPP

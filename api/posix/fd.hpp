@@ -65,7 +65,7 @@ public:
   virtual int     shutdown(int) { return -1; }
 
   // file-related
-  virtual int   unlink(const char *pathname) { return -1; }
+  virtual int   unlink(const char */*pathname*/) { return -1; }
   virtual int   fchmod(mode_t) { return -1; }
   virtual int   fchmodat(const char *, mode_t, int) { return -1; }
   virtual long  fstat(struct stat *) { return -1; }

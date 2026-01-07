@@ -1,6 +1,6 @@
 #include "common.hpp"
 
-static long sys_access(const char *pathname, int mode) {
+static long sys_access(const char */*pathname*/, int /*mode*/) {
   return -ENOSYS;
 }
 

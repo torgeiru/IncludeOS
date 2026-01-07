@@ -9,7 +9,7 @@ long syscall_SYS_set_thread_area(struct user_desc *u_desc) {
 }
 
 extern "C"
-long syscall_SYS_arch_prctl(int code, uintptr_t ptr) {
+long syscall_SYS_arch_prctl(int /*code*/, uintptr_t /*ptr*/) {
   os::panic("Arch_prctl is specific to x86!");
   return -ENOSYS;
 }

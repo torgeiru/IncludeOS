@@ -11,7 +11,7 @@
 using util::bits::is_aligned;
 Split_queue::Split_queue(Virtio_control& virtio_dev, int vqueue_id, 
   bool use_polling, uint8_t msix_vector)
-: _virtio_dev(virtio_dev), _VQUEUE_ID(vqueue_id), _last_used_idx(0)
+: _last_used_idx(0), _VQUEUE_ID(vqueue_id), _virtio_dev(virtio_dev)
 {
   /* Selecting specific virtqueue */
   auto& cfg = _virtio_dev.common_cfg();
