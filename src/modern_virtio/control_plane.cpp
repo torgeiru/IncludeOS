@@ -1,5 +1,6 @@
+#include <os>
 #include <modern_virtio/control_plane.hpp>
-#include <kernel/memory.hpp>
+// #include <kernel/memory.hpp>
 #include <info>
 #include <hw/pci.hpp>
 
@@ -37,9 +38,9 @@ Virtio_control::Virtio_control(
   _virtio_panic(rev_id_ok);
   
   // Dirty hack for 64 bit bars. TODO: Just map the entire bar region.
-  using namespace util::bitops;
-  const auto flags = os::mem::Access::read | os::mem::Access::write;
-  os::mem::map({(uintptr_t)0xda80000000, (uintptr_t)0xda80000000, flags, 0x4000}, "Virtio PCI");
+  // using namespace util::bitops;
+  // const auto flags = os::mem::Access::read | os::mem::Access::write;
+  // os::mem::map({(uintptr_t)0xda80000000, (uintptr_t)0xda80000000, flags, 0x4000}, "Virtio PCI");
 
   /* Finding Virtio structures */
   _find_cap_cfgs();
