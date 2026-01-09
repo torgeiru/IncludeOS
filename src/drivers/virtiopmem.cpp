@@ -3,13 +3,16 @@
 #include <info>
 #include <os>
 
-VirtioPMEM_device::VirtioPMEM_device(hw::PCI_Device& d) : Virtio_control(d),
+#define VIRTIOPMEM_REQUIRED_FEATS 0
+#define VIRTIOPMEM_OPTIONAL_FEATS 0
+
+VirtioPMEM_device::VirtioPMEM_device(hw::PCI_Device& d) :
+  Virtio_control(d, VIRTIOPMEM_REQUIRED_FEATS, VIRTIOPMEM_OPTIONAL_FEATS),
 _req(*this, 0, true) {
   static int id_count = 0;
   _id = id_count++;
   _config = reinterpret_cast<virtio_pmem_config*>(specific_cfg());
 
-  negotiate_features(0, 0);
   set_driver_ok_bit();
   INFO("VirtioPMEM", "Initializing VirtioPMEM was a success!");
 }

@@ -8,22 +8,22 @@
 #include <modern_virtio/control_plane.hpp>
 #include <modern_virtio/split_queue.hpp>
 
-typedef struct __attribute__((packed)) { 
-  uint64_t start; 
-  uint64_t size; 
-} virtio_pmem_config; 
+typedef struct __attribute__((packed)) {
+  uint64_t start;
+  uint64_t size;
+} virtio_pmem_config;
 
 #define VIRTIO_PMEM_REQ_TYPE_FLUSH 0
-typedef struct __attribute__((packed)) { 
-  uint32_t type; 
+typedef struct __attribute__((packed)) {
+  uint32_t type;
 } virtio_pmem_req;
 
-typedef struct __attribute__((packed)) { 
-  uint32_t ret; 
+typedef struct __attribute__((packed)) {
+  uint32_t ret;
 } virtio_pmem_res;
 
-class VirtioPMEM_device : 
-  public Virtio_control, 
+class VirtioPMEM_device :
+  public Virtio_control,
   public hw::DAX_device
 {
 public:
@@ -49,12 +49,10 @@ public:
   /** Other */
   void flush() override;
   void deactivate() override;
-
 private:
   Split_queue _req;
   int _id;
   virtio_pmem_config *_config;
 };
-
 
 #endif // VIRTIO_PMEM_HPP
