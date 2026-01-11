@@ -3,6 +3,8 @@
 
 #include <algorithm>
 
+const uint32_t FUSE_BUFFER_HEADER_SIZE = 0x1000;
+
 /* FUSE opcodes copied directly from libfuse */
 enum fuse_opcode {
 	FUSE_LOOKUP          = 1,

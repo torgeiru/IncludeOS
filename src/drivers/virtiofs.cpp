@@ -58,6 +58,9 @@ VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
   CHECK(compatible_minor_version, "Daemon falls back to the driver supported minor FUSE version");
   Expects(compatible_minor_version);
 
+  _max_write = init_res.init_out.max_write - FUSE_BUFFER_HEADER_SIZE;
+  INFO("VirtioFS_device", "Maximum write request is %zu", _max_write);
+
   /* Finalizing initialization */
   fs::Filesystem fs {
     {this, &VirtioFS_device::open},
@@ -249,6 +252,10 @@ ssize_t VirtioFS_device::write(int fd, const void *buf, size_t count) {
     os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
   }
 
+  if (count > _max_write) {
+    count = _max_write;
+  }
+
   uint64_t fh = _fd_info_map[fd].fh;
   fuse_ino_t ino = _fd_info_map[fd].ino;
   off_t offset = _fd_info_map[fd].offset;
@@ -298,21 +305,12 @@ ssize_t VirtioFS_device::writev(int fd, const struct iovec *iov, int iovcnt) {
     os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
   }
 
-  INFO("VirtioFS", "Executing writev");
-
   uint64_t fh = _fd_info_map[fd].fh;
   fuse_ino_t ino = _fd_info_map[fd].ino;
   off_t offset = _fd_info_map[fd].offset;
 
-  /* Calculating the number of bytes to read */
-  size_t count = 0;
-  for (int i = 0; i < iovcnt; ++i) {
-    count += iov[i].iov_len;
-  }
-
   /* FUSE read request */
-  virtio_fs_write_req write_req(fh, offset, count, _unique_counter++, ino); // TODO: Do a static cast here
-  virtio_fs_write_res write_res{};
+  virtio_fs_write_req write_req(fh, offset, _unique_counter++, ino);
 
   VirtTokens write_tokens;
   write_tokens.reserve(2 + iovcnt);
@@ -323,15 +321,30 @@ ssize_t VirtioFS_device::writev(int fd, const struct iovec *iov, int iovcnt) {
     sizeof(virtio_fs_write_req)
   );
 
+  uint32_t left_write_space = _max_write;
   for (int i = 0; i < iovcnt; ++i) {
     const struct iovec& io = iov[i];
-    write_tokens.emplace_back(
-      VIRTQ_DESC_F_NOFLAGS,
-      reinterpret_cast<uint8_t*>(io.iov_base),
-      io.iov_len
-    );
+    uint32_t cur_buf_size = iov[i].iov_len;
+    if (left_write_space > cur_buf_size) {
+      write_tokens.emplace_back(
+        VIRTQ_DESC_F_NOFLAGS,
+        reinterpret_cast<uint8_t*>(io.iov_base),
+        cur_buf_size
+      );
+      write_req.increment_lengths(cur_buf_size);
+      left_write_space -= cur_buf_size;
+    } else {
+      write_tokens.emplace_back(
+        VIRTQ_DESC_F_NOFLAGS,
+        reinterpret_cast<uint8_t*>(io.iov_base),
+        left_write_space
+      );
+      write_req.increment_lengths(left_write_space);
+      break;
+    }
   }
-
+  
+  virtio_fs_write_res write_res{};
   write_tokens.emplace_back(
     VIRTQ_DESC_F_WRITE,
     reinterpret_cast<uint8_t*>(&write_res),
@@ -408,8 +421,6 @@ ssize_t VirtioFS_device::readv(int fd, const struct iovec *iov, int iovcnt) {
   if (not _fd_info_map.contains(fd)) {
     os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
   }
-
-  INFO("VirtioFS", "Executing readv");
 
   uint64_t fh = _fd_info_map[fd].fh;
   fuse_ino_t ino = _fd_info_map[fd].ino;

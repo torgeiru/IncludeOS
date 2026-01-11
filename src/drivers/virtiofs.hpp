@@ -54,6 +54,8 @@ private:
   uint64_t _unique_counter;
   int _id;
 
+  uint32_t _max_write;
+
   fuse_ino_t _lookup_inode( const char *path, size_t pathlen);
 
   /** Helper methods for open and creat */
@@ -141,6 +143,15 @@ typedef struct __attribute__((packed)) virtio_fs_write_req {
   virtio_fs_write_req(uint64_t f, uint64_t offse, uint32_t siz, uint64_t uniqu, uint64_t nodei)
   : in_header(sizeof(fuse_write_in) + siz, FUSE_WRITE, uniqu, nodei),
     write_in(f, offse, siz, 0, 0) {}
+
+  virtio_fs_write_req(uint64_t f, uint64_t offse, uint64_t uniqu, uint64_t nodei)
+  : in_header(sizeof(fuse_write_in), FUSE_WRITE, uniqu, nodei),
+    write_in(f, offse, 0, 0, 0) {}
+
+  inline void increment_lengths(uint32_t len) {
+    in_header.len += len;
+    write_in.size += len;
+  }
 } virtio_fs_write_req;
 
 typedef struct __attribute__((packed)) virtio_fs_write_res {
