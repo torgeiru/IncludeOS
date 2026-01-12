@@ -116,6 +116,12 @@ void Split_queue::enqueue(VirtTokens& tokens) {
   /* Memory fence before incrementing idx according to §2.7.13 (Virtio 1.3) */
   std::atomic_thread_fence(std::memory_order_release);
   ++_avail_ring->idx;
+
+  /* Memory fence before checking for notification suppression according §2.7.13.4.1 (Virtio 1.3) */
+  std::atomic_thread_fence(std::memory_order_seq_cst);
+  if (_used_ring->flags == VIRTQ_USED_F_NOTIFY) {
+    _notify_device();
+  }
 }
   
 VirtTokens Split_queue::dequeue(uint32_t *device_written_len) {
@@ -161,12 +167,4 @@ VirtTokens Split_queue::dequeue(uint32_t *device_written_len) {
   /* Incrementing last used idx and return tokens */
   ++_last_used_idx;
   return tokens;
-}
-
-void Split_queue::kick() {
-  /* Memory fence before checking for notification suppression according §2.7.13.4.1 (Virtio 1.3) */
-  std::atomic_thread_fence(std::memory_order_release);
-  if (_used_ring->flags == VIRTQ_USED_F_NOTIFY) {
-    _notify_device();
-  }
 }

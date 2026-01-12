@@ -45,8 +45,6 @@ VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
   );
 
   _req.enqueue(init_req_tokens);
-  _req.kick();
-
   while(_req.has_processed_used());
   _req.dequeue();
 
@@ -123,8 +121,6 @@ fuse_ino_t VirtioFS_device::_lookup_inode(const char *path, size_t pathlen) {
   );
 
   _req.enqueue(lookup_tokens);
-  _req.kick();
-
   while(_req.has_processed_used());
   _req.dequeue();
 
@@ -159,8 +155,6 @@ int VirtioFS_device::_open_exist(int fd, const char *path,
   );
 
   _req.enqueue(open_tokens);
-  _req.kick();
-
   while(_req.has_processed_used());
   _req.dequeue();
 
@@ -201,8 +195,6 @@ int VirtioFS_device::_open_creat(int fd, const char *path,
   );
 
   _req.enqueue(creat_tokens);
-  _req.kick();
-
   while(_req.has_processed_used());
   _req.dequeue();
 
@@ -284,8 +276,6 @@ ssize_t VirtioFS_device::write(int fd, const void *buf, size_t count) {
   );
 
   _req.enqueue(write_tokens);
-  _req.kick();
-
   while(_req.has_processed_used());
   _req.dequeue();
 
@@ -352,8 +342,6 @@ ssize_t VirtioFS_device::writev(int fd, const struct iovec *iov, int iovcnt) {
   );
 
   _req.enqueue(write_tokens);
-  _req.kick();
-
   while(_req.has_processed_used());
   _req.dequeue();
 
@@ -401,8 +389,6 @@ ssize_t VirtioFS_device::read(int fd, void *buf, size_t count) {
   );
 
   _req.enqueue(read_tokens);
-  _req.kick();
-
   while(_req.has_processed_used());
   _req.dequeue();
 
@@ -460,8 +446,6 @@ ssize_t VirtioFS_device::readv(int fd, const struct iovec *iov, int iovcnt) {
   }
 
   _req.enqueue(read_tokens);
-  _req.kick();
-
   while(_req.has_processed_used());
   _req.dequeue();
 
@@ -503,8 +487,6 @@ int VirtioFS_device::close(int fd) {
   );
 
   _req.enqueue(close_tokens);
-  _req.kick();
-
   while(_req.has_processed_used());
   _req.dequeue();
 
@@ -524,8 +506,6 @@ int VirtioFS_device::close(int fd) {
   );
 
   _hiprio.enqueue(forget_tokens);
-  _hiprio.kick();
-
   while(_hiprio.has_processed_used());
   _hiprio.dequeue();
 
@@ -558,8 +538,6 @@ int VirtioFS_device::unlink(const char *pathname) {
   );
 
   _req.enqueue(unlink_tokens);
-  _req.kick();
-
   while(_req.has_processed_used());
   _req.dequeue();
 
