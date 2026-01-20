@@ -57,7 +57,7 @@ VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
   Expects(compatible_minor_version);
 
   _max_write = init_res.init_out.max_write - FUSE_BUFFER_HEADER_SIZE;
-  INFO("VirtioFS_device", "Maximum write request is %zu", _max_write);
+  INFO("VirtioFS_device", "Maximum write request is %u", _max_write);
 
   /* Finalizing initialization */
   fs::Filesystem fs {
@@ -69,7 +69,7 @@ VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
     {this, &VirtioFS_device::lseek},
     {this, &VirtioFS_device::close},
     {this, &VirtioFS_device::unlink}
-    // Add IO_uring here!
+    // Add AIO here!
   };
   fs::VFS::register_filesystem(device_name(), fs);
 

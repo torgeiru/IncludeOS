@@ -52,7 +52,6 @@ void VirtioPMEM_device::flush() {
   );
 
   _req.enqueue(flush_tokens);
-  _req.kick();
   while(_req.has_processed_used());
   _req.dequeue();
 
