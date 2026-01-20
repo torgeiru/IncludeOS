@@ -69,7 +69,6 @@ VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
     {this, &VirtioFS_device::lseek},
     {this, &VirtioFS_device::close},
     {this, &VirtioFS_device::unlink}
-    // Add AIO here!
   };
   fs::VFS::register_filesystem(device_name(), fs);
 
