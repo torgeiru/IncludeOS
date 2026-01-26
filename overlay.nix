@@ -198,7 +198,7 @@ final: prev: {
 
       passthru.vmrunner = prev.callPackage (builtins.fetchGit {
           url = "https://github.com/torgeiru/vmrunner";
-          ref = "benchmarking";
+          ref = "master";
         }) {};
       passthru.diskbuilder = prev.callPackage (builtins.fetchGit {
           url = "https://github.com/includeos/diskbuilder";

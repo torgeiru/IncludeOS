@@ -2,10 +2,14 @@
 #ifndef VIRTIO_FILESYSTEM_HPP
 #define VIRTIO_FILESYSTEM_HPP
 
+#include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
-#include <sys/uio.h>
+#include <fs/filesystem.hpp>
+
+#include <sys/uio.h> // iovec structure
 #include <sys/types.h>
 #include <cstring>
 
@@ -14,57 +18,6 @@
 #include <modern_virtio/control_plane.hpp>
 #include <modern_virtio/split_queue.hpp>
 #include <fuse/fuse.hpp>
-
-typedef struct {
-  uint64_t fh;
-  fuse_ino_t ino;
-  off_t offset;
-} fd_info;
-
-class VirtioFS_device :
-  public hw::VFS_device
-{
-public:
-  /** Constructor and VirtioFS driver factory */
-  VirtioFS_device(hw::PCI_Device& d);
-
-  void deactivate() override;
-  void flush() override;
-
-  static std::unique_ptr<hw::VFS_device> new_instance(hw::PCI_Device& d);
-
-  int id() const noexcept override;
-
-  /** Overriden device base functions */
-  std::string device_name() const override;
-
-  /** Implemented VFS operations */
-  int open(int fd, const char *path, int flags, mode_t mode);
-  off_t lseek(int fd, off_t offset, int whence);
-  ssize_t write(int fd, const void *buf, size_t count);
-  ssize_t writev(int fd, const struct iovec *iov, int iovcnt);
-  ssize_t read(int fd, void *buf, size_t count);
-  ssize_t readv(int fd, const struct iovec *iov, int iovcnt);
-  int close(int fd);
-  int unlink(const char *pathname);
-private:
-  Virtio_control _control;
-  Split_queue _hiprio, _req;
-  std::unordered_map<int, fd_info> _fd_info_map;
-  uint64_t _unique_counter;
-  int _id;
-
-  uint32_t _max_write;
-
-  fuse_ino_t _lookup_inode( const char *path, size_t pathlen);
-
-  /** Helper methods for open and creat */
-  int _open_exist(int fd, const char *path,
-    size_t pathlen, int flags);
-
-  int _open_creat(int fd, const char *path,
-    size_t pathlen, int flags, mode_t mode);
-};
 
 #define FUSE_MAJOR_VERSION 7
 #define FUSE_MINOR_VERSION_MIN 36
@@ -191,5 +144,99 @@ typedef struct __attribute__((packed)) virtio_fs_forget_req {
   : in_header(sizeof(fuse_forget_in), FUSE_FORGET, uniqu, nodei),
     forget_in(nlookup) {}
 } virtio_fs_forget_req;
+
+typedef struct {
+  uint64_t req_idx;
+  bool is_write_request;
+  void *req_body_buf;
+  void *res_body_buf;
+} async_request_info;
+
+typedef struct {
+  uint64_t fh;
+  fuse_ino_t ino;
+  off_t offset;
+  bool is_async_setup;
+  int max_inflight_reads;
+  int max_inflight_writes;
+
+  std::vector<virtio_fs_read_req*> free_read_req_bodies;
+  std::vector<virtio_fs_read_res*> free_read_res_bodies;
+  std::vector<virtio_fs_write_req*> free_write_req_bodies;
+  std::vector<virtio_fs_write_res*> free_write_res_bodies;
+
+  std::vector<async_request_info> async_requests_info;
+} fd_info;
+
+class VirtioFS_device : public hw::VFS_device
+{
+public:
+  /** Constructor and VirtioFS driver factory */
+  VirtioFS_device(hw::PCI_Device& d);
+
+  void deactivate() override;
+  void flush() override;
+
+  static std::unique_ptr<hw::VFS_device> new_instance(hw::PCI_Device& d);
+
+  int id() const noexcept override;
+
+  /** Overriden device base functions */
+  std::string device_name() const override;
+
+  /** Implemented POSIX VFS operations */
+  int open(int fd, const char *path, int flags, mode_t mode);
+  off_t lseek(int fd, off_t offset, int whence);
+  ssize_t write(int fd, const void *buf, size_t count);
+  ssize_t writev(int fd, const struct iovec *iov, int iovcnt);
+  ssize_t read(int fd, void *buf, size_t count);
+  ssize_t readv(int fd, const struct iovec *iov, int iovcnt);
+  int close(int fd);
+  int unlink(const char *pathname);
+
+  /** Custom VirtioFS IncludeOS async IO.
+   *  Use this for HIGH performance request pipelining!
+   */
+  int async_setup(int fd, int max_inflight_reads, int max_inflight_writes);
+  int async_destroy(int fd);
+  int async_read(fs::asyncb *asyncbp);
+  int async_write(fs::asyncb *asyncbp);
+  int async_inprogress(fs::asyncb *asyncbp);
+  ssize_t async_return(fs::asyncb *asyncbp);
+private:
+  Virtio_control _control;
+  Split_queue _hiprio, _req;
+  std::vector<uint64_t> _async_queue;
+  std::unordered_map<int, fd_info> _fd_info_map; // TODO: Switch with std::vector/ or flat_map (faster with smaller N)
+  uint64_t _unique_counter;
+  int _id;
+
+  /* Data members related FUSE */
+  uint32_t _max_write;
+
+  /* Sync and async read and write functions use these helper functions */
+  void _dispatch_read_req(virtio_fs_read_req *read_req_body,
+    virtio_fs_read_res *read_res_body, void *buf, size_t count);
+  void _dispatch_write_req(virtio_fs_write_req *write_req_body,
+    virtio_fs_write_res *write_res_body, const void *buf, size_t count);
+
+  /* Queue checking helper functions */
+  bool _check_async_queue(uint64_t req_idx);
+  void _check_req_queue_block(uint64_t req_idx);
+  bool _check_req_queue_nonblock(uint64_t req_idx);
+
+  /* Blocking and non-blocking alternatives for your request */
+  void _check_queues_block(uint64_t req_idx);
+  bool _check_queues_nonblock(uint64_t req_idx);
+
+  fuse_ino_t _lookup_inode(const char *path, size_t pathlen);
+
+  /** Helper methods for open and creat */
+  int _open_exist(int fd, const char *path,
+    size_t pathlen, int flags);
+
+  int _open_creat(int fd, const char *path,
+    size_t pathlen, int flags, mode_t mode);
+};
 
 #endif

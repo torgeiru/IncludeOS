@@ -1,12 +1,13 @@
 #include "virtiofs.hpp"
 
-#include <memory>
+#include <algorithm>
 #include <string>
 #include <cstring>
+
 #include <fcntl.h>
+#include <errno.h>
 
 #include <fs/vfs.hpp>
-#include <fs/filesystem.hpp>
 #include <hw/pci_manager.hpp>
 #include <info>
 
@@ -45,8 +46,7 @@ VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
   );
 
   _req.enqueue(init_req_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _check_queues_block(init_req.in_header.unique);
 
   bool compatible_major_version = (FUSE_MAJOR_VERSION == init_res.init_out.major);
   CHECK(compatible_major_version, "Daemon and driver major FUSE version matches");
@@ -68,7 +68,13 @@ VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
     {this, &VirtioFS_device::writev},
     {this, &VirtioFS_device::lseek},
     {this, &VirtioFS_device::close},
-    {this, &VirtioFS_device::unlink}
+    {this, &VirtioFS_device::unlink},
+    {this, &VirtioFS_device::async_setup},
+    {this, &VirtioFS_device::async_destroy},
+    {this, &VirtioFS_device::async_read},
+    {this, &VirtioFS_device::async_write},
+    {this, &VirtioFS_device::async_inprogress},
+    {this, &VirtioFS_device::async_return}
   };
   fs::VFS::register_filesystem(device_name(), fs);
 
@@ -96,6 +102,109 @@ std::string VirtioFS_device::device_name() const {
   return "VirtioFS" + std::to_string(_id);
 }
 
+bool VirtioFS_device::_check_async_queue(uint64_t req_idx) {
+  auto it = std::find(_async_queue.begin(), _async_queue.end(), req_idx);
+  if (it != _async_queue.end()) {
+    _async_queue.erase(it);
+    return true;
+  }
+
+  return false;
+}
+
+void VirtioFS_device::_check_req_queue_block(uint64_t req_idx) {
+  while(true) {
+    while(_req.has_processed_used());
+    VirtTokens tokens = _req.dequeue();
+    fuse_in_header *header = reinterpret_cast<fuse_in_header*>(tokens[0].buffer.data());
+    if (header->unique == req_idx) {
+      return;
+    }
+    _async_queue.push_back(header->unique);
+  }
+}
+
+bool VirtioFS_device::_check_req_queue_nonblock(uint64_t req_idx) {
+  if (_req.has_processed_used()) {
+    return false;
+  }
+
+  VirtTokens tokens = _req.dequeue();
+  fuse_in_header *header = reinterpret_cast<fuse_in_header*>(tokens[0].buffer.data());
+  if (header->unique == req_idx) {
+    return true;
+  }
+
+  _async_queue.push_back(header->unique);
+  return false;
+}
+
+void VirtioFS_device::_check_queues_block(uint64_t req_idx) {
+  if (_check_async_queue(req_idx)) {
+    return;
+  }
+
+  _check_req_queue_block(req_idx);
+}
+
+bool VirtioFS_device::_check_queues_nonblock(uint64_t req_idx) {
+  if (_check_async_queue(req_idx)) {
+    return true;
+  }
+
+  return _check_req_queue_nonblock(req_idx);
+}
+
+void VirtioFS_device::_dispatch_read_req(virtio_fs_read_req *read_req_body,
+  virtio_fs_read_res *read_res_body, void *buf, size_t count) {
+
+  VirtTokens read_tokens;
+  read_tokens.reserve(3);
+
+  read_tokens.emplace_back(
+    VIRTQ_DESC_F_NOFLAGS,
+    reinterpret_cast<uint8_t*>(read_req_body),
+    sizeof(virtio_fs_read_req)
+  );
+  read_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(read_res_body),
+    sizeof(virtio_fs_read_res)
+  );
+  read_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(buf),
+    count
+  );
+
+  _req.enqueue(read_tokens);
+}
+
+void VirtioFS_device::_dispatch_write_req(virtio_fs_write_req *write_req_body,
+  virtio_fs_write_res *write_res_body, const void *buf, size_t count) {
+  
+  VirtTokens write_tokens;
+  write_tokens.reserve(3);
+
+  write_tokens.emplace_back(
+    VIRTQ_DESC_F_NOFLAGS,
+    reinterpret_cast<uint8_t*>(write_req_body),
+    sizeof(virtio_fs_write_req)
+  );
+  write_tokens.emplace_back(
+    VIRTQ_DESC_F_NOFLAGS,
+    (uint8_t*)buf,
+    count
+  );
+  write_tokens.emplace_back(
+    VIRTQ_DESC_F_WRITE,
+    reinterpret_cast<uint8_t*>(write_res_body),
+    sizeof(virtio_fs_write_res)
+  );
+
+  _req.enqueue(write_tokens);
+}
+
 fuse_ino_t VirtioFS_device::_lookup_inode(const char *path, size_t pathlen) {
   /* FUSE lookup */
   virtio_fs_lookup_req lookup_req(pathlen + 1, _unique_counter++, FUSE_ROOT_ID);
@@ -120,8 +229,7 @@ fuse_ino_t VirtioFS_device::_lookup_inode(const char *path, size_t pathlen) {
   );
 
   _req.enqueue(lookup_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _check_queues_block(lookup_req.in_header.unique);
 
   if (lookup_res.out_header.error != 0) {
     return -1;
@@ -154,8 +262,7 @@ int VirtioFS_device::_open_exist(int fd, const char *path,
   );
 
   _req.enqueue(open_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _check_queues_block(open_req.in_header.unique);
 
   if (open_res.out_header.error != 0) {
     return open_res.out_header.error;
@@ -163,7 +270,7 @@ int VirtioFS_device::_open_exist(int fd, const char *path,
 
   /* Inserting into fh_ino mapping */
   uint64_t fh = open_res.open_out.fh;
-  _fd_info_map[fd] = {fh, ino, 0};
+  _fd_info_map[fd] = {fh, ino, 0, false, 0, 0, {}, {}, {}, {}, {}};
 
   return 0;
 }
@@ -194,8 +301,7 @@ int VirtioFS_device::_open_creat(int fd, const char *path,
   );
 
   _req.enqueue(creat_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _check_queues_block(creat_req.in_header.unique);
 
   if (creat_res.out_header.error != 0) {
     return creat_res.out_header.error;
@@ -203,7 +309,7 @@ int VirtioFS_device::_open_creat(int fd, const char *path,
 
   fuse_ino_t ino = creat_res.entry_param.ino;
   uint64_t fh = creat_res.open_out.fh;
-  _fd_info_map[fd] = {fh, ino, 0};
+  _fd_info_map[fd] = {fh, ino, 0, false, 0, 0, {}, {}, {}, {}, {}};
 
   return 0;
 }
@@ -252,31 +358,11 @@ ssize_t VirtioFS_device::write(int fd, const void *buf, size_t count) {
   off_t offset = _fd_info_map[fd].offset;
 
   /* FUSE write request */
-  virtio_fs_write_req write_req(fh, offset, count, _unique_counter++, ino); // TODO: Do a static cast here
+  virtio_fs_write_req write_req(fh, offset, count, _unique_counter++, ino);
   virtio_fs_write_res write_res{};
 
-  VirtTokens write_tokens;
-  write_tokens.reserve(3);
-
-  write_tokens.emplace_back(
-    VIRTQ_DESC_F_NOFLAGS,
-    reinterpret_cast<uint8_t*>(&write_req),
-    sizeof(virtio_fs_write_req)
-  );
-  write_tokens.emplace_back(
-    VIRTQ_DESC_F_NOFLAGS,
-    (uint8_t*)buf,
-    count
-  );
-  write_tokens.emplace_back(
-    VIRTQ_DESC_F_WRITE,
-    reinterpret_cast<uint8_t*>(&write_res),
-    sizeof(virtio_fs_write_res)
-  );
-
-  _req.enqueue(write_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _dispatch_write_req(&write_req, &write_res, buf, count);
+  _check_queues_block(write_req.in_header.unique);
 
   if (write_res.out_header.error != 0) {
     return write_res.out_header.error;
@@ -341,8 +427,7 @@ ssize_t VirtioFS_device::writev(int fd, const struct iovec *iov, int iovcnt) {
   );
 
   _req.enqueue(write_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _check_queues_block(write_req.in_header.unique);
 
   if (write_res.out_header.error != 0) {
     return write_res.out_header.error;
@@ -368,28 +453,8 @@ ssize_t VirtioFS_device::read(int fd, void *buf, size_t count) {
   virtio_fs_read_req read_req(fh, offset, count, _unique_counter++, ino);
   virtio_fs_read_res read_res{};
 
-  VirtTokens read_tokens;
-  read_tokens.reserve(3);
-
-  read_tokens.emplace_back(
-    VIRTQ_DESC_F_NOFLAGS,
-    reinterpret_cast<uint8_t*>(&read_req),
-    sizeof(virtio_fs_read_req)
-  );
-  read_tokens.emplace_back(
-    VIRTQ_DESC_F_WRITE,
-    reinterpret_cast<uint8_t*>(&read_res),
-    sizeof(virtio_fs_read_res)
-  );
-  read_tokens.emplace_back(
-    VIRTQ_DESC_F_WRITE,
-    reinterpret_cast<uint8_t*>(buf),
-    count
-  );
-
-  _req.enqueue(read_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _dispatch_read_req(&read_req, &read_res, buf, count);
+  _check_queues_block(read_req.in_header.unique);
 
   if (read_res.out_header.error != 0) {
     return read_res.out_header.error;
@@ -445,8 +510,7 @@ ssize_t VirtioFS_device::readv(int fd, const struct iovec *iov, int iovcnt) {
   }
 
   _req.enqueue(read_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _check_queues_block(read_req.in_header.unique);
 
   if (read_res.out_header.error != 0) {
     return read_res.out_header.error;
@@ -486,8 +550,7 @@ int VirtioFS_device::close(int fd) {
   );
 
   _req.enqueue(close_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _check_queues_block(close_req.in_header.unique);
 
   if (close_res.out_header.error != 0) {
     return close_res.out_header.error;
@@ -537,14 +600,226 @@ int VirtioFS_device::unlink(const char *pathname) {
   );
 
   _req.enqueue(unlink_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _check_queues_block(unlink_req.in_header.unique);
 
   if (unlink_res.out_header.error != 0) {
     return unlink_res.out_header.error;
   }
 
   return 0;
+}
+
+int VirtioFS_device::async_setup(int fd, int max_inflight_reads, int max_inflight_writes) {
+  if (not _fd_info_map.contains(fd)) {
+    os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
+  }
+
+  fd_info& info = _fd_info_map[fd];
+  if (info.is_async_setup) {
+    return -1;
+  }
+
+  info.is_async_setup = true;
+  info.max_inflight_reads = max_inflight_reads;
+  info.max_inflight_writes = max_inflight_writes;
+  
+  /* Preallocating read request and response body buffers */
+  info.free_read_req_bodies.reserve(max_inflight_reads);
+  info.free_read_res_bodies.reserve(max_inflight_reads);
+
+  for (int i = 0; i < max_inflight_reads; ++i) {
+    void *read_req_body = std::malloc(sizeof(virtio_fs_read_req));
+    Expectsf(read_req_body != nullptr, "Failed to allocate read a request body buffer");
+    info.free_read_req_bodies.push_back(reinterpret_cast<virtio_fs_read_req*>(read_req_body));
+
+    void *read_res_body = std::malloc(sizeof(virtio_fs_read_res));
+    Expectsf(read_res_body != nullptr, "Failed to allocate read a response body buffer");
+    info.free_read_res_bodies.push_back(reinterpret_cast<virtio_fs_read_res*>(read_res_body));
+  }
+
+  /* Preallocating write request and response body buffers */
+  info.free_write_req_bodies.reserve(max_inflight_writes);
+  info.free_write_res_bodies.reserve(max_inflight_writes);
+
+  for (int i = 0; i < max_inflight_writes; ++i) {
+    void *write_req_body = std::malloc(sizeof(virtio_fs_write_req));
+    Expectsf(write_req_body != nullptr, "Failed to allocate write a request body buffer");
+    info.free_write_req_bodies.push_back(reinterpret_cast<virtio_fs_write_req*>(write_req_body));
+
+    void *write_res_body = std::malloc(sizeof(virtio_fs_write_res));
+    Expectsf(write_res_body != nullptr, "Failed to allocate write a response body buffer");
+    info.free_write_res_bodies.push_back(reinterpret_cast<virtio_fs_write_res*>(write_res_body));
+  }
+
+  return 0;
+}
+
+int VirtioFS_device::async_destroy(int fd) {
+  if (not _fd_info_map.contains(fd)) {
+    os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
+  }
+
+  fd_info& info = _fd_info_map[fd];
+  if (info.is_async_setup) {
+    return -1;
+  }
+
+  if (info.is_async_setup) {
+    return -1;
+  }
+  info.is_async_setup = false;
+
+  auto& free_read_req_bodies = info.free_read_req_bodies;
+  auto& free_write_req_bodies = info.free_write_req_bodies;
+
+  Expectsf(free_read_req_bodies.size() == info.max_inflight_reads,
+    "Trying to async destroy without having completed all ongoing read requests!");
+  Expectsf(free_write_req_bodies.size() == info.max_inflight_writes,
+    "Trying to async destroy without having completed all ongoing write requests!");
+
+  /* Releasing memory for all the allocated read body buffers */
+  auto& free_read_res_bodies = info.free_read_res_bodies;
+  
+  while(free_read_req_bodies.size() > 0) {
+    std::free(free_read_req_bodies.back());
+    free_read_req_bodies.pop_back();
+    std::free(free_read_res_bodies.back());
+    free_read_res_bodies.pop_back();
+  }
+
+  /* Releasing memory for all the allocated write body buffers */
+  auto& free_write_res_bodies = info.free_write_res_bodies;
+  
+  while(free_write_req_bodies.size() > 0) {
+    std::free(free_write_req_bodies.back());
+    free_write_req_bodies.pop_back();
+    std::free(free_write_res_bodies.back());
+    free_write_res_bodies.pop_back();
+  }
+
+  /* Releasing unused capacity for free list vectors */
+  info.free_read_req_bodies.shrink_to_fit();
+  info.free_read_res_bodies.shrink_to_fit();
+  info.free_write_req_bodies.shrink_to_fit();
+  info.free_write_res_bodies.shrink_to_fit();
+
+  return 0;
+}
+
+int VirtioFS_device::async_read(fs::asyncb *asyncbp) {
+  int fd = asyncbp->fd;
+  
+  if (not _fd_info_map.contains(fd)) {
+    os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
+  }
+
+  auto& info = _fd_info_map[fd];
+
+  // check if there is an available async read request slot
+  if (info.free_read_req_bodies.size() == 0) {
+    return -1;
+  }
+
+  // allocate read request and response body buffers
+  virtio_fs_read_req *read_req_body = reinterpret_cast<virtio_fs_read_req*>(info.free_read_req_bodies.back());
+  info.free_read_req_bodies.pop_back();
+  virtio_fs_read_res *read_res_body = reinterpret_cast<virtio_fs_read_res*>(info.free_read_res_bodies.back());
+  info.free_read_res_bodies.pop_back();
+  
+  // placement initialize the body buffers
+  uint64_t fh = _fd_info_map[fd].fh;
+  fuse_ino_t ino = _fd_info_map[fd].ino;
+
+  new (read_req_body) virtio_fs_read_req(fh, asyncbp->offset, asyncbp->count, _unique_counter++, ino);
+  new (read_res_body) virtio_fs_read_res{};
+
+  _dispatch_read_req(read_req_body, read_res_body, asyncbp->buf, asyncbp->count);
+
+  return 0;
+}
+
+int VirtioFS_device::async_write(fs::asyncb *asyncbp) {
+  int fd = asyncbp->fd;
+
+  if (not _fd_info_map.contains(fd)) {
+    os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
+  }
+
+  auto& info = _fd_info_map[fd];
+
+  // check if there is an available async write request slot
+  if (info.free_write_req_bodies.size() == 0) {
+    return -1;
+  }
+
+  // allocate write request and response body buffers
+  virtio_fs_write_req *write_req_body = reinterpret_cast<virtio_fs_write_req*>(info.free_write_req_bodies.back());
+  info.free_write_req_bodies.pop_back();
+  virtio_fs_write_res *write_res_body = reinterpret_cast<virtio_fs_write_res*>(info.free_write_res_bodies.back());
+  info.free_write_res_bodies.pop_back();
+
+  // placement initialize the body buffers
+  uint64_t fh = _fd_info_map[fd].fh;
+  fuse_ino_t ino = _fd_info_map[fd].ino;
+
+  new (write_req_body) virtio_fs_write_req(fh, asyncbp->offset, asyncbp->count, _unique_counter++, ino);
+  new (write_res_body) virtio_fs_write_res{};
+
+  _dispatch_write_req(write_req_body, write_res_body, asyncbp->buf, asyncbp->count);
+
+  return 0;
+}
+
+int VirtioFS_device::async_inprogress(fs::asyncb *asyncbp) {
+  int fd = asyncbp->fd;
+  
+  if (not _fd_info_map.contains(fd)) {
+    os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
+  }
+
+  uint64_t req_idx = asyncbp->req_idx;
+
+  bool request_completed = _check_queues_nonblock(req_idx);
+  if (request_completed) {
+    auto& info = _fd_info_map[fd];
+    auto& async_requests_info = info.async_requests_info;
+
+    auto it = std::find_if(
+      async_requests_info.begin(),
+      async_requests_info.end(), [req_idx](const async_request_info& entry) {
+        return (entry.req_idx == req_idx);
+      });
+
+    if (it == async_requests_info.end()) {
+      os::panic("Async request completed but there is no entry in async requests info!");
+    }
+
+    const async_request_info& entry = *it;
+    if (entry.is_write_request) {
+      info.free_write_req_bodies.push_back(
+        reinterpret_cast<virtio_fs_write_req*>(entry.req_body_buf));
+      info.free_write_res_bodies.push_back(
+        reinterpret_cast<virtio_fs_write_res*>(entry.res_body_buf));
+    } else {
+      info.free_read_req_bodies.push_back(
+        reinterpret_cast<virtio_fs_read_req*>(entry.req_body_buf));
+      info.free_read_res_bodies.push_back(
+        reinterpret_cast<virtio_fs_read_res*>(entry.res_body_buf));
+    }
+
+    async_requests_info.erase(it);
+    return 0;
+  }
+
+  return EINPROGRESS;
+}
+
+ssize_t VirtioFS_device::async_return(fs::asyncb *asyncbp) {
+  if (not _fd_info_map.contains(asyncbp->fd)) {
+    os::panic("Bad file descriptor that should not happen.\nProbably a bug in the VFS layer");
+  }
+
+  return asyncbp->ret;
 }
 
 __attribute__((constructor))

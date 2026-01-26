@@ -20,6 +20,8 @@
 #include <limits.h>
 #include <sys/uio.h>
 
+/* TODO: Integrate FCNTL */
+
 ssize_t File_FD::read(void* buf, size_t count)
 {
   return _fs.read(get_id(), buf, count);
@@ -48,4 +50,28 @@ int File_FD::close() {
 
 int File_FD::unlink(const char *pathname) {
   return _fs.unlink(pathname);
+}
+
+int File_FD::async_setup(int fd, int max_inflight_reads, int max_inflight_writes) {
+  return _fs.async_setup(fd, max_inflight_reads, max_inflight_writes);
+}
+
+int File_FD::async_destroy(int fd) {
+  return _fs.async_destroy(fd);
+}
+
+int File_FD::async_read(fs::asyncb *asyncbp) {
+  return _fs.async_read(asyncbp);
+}
+
+int File_FD::async_write(fs::asyncb *asyncbp) {
+  return _fs.async_write(asyncbp);
+}
+
+int File_FD::async_inprogress(fs::asyncb *asyncbp) {
+  return _fs.async_inprogress(asyncbp);
+}
+
+ssize_t File_FD::async_return(fs::asyncb *asyncbp) {
+  return _fs.async_return(asyncbp);
 }

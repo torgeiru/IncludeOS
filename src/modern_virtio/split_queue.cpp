@@ -118,7 +118,7 @@ void Split_queue::enqueue(VirtTokens& tokens) {
   ++_avail_ring->idx;
 
   /* Memory fence before checking for notification suppression according §2.7.13.4.1 (Virtio 1.3) */
-  std::atomic_thread_fence(std::memory_order_seq_cst);
+  std::atomic_thread_fence(std::memory_order_acq_rel);
   if (_used_ring->flags == VIRTQ_USED_F_NOTIFY) {
     _notify_device();
   }

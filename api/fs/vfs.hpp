@@ -27,6 +27,12 @@ namespace fs {
         static ssize_t vfs_writev(int fd, const struct iovec* iov, int iovcnt);
         static int vfs_close(int fd);
         static int vfs_unlink(Path& path);
+        static int vfs_async_setup(int fd, int max_inflight_reads, int max_inflight_writes);
+        static int vfs_async_destroy(int fd);
+        static int vfs_async_read(fs::asyncb *asyncbp);
+        static int vfs_async_write(fs::asyncb *asyncbp);
+        static int vfs_async_inprogress(fs::asyncb *asyncbp);
+        static int vfs_async_return(fs::asyncb *asyncbp);
     private:
         VFS_mounts _mounts;
     };

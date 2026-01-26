@@ -147,3 +147,75 @@ int fs::VFS::vfs_unlink(Path& path) {
     
     return -ENOSYS;
 }
+
+int fs::VFS::vfs_async_setup(int fd, int max_inflight_reads, int max_inflight_writes) {
+    try {
+        auto *fde = FD_map::_get(fd);
+        if (fde != nullptr) {
+            return fde->async_setup(fd, max_inflight_reads, max_inflight_writes);
+        }
+    } catch(...) {
+        return -ENOSYS;
+    }
+    return -EBADF;
+}
+
+int fs::VFS::vfs_async_destroy(int fd) {
+    try {
+        auto *fde = FD_map::_get(fd);
+        if (fde != nullptr) {
+            return fde->async_destroy(fd);
+        }
+    } catch(...) {
+        return -ENOSYS;
+    }
+    return -EBADF;
+}
+
+int fs::VFS::vfs_async_read(fs::asyncb *asyncbp) {
+    try {
+        auto *fde = FD_map::_get(asyncbp->fd);
+        if (fde != nullptr) {
+            return fde->async_read(asyncbp);
+        }
+    } catch(...) {
+        return -ENOSYS;
+    }
+    return -EBADF;
+}
+
+int fs::VFS::vfs_async_write(fs::asyncb *asyncbp) {
+    try {
+        auto *fde = FD_map::_get(asyncbp->fd);
+        if (fde != nullptr) {
+            return fde->async_write(asyncbp);
+        }
+    } catch(...) {
+        return -ENOSYS;
+    }
+    return -EBADF;
+}
+
+int fs::VFS::vfs_async_inprogress(fs::asyncb *asyncbp) {
+    try {
+        auto *fde = FD_map::_get(asyncbp->fd);
+        if (fde != nullptr) {
+            return fde->async_inprogress(asyncbp);
+        }
+    } catch(...) {
+        return -ENOSYS;
+    }
+    return -EBADF;
+}
+
+int fs::VFS::vfs_async_return(fs::asyncb *asyncbp) {
+    try {
+        auto *fde = FD_map::_get(asyncbp->fd);
+        if (fde != nullptr) {
+            return fde->async_return(asyncbp);
+        }
+    } catch(...) {
+        return -ENOSYS;
+    }
+    return -EBADF;
+}

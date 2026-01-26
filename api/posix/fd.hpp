@@ -19,6 +19,7 @@
 #ifndef INCLUDE_FD_HPP
 #define INCLUDE_FD_HPP
 
+#include <fs/filesystem.hpp>
 #include <sys/uio.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -65,7 +66,7 @@ public:
   virtual int     shutdown(int) { return -1; }
 
   // file-related
-  virtual int   unlink(const char */*pathname*/) { return -1; }
+  virtual int   unlink(const char *) { return -1; }
   virtual int   fchmod(mode_t) { return -1; }
   virtual int   fchmodat(const char *, mode_t, int) { return -1; }
   virtual long  fstat(struct stat *) { return -1; }
@@ -76,6 +77,14 @@ public:
   virtual int   mkfifoat(const char *, mode_t) { return -1; }
   virtual int   mknodat(const char *, mode_t, dev_t) { return -1; }
   virtual off_t lseek(off_t, int) { return -DEFAULT_ERR; }
+
+  // custom non-posix file-related
+  virtual int     async_setup(int, int, int) { return -1; }
+  virtual int     async_destroy(int) { return -1; }
+  virtual int     async_read(fs::asyncb*) { return -1; }
+  virtual int     async_write(fs::asyncb*) { return -1; }
+  virtual int     async_inprogress(fs::asyncb*) { return -1; }
+  virtual ssize_t async_return(fs::asyncb*) { return -1; }
 
   id_t get_id() const noexcept { return id_; }
 

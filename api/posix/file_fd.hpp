@@ -18,6 +18,13 @@ public:
   off_t lseek(off_t, int) override;
   int unlink(const char *pathname) override;
 
+  int async_setup(int fd, int max_inflight_reads, int max_inflight_writes) override;
+  int async_destroy(int fd) override;
+  int async_read(fs::asyncb *asyncbp) override;
+  int async_write(fs::asyncb *asyncbp) override;
+  int async_inprogress(fs::asyncb *asyncbp) override;
+  ssize_t async_return(fs::asyncb *asyncbp) override;
+
   bool is_file() override { return true; }
 private:
   fs::Filesystem& _fs;
