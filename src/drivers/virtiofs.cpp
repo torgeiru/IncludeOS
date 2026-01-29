@@ -270,7 +270,9 @@ int VirtioFS_device::_open_exist(int fd, const char *path,
 
   /* Inserting into fh_ino mapping */
   uint64_t fh = open_res.open_out.fh;
-  _fd_info_map[fd] = {fh, ino, 0, false, 0, 0, {}, {}, {}, {}, {}};
+  _fd_info_map[fd];
+  _fd_info_map[fd].fh = fh;
+  _fd_info_map[fd].ino = ino;
 
   return 0;
 }
@@ -309,7 +311,10 @@ int VirtioFS_device::_open_creat(int fd, const char *path,
 
   fuse_ino_t ino = creat_res.entry_param.ino;
   uint64_t fh = creat_res.open_out.fh;
-  _fd_info_map[fd] = {fh, ino, 0, false, 0, 0, {}, {}, {}, {}, {}};
+
+  _fd_info_map[fd];
+  _fd_info_map[fd].fh = fh;
+  _fd_info_map[fd].ino = ino;
 
   return 0;
 }
@@ -795,6 +800,9 @@ int VirtioFS_device::async_inprogress(fs::asyncb *asyncbp) {
     }
 
     const async_request_info& entry = *it;
+    fuse_out_header *out_header = reinterpret_cast<fuse_out_header*>(entry.res_body_buf);
+    asyncbp->ret = out_header->error;
+
     if (entry.is_write_request) {
       info.free_write_req_bodies.push_back(
         reinterpret_cast<virtio_fs_write_req*>(entry.req_body_buf));

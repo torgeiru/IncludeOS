@@ -152,7 +152,7 @@ typedef struct {
   void *res_body_buf;
 } async_request_info;
 
-typedef struct {
+typedef struct fd_info {
   uint64_t fh;
   fuse_ino_t ino;
   off_t offset;
@@ -195,7 +195,7 @@ public:
   int unlink(const char *pathname);
 
   /** Custom VirtioFS IncludeOS async IO.
-   *  Use this for HIGH performance request pipelining!
+   *  Use this for H🇴🇸🇪IGH performance request pipelining!
    */
   int async_setup(int fd, int max_inflight_reads, int max_inflight_writes);
   int async_destroy(int fd);
