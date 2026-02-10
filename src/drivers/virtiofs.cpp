@@ -1,5 +1,7 @@
 #include "virtiofs.hpp"
 
+#include <kernel/events.hpp>
+
 #include <memory>
 #include <string>
 #include <cstring>
@@ -14,17 +16,40 @@
 #define VIRTIOFS_OPTIONAL_FEATS 0
 
 #define USE_POLLING true
+#define USE_IRQ false
 #define HIPRIO_QUEUE_ID 0
 #define REQ_QUEUE_ID 1
+#define REQ_QUEUE_MSIX_VEC 0
+
+void VirtioFS_device::_fuse_send_and_wait(VirtTokens& tokens) {
+  /* Enqueue buffer chain and kick device  */
+  _req.enqueue(tokens);
+
+  /* Blocking waiting for request to have been processed */
+  while(_req.has_processed_used()) {
+    asm volatile("HLT");
+  }
+
+  /* Dequeue the buffer chain from the Virtio ring */
+  _req.dequeue();
+}
 
 VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
   _control(d, VIRTIOFS_REQUIRED_FEATS, VIRTIOFS_OPTIONAL_FEATS),
   _hiprio(_control, HIPRIO_QUEUE_ID, USE_POLLING),
-  _req(_control, REQ_QUEUE_ID, USE_POLLING),
+  _req(_control, REQ_QUEUE_ID, USE_IRQ, REQ_QUEUE_MSIX_VEC),
   _unique_counter(0)
 {
   static int id_count = 0;
   _id = id_count++;
+  _control.set_driver_ok_bit();
+
+  /* Enabling MSIX interrupts and callbacks */
+  _control.enable_msix(1);
+  auto event_num = Events::get().subscribe(
+    {this, &VirtioFS_device::_fuse_log_reply}
+  );
+  d.setup_msix_vector(0, IRQ_BASE + event_num);
   _control.set_driver_ok_bit();
 
   /* Negotiate FUSE version */
@@ -44,9 +69,7 @@ VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
     sizeof(virtio_fs_init_res)
   );
 
-  _req.enqueue(init_req_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(init_req_tokens);
 
   bool compatible_major_version = (FUSE_MAJOR_VERSION == init_res.init_out.major);
   CHECK(compatible_major_version, "Daemon and driver major FUSE version matches");
@@ -119,9 +142,7 @@ fuse_ino_t VirtioFS_device::_lookup_inode(const char *path, size_t pathlen) {
     sizeof(virtio_fs_lookup_res)
   );
 
-  _req.enqueue(lookup_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(lookup_tokens);
 
   if (lookup_res.out_header.error != 0) {
     return -1;
@@ -153,9 +174,7 @@ int VirtioFS_device::_open_exist(int fd, const char *path,
     sizeof(virtio_fs_open_res)
   );
 
-  _req.enqueue(open_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(open_tokens);
 
   if (open_res.out_header.error != 0) {
     return open_res.out_header.error;
@@ -193,9 +212,7 @@ int VirtioFS_device::_open_creat(int fd, const char *path,
     sizeof(creat_res)
   );
 
-  _req.enqueue(creat_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(creat_tokens);
 
   if (creat_res.out_header.error != 0) {
     return creat_res.out_header.error;
@@ -274,9 +291,7 @@ ssize_t VirtioFS_device::write(int fd, const void *buf, size_t count) {
     sizeof(virtio_fs_write_res)
   );
 
-  _req.enqueue(write_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(write_tokens);
 
   if (write_res.out_header.error != 0) {
     return write_res.out_header.error;
@@ -340,9 +355,7 @@ ssize_t VirtioFS_device::writev(int fd, const struct iovec *iov, int iovcnt) {
     sizeof(virtio_fs_write_res)
   );
 
-  _req.enqueue(write_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(write_tokens);
 
   if (write_res.out_header.error != 0) {
     return write_res.out_header.error;
@@ -387,9 +400,7 @@ ssize_t VirtioFS_device::read(int fd, void *buf, size_t count) {
     count
   );
 
-  _req.enqueue(read_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(read_tokens);
 
   if (read_res.out_header.error != 0) {
     return read_res.out_header.error;
@@ -444,9 +455,7 @@ ssize_t VirtioFS_device::readv(int fd, const struct iovec *iov, int iovcnt) {
     );
   }
 
-  _req.enqueue(read_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(read_tokens);
 
   if (read_res.out_header.error != 0) {
     return read_res.out_header.error;
@@ -485,9 +494,7 @@ int VirtioFS_device::close(int fd) {
     sizeof(virtio_fs_close_res)
   );
 
-  _req.enqueue(close_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(close_tokens);
 
   if (close_res.out_header.error != 0) {
     return close_res.out_header.error;
@@ -536,9 +543,7 @@ int VirtioFS_device::unlink(const char *pathname) {
     sizeof(virtio_fs_unlink_res)
   );
 
-  _req.enqueue(unlink_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(unlink_tokens);
 
   if (unlink_res.out_header.error != 0) {
     return unlink_res.out_header.error;

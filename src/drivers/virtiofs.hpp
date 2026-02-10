@@ -56,6 +56,9 @@ private:
 
   uint32_t _max_write;
 
+  void _fuse_send_and_wait(VirtTokens& tokens);
+  void _fuse_log_reply() {}
+
   fuse_ino_t _lookup_inode( const char *path, size_t pathlen);
 
   /** Helper methods for open and creat */
