@@ -9,8 +9,7 @@
 #include <expects>
 
 using util::bits::is_aligned;
-Split_queue::Split_queue(Virtio_control& virtio_dev, int vqueue_id, 
-  bool use_polling, uint8_t msix_vector)
+Split_queue::Split_queue(Virtio_control& virtio_dev, int vqueue_id, uint16_t msix_vector)
 : _last_used_idx(0), _VQUEUE_ID(vqueue_id), _virtio_dev(virtio_dev)
 {
   /* Selecting specific virtqueue */
@@ -27,16 +26,12 @@ Split_queue::Split_queue(Virtio_control& virtio_dev, int vqueue_id,
   _avail_notify = reinterpret_cast<volatile uint16_t*>(_virtio_dev.notify_region() + 
     (cfg.queue_notify_off * _virtio_dev.notify_off_multiplier()));
   
-  /* Deciding whether to use polling or interrupts  */
-  if (use_polling) {
-    cfg.queue_msix_vector = VIRTIO_MSI_NO_VECTOR;
-  } else {
-    cfg.queue_msix_vector = msix_vector;
-    Expects(cfg.queue_msix_vector == msix_vector);
-  }
-  
+  cfg.queue_msix_vector = msix_vector;
+  Expects(cfg.queue_msix_vector == msix_vector);
+
   /* No config interrupts ever! */
   cfg.config_msix_vector = VIRTIO_MSI_NO_VECTOR;
+  Expects(cfg.config_msix_vector == VIRTIO_MSI_NO_VECTOR);
   
   /* Allocating and initializing split virtqueue parts */
   size_t desc_table_size = DESC_TBL_SIZE(queue_size);

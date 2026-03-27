@@ -8,7 +8,7 @@
 
 VirtioPMEM_device::VirtioPMEM_device(hw::PCI_Device& d) :
   Virtio_control(d, VIRTIOPMEM_REQUIRED_FEATS, VIRTIOPMEM_OPTIONAL_FEATS),
-_req(*this, 0, true) {
+_req(*this, 0, VIRTIO_MSI_NO_VECTOR) {
   static int id_count = 0;
   _id = id_count++;
   _config = reinterpret_cast<virtio_pmem_config*>(specific_cfg());

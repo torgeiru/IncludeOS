@@ -13,14 +13,13 @@
 #define VIRTIOFS_REQUIRED_FEATS 0
 #define VIRTIOFS_OPTIONAL_FEATS 0
 
-#define USE_POLLING true
 #define HIPRIO_QUEUE_ID 0
 #define REQ_QUEUE_ID 1
 
 VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
   _control(d, VIRTIOFS_REQUIRED_FEATS, VIRTIOFS_OPTIONAL_FEATS),
-  _hiprio(_control, HIPRIO_QUEUE_ID, USE_POLLING),
-  _req(_control, REQ_QUEUE_ID, USE_POLLING),
+  _hiprio(_control, HIPRIO_QUEUE_ID, VIRTIO_MSI_NO_VECTOR),
+  _req(_control, REQ_QUEUE_ID, VIRTIO_MSI_NO_VECTOR),
   _unique_counter(0)
 {
   static int id_count = 0;

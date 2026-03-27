@@ -96,8 +96,7 @@ typedef struct __attribute__((packed)) {
  */
 class Split_queue {
 public:
-  Split_queue(Virtio_control& virtio_dev, int vqueue_id, 
-    bool use_polling, uint8_t msix_vector = 0);
+  Split_queue(Virtio_control& virtio_dev, int vqueue_id, uint16_t msix_vector);
   void deactivate_split_queue();
 
   /** Interface methods for virtqueues */

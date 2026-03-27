@@ -45,9 +45,6 @@ Virtio_control::Virtio_control(
   /* Finding Virtio structures */
   _find_cap_cfgs();
 
-  /* Negotiating features */
-  _negotiate_features(required_feats, optional_feats);
-
   /*
     Initializing the device. Virtio Std. §3.1
   */
@@ -56,6 +53,9 @@ Virtio_control::Virtio_control(
 
   _set_ack_and_driver_bits();
   CHECK(true, "Setting acknowledgement and drive bits");
+
+  /* Negotiating features */
+  _negotiate_features(required_feats, optional_feats);
 
   /* Letting device set up queues and driver OK... */
 }
