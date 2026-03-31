@@ -18,15 +18,6 @@ namespace fs {
         static VFS_mounts& get_mounts() { return instance()._mounts; }
 
         static void register_filesystem(const std::string& mount_name, Filesystem& fs);
-
-        static int vfs_open(Path& path, int flags, mode_t mode);
-        static ssize_t vfs_read(int fd, void *buf, size_t count);
-        static ssize_t vfs_readv(int fd, const struct iovec* iov, int iovcnt);
-        static off_t vfs_lseek(int fd, off_t offset, int whence);
-        static ssize_t vfs_write(int fd, const void *buf, size_t count);
-        static ssize_t vfs_writev(int fd, const struct iovec* iov, int iovcnt);
-        static int vfs_close(int fd);
-        static int vfs_unlink(Path& path);
     private:
         VFS_mounts _mounts;
     };

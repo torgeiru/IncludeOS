@@ -1,6 +1,6 @@
 #include <os>
 #include "common.hpp"
-#include <fs/vfs.hpp>
+#include <posix/fd_map.hpp>
 
 static long sys_write(int fd, const void* buf, size_t count) {
 
@@ -10,7 +10,15 @@ static long sys_write(int fd, const void* buf, size_t count) {
     return count;
   }
 
-  return fs::VFS::vfs_write(fd, buf, count);
+  try {
+      auto *fde = FD_map::_get(fd);
+      if (fde != nullptr) {
+          return fde->write(buf, count);
+      }
+  } catch(...) {
+      return -ENOSYS;
+  }
+  return -EBADF;
 }
 
 // The syscall wrapper, using strace if enabled

@@ -1,9 +1,20 @@
 #include "common.hpp"
-#include <fs/vfs.hpp>
+#include <posix/fd_map.hpp>
 
 static long sys_close(int fd)
 {
-  return fs::VFS::vfs_close(fd);
+    auto* fde = FD_map::_get(fd);
+    if (fde == nullptr) {
+        return -EBADF;
+    }
+
+    int result = fde->close();
+    if (result != 0) {
+        os::panic("Unrecoverable failure when closing file descriptor for filesystem!\nProbably a bug in the file system driver");
+    }
+
+    FD_map::close(fd);
+    return 0;
 }
 
 extern "C"

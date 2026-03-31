@@ -1,6 +1,6 @@
 #include "common.hpp"
 #include <sys/uio.h>
-#include <fs/vfs.hpp>
+#include <posix/fd_map.hpp>
 
 static long sys_writev(int fd, const struct iovec *iov, int iovcnt)
 {
@@ -17,7 +17,15 @@ static long sys_writev(int fd, const struct iovec *iov, int iovcnt)
     return res;
   }
 
-  return fs::VFS::vfs_writev(fd, iov, iovcnt);
+  try {
+      auto *fde = FD_map::_get(fd);
+      if (fde != nullptr) {
+          return fde->writev(iov, iovcnt);
+      }
+  } catch(...) {
+      return -ENOSYS;
+  }
+  return -EBADF;
 }
 
 extern "C"

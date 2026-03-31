@@ -1,9 +1,18 @@
 #include "common.hpp"
-#include <fs/vfs.hpp>
+#include <posix/fd_map.hpp>
 
 static long sys_read(int fd, void* buf, size_t count)
 {
-  return fs::VFS::vfs_read(fd, buf, count);
+  try {
+      auto *fde = FD_map::_get(fd);
+      if (fde != nullptr) {
+          return fde->read(buf, count);
+      }
+  } catch(...) {
+      return -ENOSYS;
+  }
+
+  return -EBADF;
 }
 
 extern "C"
