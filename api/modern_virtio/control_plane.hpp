@@ -124,13 +124,16 @@ class Virtio_control {
     /** Queue notification information */
     inline uint32_t notify_off_multiplier() const { return _notify_off_multiplier; }
     inline uint8_t *notify_region() const { return _notify_region; }
+
+    /** Optional features accepted during feature negotiation */
+    inline uint64_t negotiated_features() const { return _negotiated_features; }
     
   private:
     /** Tells Virtio PCI about wanted and necessary features.
      *  For now only features from bit 0 to 63 inclusive considered.
-     *  Returns the negotiated optional features.
+     *  Stores the negotiated optional features in _negotiated_features.
      *  Panics if not all required features are available */
-    uint64_t _negotiate_features(uint64_t required_feats, uint64_t optional_feats);
+    void _negotiate_features(uint64_t required_feats, uint64_t optional_feats);
 
     /** Finds the common configuration address */
     void _find_cap_cfgs();
@@ -168,6 +171,7 @@ class Virtio_control {
     /* Other */
     hw::PCI_Device& _pcidev;
     uint16_t _virtio_device_id;
+    uint64_t _negotiated_features;
     bool _msix_enabled;
 };
 

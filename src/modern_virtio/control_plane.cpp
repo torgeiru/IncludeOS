@@ -9,7 +9,10 @@
 Virtio_control::Virtio_control(
   hw::PCI_Device& dev, uint64_t required_feats, uint64_t optional_feats
 ) :
-  _pcidev(dev), _virtio_device_id(dev.product_id()), _msix_enabled(false)
+  _pcidev(dev),
+  _virtio_device_id(dev.product_id()),
+  _negotiated_features(0),
+  _msix_enabled(false)
 {
   INFO("Virtio","Attaching to  PCI addr 0x%x",dev.pci_addr());
 
@@ -132,7 +135,7 @@ void Virtio_control::_set_ack_and_driver_bits() {
   _common_cfg->device_status |= VIRTIO_CONFIG_S_DRIVER;
 }
 
-uint64_t Virtio_control::_negotiate_features(
+void Virtio_control::_negotiate_features(
   uint64_t required_feats, 
   uint64_t optional_feats
 ) {
@@ -160,8 +163,8 @@ uint64_t Virtio_control::_negotiate_features(
   _virtio_panic(satisfied_required_feats);
 
   /* Checking for optional features */
-  bool satisfied_opt_feats_lo = dev_features_lo & optional_feats_lo;
-  bool satisfied_opt_feats_hi = dev_features_hi & optional_feats_hi;
+  uint32_t satisfied_opt_feats_lo = dev_features_lo & optional_feats_lo;
+  uint32_t satisfied_opt_feats_hi = dev_features_hi & optional_feats_hi;
 
   /* Supplying negotiated features */
   uint32_t nego_feats_lo = required_feats_lo | satisfied_opt_feats_lo;
@@ -182,8 +185,8 @@ uint64_t Virtio_control::_negotiate_features(
   CHECK(features_ok, "Features OK bit is still set");
   _virtio_panic(features_ok);
 
-  // Returning all the optional features supported
-  return (static_cast<uint64_t>(satisfied_opt_feats_hi) << 32) 
+  // Store all supported optional features for the upper-level driver
+  _negotiated_features = (static_cast<uint64_t>(satisfied_opt_feats_hi) << 32)
     | satisfied_opt_feats_lo;
 }
 
