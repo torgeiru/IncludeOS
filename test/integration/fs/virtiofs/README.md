@@ -1,1 +1,0 @@
-# VirtioFS integration test
