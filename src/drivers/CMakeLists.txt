@@ -20,7 +20,6 @@ if (${PLATFORM} STREQUAL "default")
     #virtioblk.cpp
     virtionet.cpp
     #virtiopmem.cpp
-    virtiofs.cpp
     vmxnet3.cpp
     e1000.cpp
   )
@@ -36,6 +35,24 @@ foreach(DRIVER ${DRIVER_SRCS})
   add_library(${DRIVER_NAME} STATIC ${DRIVER})
   list(APPEND DRIVERS ${DRIVER_NAME})
 endforeach()
+
+# Hack so that I can have a interrupt
+# and polling mode driver without
+# having to make two distinct files
+if (${PLATFORM} STREQUAL "default")
+  add_library(virtiofs_polling STATIC virtiofs.cpp)
+
+  add_library(virtiofs_interrupts STATIC virtiofs.cpp)
+  target_compile_definitions(
+    virtiofs_interrupts
+    PRIVATE VIRTIOFS_USE_INTERRUPTS
+  )
+
+  list(APPEND DRIVERS
+    virtiofs_polling
+    virtiofs_interrupts
+  )
+endif()
 
 #TODO rename source file
 add_library(boot_logger STATIC stdout/bootlog.cpp)

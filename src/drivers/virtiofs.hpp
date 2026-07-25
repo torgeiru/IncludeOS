@@ -56,6 +56,10 @@ private:
 
   uint32_t _max_write;
 
+  void _fuse_send_and_wait(Split_queue& queue, VirtTokens& tokens);
+  void _fuse_wait(Split_queue& queue);
+  void _on_req_queue_interrupt();
+
   fuse_ino_t _lookup_inode( const char *path, size_t pathlen);
 
   /** Helper methods for open and creat */

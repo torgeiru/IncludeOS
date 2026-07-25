@@ -1,5 +1,9 @@
 #include "virtiofs.hpp"
 
+#ifdef VIRTIOFS_USE_INTERRUPTS
+#include <kernel/events.hpp>
+#endif
+
 #include <memory>
 #include <string>
 #include <cstring>
@@ -16,14 +20,66 @@
 #define HIPRIO_QUEUE_ID 0
 #define REQ_QUEUE_ID 1
 
+#ifdef VIRTIOFS_USE_INTERRUPTS
+#define REQ_QUEUE_MSIX_VECTOR 0
+#endif
+
+void VirtioFS_device::_fuse_wait(Split_queue& queue) {
+#ifdef VIRTIOFS_USE_INTERRUPTS
+  if (&queue == &_req) {
+    while (queue.has_processed_used()) {
+      /*
+       * Closing the gap between checking the used ring and halting prevents
+       * a completion interrupt from being handled immediately before HLT.
+       * STI delays interrupt delivery until after the following instruction.
+       */
+      asm volatile("cli" ::: "memory");
+      if (!queue.has_processed_used()) {
+        asm volatile("sti" ::: "memory");
+        break;
+      }
+      asm volatile("sti; hlt" ::: "memory");
+    }
+    return;
+  }
+#endif
+  while (queue.has_processed_used());
+}
+
+void VirtioFS_device::_fuse_send_and_wait(
+  Split_queue& queue,
+  VirtTokens& tokens
+) {
+  queue.enqueue(tokens);
+  _fuse_wait(queue);
+  queue.dequeue();
+}
+
+#ifdef VIRTIOFS_USE_INTERRUPTS
+void VirtioFS_device::_on_req_queue_interrupt() {}
+#endif
+
 VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
   _control(d, VIRTIOFS_REQUIRED_FEATS, VIRTIOFS_OPTIONAL_FEATS),
   _hiprio(_control, HIPRIO_QUEUE_ID, VIRTIO_MSI_NO_VECTOR),
+#ifdef VIRTIOFS_USE_INTERRUPTS
+  _req(_control, REQ_QUEUE_ID, REQ_QUEUE_MSIX_VECTOR),
+#else
   _req(_control, REQ_QUEUE_ID, VIRTIO_MSI_NO_VECTOR),
+#endif
   _unique_counter(0)
 {
   static int id_count = 0;
   _id = id_count++;
+
+#ifdef VIRTIOFS_USE_INTERRUPTS
+  _control.enable_msix(1);
+  auto event_num = Events::get().subscribe(
+    {this, &VirtioFS_device::_on_req_queue_interrupt}
+  );
+  d.setup_msix_vector(0, IRQ_BASE + event_num);
+#endif
+
   _control.set_driver_ok_bit();
 
   /* Negotiate FUSE version */
@@ -43,9 +99,7 @@ VirtioFS_device::VirtioFS_device(hw::PCI_Device& d) :
     sizeof(virtio_fs_init_res)
   );
 
-  _req.enqueue(init_req_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(_req, init_req_tokens);
 
   bool compatible_major_version = (FUSE_MAJOR_VERSION == init_res.init_out.major);
   CHECK(compatible_major_version, "Daemon and driver major FUSE version matches");
@@ -118,9 +172,7 @@ fuse_ino_t VirtioFS_device::_lookup_inode(const char *path, size_t pathlen) {
     sizeof(virtio_fs_lookup_res)
   );
 
-  _req.enqueue(lookup_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(_req, lookup_tokens);
 
   if (lookup_res.out_header.error != 0) {
     return -1;
@@ -152,9 +204,7 @@ int VirtioFS_device::_open_exist(int fd, const char *path,
     sizeof(virtio_fs_open_res)
   );
 
-  _req.enqueue(open_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(_req, open_tokens);
 
   if (open_res.out_header.error != 0) {
     return open_res.out_header.error;
@@ -192,9 +242,7 @@ int VirtioFS_device::_open_creat(int fd, const char *path,
     sizeof(creat_res)
   );
 
-  _req.enqueue(creat_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(_req, creat_tokens);
 
   if (creat_res.out_header.error != 0) {
     return creat_res.out_header.error;
@@ -273,9 +321,7 @@ ssize_t VirtioFS_device::write(int fd, const void *buf, size_t count) {
     sizeof(virtio_fs_write_res)
   );
 
-  _req.enqueue(write_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(_req, write_tokens);
 
   if (write_res.out_header.error != 0) {
     return write_res.out_header.error;
@@ -339,9 +385,7 @@ ssize_t VirtioFS_device::writev(int fd, const struct iovec *iov, int iovcnt) {
     sizeof(virtio_fs_write_res)
   );
 
-  _req.enqueue(write_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(_req, write_tokens);
 
   if (write_res.out_header.error != 0) {
     return write_res.out_header.error;
@@ -386,9 +430,7 @@ ssize_t VirtioFS_device::read(int fd, void *buf, size_t count) {
     count
   );
 
-  _req.enqueue(read_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(_req, read_tokens);
 
   if (read_res.out_header.error != 0) {
     return read_res.out_header.error;
@@ -443,9 +485,7 @@ ssize_t VirtioFS_device::readv(int fd, const struct iovec *iov, int iovcnt) {
     );
   }
 
-  _req.enqueue(read_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(_req, read_tokens);
 
   if (read_res.out_header.error != 0) {
     return read_res.out_header.error;
@@ -484,9 +524,7 @@ int VirtioFS_device::close(int fd) {
     sizeof(virtio_fs_close_res)
   );
 
-  _req.enqueue(close_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(_req, close_tokens);
 
   if (close_res.out_header.error != 0) {
     return close_res.out_header.error;
@@ -503,9 +541,7 @@ int VirtioFS_device::close(int fd) {
     sizeof(virtio_fs_forget_req)
   );
 
-  _hiprio.enqueue(forget_tokens);
-  while(_hiprio.has_processed_used());
-  _hiprio.dequeue();
+  _fuse_send_and_wait(_hiprio, forget_tokens);
 
   return 0;
 }
@@ -535,9 +571,7 @@ int VirtioFS_device::unlink(const char *pathname) {
     sizeof(virtio_fs_unlink_res)
   );
 
-  _req.enqueue(unlink_tokens);
-  while(_req.has_processed_used());
-  _req.dequeue();
+  _fuse_send_and_wait(_req, unlink_tokens);
 
   if (unlink_res.out_header.error != 0) {
     return unlink_res.out_header.error;
