@@ -41,9 +41,21 @@ final: prev: {
       libcxx = self.libcxx_musl_unpatched;
     });
 
+    clang_musl_unpatched_libcxx = self.llvmPkgs.libcxxClang.override ({
+      bintools = prev.pkgsStatic.bintools.override {
+        # Disable hardening flags while we work on the build
+        defaultHardeningFlags = [];
+        libc = self.musl-unpatched;
+      };
+      libc = self.musl-unpatched;
+      libcxx = self.libcxx_musl_unpatched;
+    });
+
     musl_includeos_stdenv_libcxx = (prev.overrideCC self.llvmPkgs.libcxxStdenv self.clang_musl_includeos_libcxx);
+    musl_linux_stdenv_libcxx = (prev.overrideCC self.llvmPkgs.libcxxStdenv self.clang_musl_unpatched_libcxx);
 
     includeos_stdenv = self.musl_includeos_stdenv_libcxx;
+    linux_stdenv = self.musl_linux_stdenv_libcxx;
 
     libraries = {
       libc = self.musl-includeos;
@@ -196,19 +208,20 @@ final: prev: {
       # Add some pasthroughs, for easily building the dependencies (for debugging):
       # $ nix-build -A NAME
 
-      passthru.vmrunner = prev.callPackage (builtins.fetchGit {
+      passthru = {
+        vmrunner = prev.callPackage (builtins.fetchGit {
           url = "https://github.com/torgeiru/vmrunner";
           ref = "benchmarking";
         }) {};
-      passthru.diskbuilder = prev.callPackage (builtins.fetchGit {
+        diskbuilder = prev.callPackage (builtins.fetchGit {
           url = "https://github.com/includeos/diskbuilder";
         }) {};
-      passthru.chainloader = import ./chainloader.nix { inherit withCcache; };
-      passthru.lest = self.callPackage ./deps/lest {};
-      passthru.pkgsStatic = prev.pkgsStatic; # this is for convenience for other packages that depend on includeos
-      passthru.pkgs = prev.pkgs; # this is for convenience for other packages that depend on includeos
+        chainloader = import ./chainloader.nix { inherit withCcache; };
+        lest = self.callPackage ./deps/lest {};
 
-      passthru = {
+        inherit (prev) pkgsStatic pkgs;                   # this is for convenience for other packages that depend on includeos
+        inherit (final.stdenvIncludeOS) linux_stdenv;     # Linux comparison stdenv for Linux benchmark builds
+
         inherit (self) uzlib;
         inherit (self) botan2;
         inherit (self) libfmt;
